@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>System-Layer Module Index</title>
+  <link rel="stylesheet" href="../paper.css">
+</head>
+<body>
+<main data-paper>
+  <section class="hero">
+    <p class="kicker">Appendix / system-layer index</p>
+    <h1>系统层模块索引</h1>
+    <p class="abstract">本索引按系统职责组织仓库，而不是按文件树讲解。每个系统层给出 purpose、input/output、invariant、failure mode 和课程跳转。</p>
+  </section>
+
+  <section>
+    <h2>Layered Map</h2>
+    <table>
+      <thead><tr><th>Layer</th><th>Primary modules</th><th>Contract</th><th>Course link</th></tr></thead>
+      <tbody>
+        <tr><td>User/API</td><td>`run_inference.py`, `__init__.py`</td><td>Expose CLI and public import surface.</td><td><a href="../02-cli-api-contract.html">CLI contract</a></td></tr>
+        <tr><td>Prompt Protocol</td><td>`magic_prompt.py`, `caption_verifier.py`</td><td>Convert or verify prompt strings as structured caption conditions.</td><td><a href="../06-json-caption-protocol.html">JSON caption protocol</a></td></tr>
+        <tr><td>Representation</td><td>`pipeline_ideogram4.py`, `constants.py`</td><td>Tokenize, extract Qwen features, pack text/image tokens, assign positions and indicators.</td><td><a href="../03-token-packing.html">Token packing</a></td></tr>
+        <tr><td>Model Core</td><td>`modeling_ideogram4.py`</td><td>Predict image-token velocity from text features, noisy latents, timestep, positions, and masks.</td><td><a href="../05-transformer-architecture.html">Transformer architecture</a></td></tr>
+        <tr><td>Sampler</td><td>`scheduler.py`, `sampler_configs.py`, pipeline loop</td><td>Map step intervals through logit-normal schedule and integrate velocity by Euler updates.</td><td><a href="../04-sampling-cfg.html">Sampling / CFG</a></td></tr>
+        <tr><td>Decoder</td><td>`autoencoder.py`, `latent_norm.py`</td><td>Denormalize latent tokens, unpatch to VAE latent map, decode to RGB image.</td><td><a href="../05-transformer-architecture.html#output-contract">Output contract</a></td></tr>
+        <tr><td>Runtime</td><td>`quantized_loading.py`</td><td>Map nf4/fp8 state dicts to executable PyTorch modules.</td><td><a href="../01-model-card.html#runtime">Runtime card</a></td></tr>
+        <tr><td>Safety/Governance</td><td>`safety.py`, `docs/safety.md`, licenses</td><td>Moderate prompt/output when keys exist; define usage expectations and license boundaries.</td><td><a href="../01-model-card.html#safety">Safety and access</a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Invariants and Failure Modes</h2>
+    <table>
+      <thead><tr><th>Layer</th><th>Invariant</th><th>Failure mode</th></tr></thead>
+      <tbody>
+        <tr><td>Representation</td><td>height and width must be divisible by `patch_size * ae_scale_factor = 16`.</td><td>Pipeline raises before sampling.</td></tr>
+        <tr><td>Text encoding</td><td>Text token count must not exceed `max_text_tokens = 2048`.</td><td>Pipeline raises before Qwen encoding.</td></tr>
+        <tr><td>nf4 runtime</td><td>bnb 4-bit path requires CUDA device.</td><td>Transformer build raises on non-CUDA.</td></tr>
+        <tr><td>Caption verifier</td><td>Default pipeline treats verifier issues as errors.</td><td>Plain text direct `pipe(...)` can fail unless using magic prompt or warnings.</td></tr>
+        <tr><td>Hive safety</td><td>Runtime filters require configured keys.</td><td>Missing keys produce warnings, not blocking moderation.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="next">
+    <a class="button" href="../index.html">Back to Abstract</a>
+    <a class="button primary" href="evidence.html">Evidence Appendix</a>
+  </section>
+</main>
+<script src="../paper.js" data-root=".."></script>
+<script>mountPaperChrome("Module Index");</script>
+</body>
+</html>

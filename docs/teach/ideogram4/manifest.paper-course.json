@@ -1,0 +1,25 @@
+{
+  "objective": "Ideogram 4 paper-course v2 technical report",
+  "status": "validated",
+  "entrypoint": "paper-course/index.html",
+  "required_artifacts": [
+    "paper-course/index.html",
+    "paper-course/01-model-card.html",
+    "paper-course/02-cli-api-contract.html",
+    "paper-course/03-token-packing.html",
+    "paper-course/04-sampling-cfg.html",
+    "paper-course/05-transformer-architecture.html",
+    "paper-course/06-json-caption-protocol.html",
+    "paper-course/07-training-public-record.html",
+    "paper-course/appendix/module-index.html",
+    "paper-course/appendix/evidence.html",
+    "paper-course/artifacts/source-matrix.md",
+    "artifacts/feedback-regression-matrix.md"
+  ],
+  "proof": [
+    "proof/paper-course-playwright-results.json",
+    "proof/paper-course-screenshots",
+    "artifacts/feedback-regression-matrix.md",
+    "artifacts/misconception-audits/paper-course-v2.md"
+  ]
+}

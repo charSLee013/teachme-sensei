@@ -1,0 +1,298 @@
+{
+  "schema": "teach-v2-manifest",
+  "version": 1,
+  "course": {
+    "title": "Pi Agent Harness Repo Course",
+    "mode": "repo-course",
+    "mission": "Teach an engineer how Pi Agent Harness is structured, how its main runtime path works, and how to contribute against the current repository facts without overclaiming.",
+    "status": "validated"
+  },
+  "artifacts": [
+    {
+      "path": "course-map.html",
+      "type": "course_map",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "index.html",
+      "type": "course_home",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "chapters/01-what-is-pi.html",
+      "type": "lesson",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "chapters/02-monorepo.html",
+      "type": "lesson",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "chapters/03-pi-ai.html",
+      "type": "lesson",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "chapters/04-agent-core.html",
+      "type": "lesson",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "chapters/05-pi-tui.html",
+      "type": "lesson",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "chapters/06-coding-agent.html",
+      "type": "lesson",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "chapters/07-tools.html",
+      "type": "lesson",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "chapters/08-extensions.html",
+      "type": "lesson",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "chapters/09-session-management.html",
+      "type": "lesson",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "chapters/10-compaction.html",
+      "type": "lesson",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "chapters/11-interactive-mode.html",
+      "type": "lesson",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "chapters/12-sdk.html",
+      "type": "lesson",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "chapters/13-orchestrator.html",
+      "type": "lesson",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "chapters/14-contributing.html",
+      "type": "lesson",
+      "audience": "student",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "artifacts/source-matrix.md",
+      "type": "source_matrix",
+      "audience": "backstage",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/artifact-survival.json"
+    },
+    {
+      "path": "artifacts/misconception-audits/01-radius-is-not-visibility.md",
+      "type": "misconception_audit",
+      "audience": "backstage",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/artifact-survival.json"
+    },
+    {
+      "path": "artifacts/misconception-audits/02-sdk-events-not-string-literals.md",
+      "type": "misconception_audit",
+      "audience": "backstage",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/artifact-survival.json"
+    },
+    {
+      "path": "artifacts/misconception-audits/03-tools-no-websearch-no-delegation.md",
+      "type": "misconception_audit",
+      "audience": "backstage",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/artifact-survival.json"
+    },
+    {
+      "path": "artifacts/misconception-audits/04-test-sh-is-simple.md",
+      "type": "misconception_audit",
+      "audience": "backstage",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/artifact-survival.json"
+    },
+    {
+      "path": "artifacts/misconception-audits/05-lgtm-is-pr-gate-not-merge-quorum.md",
+      "type": "misconception_audit",
+      "audience": "backstage",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/artifact-survival.json"
+    },
+    {
+      "path": "artifacts/misconception-audits/06-counts-and-locking-claims-must-match-files.md",
+      "type": "misconception_audit",
+      "audience": "backstage",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/artifact-survival.json"
+    },
+    {
+      "path": "proof/static-link-check.md",
+      "type": "proof_log",
+      "audience": "backstage",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/static-link-check.md"
+    },
+    {
+      "path": "proof/playwright-results.json",
+      "type": "proof_log",
+      "audience": "backstage",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/playwright-results.json"
+    },
+    {
+      "path": "proof/artifact-survival.json",
+      "type": "proof_log",
+      "audience": "backstage",
+      "required": true,
+      "status": "validated",
+      "last_validated": "2026-07-02",
+      "proof": "proof/artifact-survival.json"
+    }
+  ],
+  "phase_gates": [
+    {
+      "phase": "phase-1",
+      "goal": "Rebuild Teach v2 governance layer and replace legacy manifest/source matrix structures.",
+      "status": "passed",
+      "gate_review": "Teach manifest, source matrix, mission, resources, glossary, notes, and course map exist and align to the repo-course boundary.",
+      "blocking_issues": []
+    },
+    {
+      "phase": "phase-2",
+      "goal": "Repair student-facing facts and add learner cues to every HTML page.",
+      "status": "passed",
+      "gate_review": "Each HTML page exposes main line, remember now, and next action. Known fact drifts were corrected or bounded.",
+      "blocking_issues": []
+    },
+    {
+      "phase": "phase-3",
+      "goal": "Generate proof artifacts for validation, screenshots, and artifact survival.",
+      "status": "passed",
+      "gate_review": "Validator, static link audit, Playwright checks, and artifact survival proof are all recorded under proof/.",
+      "blocking_issues": []
+    }
+  ],
+  "final_proof": {
+    "status": "passed",
+    "validated_at": "2026-07-02",
+    "required_paths_checked": [
+      "course-map.html",
+      "index.html",
+      "chapters/01-what-is-pi.html",
+      "chapters/02-monorepo.html",
+      "chapters/03-pi-ai.html",
+      "chapters/04-agent-core.html",
+      "chapters/05-pi-tui.html",
+      "chapters/06-coding-agent.html",
+      "chapters/07-tools.html",
+      "chapters/08-extensions.html",
+      "chapters/09-session-management.html",
+      "chapters/10-compaction.html",
+      "chapters/11-interactive-mode.html",
+      "chapters/12-sdk.html",
+      "chapters/13-orchestrator.html",
+      "chapters/14-contributing.html",
+      "artifacts/source-matrix.md",
+      "artifacts/misconception-audits/05-lgtm-is-pr-gate-not-merge-quorum.md",
+      "artifacts/misconception-audits/06-counts-and-locking-claims-must-match-files.md",
+      "proof/static-link-check.md",
+      "proof/playwright-results.json",
+      "proof/artifact-survival.json"
+    ],
+    "proof_artifact": "proof/artifact-survival.json"
+  }
+}

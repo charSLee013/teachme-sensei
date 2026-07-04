@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第 8 章：扩展系统 — 插件架构详解 — Pi Agent Harness 教学</title>
+    <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>Pi 教学</h2>
+            <span class="version">v0.80.3</span>
+        </div>
+        <nav class="chapter-list">
+            <a href="01-what-is-pi.html">1. 认识 Pi</a>
+            <a href="02-monorepo.html">2. Monorepo 架构</a>
+            <a href="03-pi-ai.html">3. pi-ai LLM 层</a>
+            <a href="04-agent-core.html">4. Agent 运行时</a>
+            <a href="05-pi-tui.html">5. 终端 UI 库</a>
+            <a href="06-coding-agent.html">6. 主 CLI 架构</a>
+            <a href="07-tools.html">7. 内置工具系统</a>
+            <a href="08-extensions.html" class="active">8. 扩展系统</a>
+            <a href="09-session-management.html">9. 会话管理</a>
+            <a href="10-compaction.html">10. 压缩系统</a>
+            <a href="11-interactive-mode.html">11. 交互模式</a>
+            <a href="12-sdk.html">12. 编程式 SDK</a>
+            <a href="13-orchestrator.html">13. 编排器</a>
+            <a href="14-contributing.html">14. 贡献指南</a>
+        </nav>
+    </aside>
+
+    <main class="content">
+        <header class="chapter-header">
+            <span class="chapter-number">第 8 章</span>
+            <h1>扩展系统 — 插件架构详解</h1>
+            <p class="subtitle">理解扩展的发现、加载、运行全流程</p>
+        </header>
+
+        <section class="learner-cues" aria-labelledby="ch8-main-line">
+            <div class="cue-grid">
+                <div class="cue-card">
+                    <h2 id="ch8-main-line">Main Line</h2>
+                    <p>扩展系统是 Pi 把核心保持精简的主要手段。它把“给系统加能力”的需求从核心包中抽离出来，交给 hook、工具注册和 UI 扩展机制。</p>
+                </div>
+                <div class="cue-card">
+                    <h2>Remember Now</h2>
+                    <p>不要把扩展理解成补丁脚本。它们是有生命周期、命令、工具和 UI 注入点的正式运行时参与者。</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="callout info">
+            <strong>本章是最强大的功能章节</strong>。Pi 的扩展系统让它从一个编码助手变成了一个可扩展的平台。现有仓库和用户目录机制展示了这个系统能承载工具、命令、事件和 UI 扩展。
+        </div>
+
+        <section>
+            <h2>8.1 扩展是什么？</h2>
+            <p><span class="term" data-term="Extension: 扩展，可以注入到 Pi 中的 TypeScript 模块">Extension</span> 是一个 TypeScript 模块，可以：</p>
+            <ul>
+                <li>🔗 <strong>订阅生命周期事件</strong>：agent_start、turn_end、message_update...</li>
+                <li>🔧 <strong>注册自定义工具</strong>：让 LLM 可以调用你的函数</li>
+                <li>⌨️ <strong>注册命令</strong>：/mycommand 斜杠命令</li>
+                <li>🖥️ <strong>注册 UI 组件</strong>：自定义编辑器、widget、消息渲染器</li>
+                <li>📡 <strong>拦截请求</strong>：修改发送给 LLM 的 payload</li>
+            </ul>
+            <p>类比：Pi 的扩展就像 VS Code 的扩展、浏览器的插件 — 它们在不修改核心代码的情况下增强功能。</p>
+        </section>
+
+        <section>
+            <h2>8.2 扩展发现与加载</h2>
+            <h3>发现机制</h3>
+            <pre class="language-ts"><code>// core/extensions/loader.ts
+export async function discoverAndLoadExtensions(): Promise&lt;LoadExtensionsResult&gt; {
+  const dirs = [
+    getAgentDir() + "/extensions",    // ~/.pi/extensions/
+    projectDir + "/.pi/extensions",   // 项目级扩展
+  ];
+
+  for (const dir of dirs) {
+    if (!existsSync(dir)) continue;
+    const files = readdirSync(dir);
+    for (const file of files) {
+      if (file.endsWith(".ts") || file.endsWith(".js")) {
+        await loadExtensionFromFile(join(dir, file));
+      }
+    }
+  }
+}</code></pre>
+
+            <h3>jiti 运行时 TypeScript 加载</h3>
+            <pre class="language-ts"><code>import { createJiti } from "jiti/static";
+
+const jiti = createJiti(import.meta.url, {
+  // 别名映射：扩展可以用 @earendil-works/pi-xxx 导入
+  aliases: {
+    "@earendil-works/pi-ai": piAiEntry,
+    "@earendil-works/pi-agent-core": piAgentCoreEntry,
+    "@earendil-works/pi-tui": piTuiEntry,
+    "@earendil-works/pi-coding-agent": piCodingAgentEntry,
+  },
+  // Bun 二进制模式的虚拟模块
+  virtualModules: VIRTUAL_MODULES,
+});
+
+// 加载扩展模块
+const extensionFactory = jiti(filePath).default;</code></pre>
+
+            <div class="callout tip">
+                <strong>jiti 的作用</strong>：让扩展可以用 TypeScript 编写，运行时自动编译。不需要预编译步骤。同时支持别名映射，让扩展用 <code>@earendil-works/pi-xxx</code> 导入 Pi 的包。
+            </div>
+
+            <h3>VIRTUAL_MODULES — Bun 二进制模式的技巧</h3>
+            <pre class="language-ts"><code>const VIRTUAL_MODULES: Record&lt;string, unknown&gt; = {
+  "typebox": _bundledTypebox,
+  "@earendil-works/pi-agent-core": _bundledPiAgentCore,
+  "@earendil-works/pi-tui": _bundledPiTui,
+  "@earendil-works/pi-ai": _bundledPiAiCompat,
+  "@earendil-works/pi-coding-agent": _bundledPiCodingAgent,
+  // ... 旧包名别名
+};</code></pre>
+            <p>当 Pi 编译为 Bun 二进制时，扩展无法通过 <code>node_modules</code> 解析依赖。<code>VIRTUAL_MODULES</code> 让 jiti 在运行时注入预打包的模块。</p>
+        </section>
+
+        <section>
+            <h2>8.3 ExtensionFactory 模式</h2>
+            <pre class="language-ts"><code>// 扩展工厂函数
+export type ExtensionFactory = (context: ExtensionContext) => Extension | Promise&lt;Extension&gt;;
+
+// Extension 定义
+export interface Extension {
+  name: string;
+  description?: string;
+
+  // 钩子函数
+  onAgentStart?: (event: AgentStartEvent) => Promise&lt;void&gt;;
+  onAgentEnd?: (event: AgentEndEvent) => Promise&lt;void&gt;;
+  onTurnEnd?: (event: TurnEndEvent) => Promise&lt;void&gt;;
+  onBashToolCall?: (event: BashToolCallEvent) => Promise&lt;void&gt;;
+  onEditToolCall?: (event: EditToolCallEvent) => Promise&lt;void&gt;;
+  onMessageUpdate?: (event: MessageUpdateEvent) => Promise&lt;void&gt;;
+  onInput?: (event: InputEvent) => Promise&lt;InputEventResult | void&gt;;
+  onBeforeProviderRequest?: (event: BeforeProviderRequestEvent) => Promise&lt;BeforeProviderRequestEventResult&gt;;
+
+  // 注册自定义内容
+  tools?: RegisteredTool[];
+  commands?: RegisteredCommand[];
+  keybindings?: AppKeybinding[];
+  widgets?: ExtensionWidgetOptions[];
+  messageRenderers?: MessageRenderer[];
+}</code></pre>
+
+            <h3>ExtensionContext — 工厂接收的上下文</h3>
+            <pre class="language-ts"><code>export interface ExtensionContext {
+  // 扩展自身的配置
+  config?: Record&lt;string, unknown&gt;;
+
+  // 运行时 API（通过 ExtensionRuntime 暴露）
+  runtime: ExtensionRuntime;
+
+  // 日志
+  log: (message: string) => void;
+  error: (message: string) => void;
+}</code></pre>
+        </section>
+
+        <section>
+            <h2>8.4 事件系统 — 核心！</h2>
+            <p>Pi 的扩展系统围绕一个丰富的事件系统构建。以下是完整的事件流：</p>
+
+            <div class="diagram-container">
+                <svg viewBox="0 0 700 400" class="diagram">
+                    <!-- Timeline -->
+                    <text x="50" y="30" fill="#888" font-size="11" font-weight="bold">Agent Session Event Flow</text>
+
+                    <!-- agent_start -->
+                    <rect x="50" y="50" width="120" height="35" rx="6" fill="#4a9eff" opacity="0.8"/>
+                    <text x="110" y="72" text-anchor="middle" fill="white" font-size="10">agent_start</text>
+
+                    <!-- turn_start -->
+                    <rect x="50" y="100" width="120" height="35" rx="6" fill="#27ae60" opacity="0.8"/>
+                    <text x="110" y="122" text-anchor="middle" fill="white" font-size="10">turn_start</text>
+
+                    <!-- message_start -->
+                    <rect x="200" y="100" width="120" height="35" rx="6" fill="#27ae60" opacity="0.6"/>
+                    <text x="260" y="122" text-anchor="middle" fill="white" font-size="10">message_start</text>
+
+                    <!-- message_update (streaming) -->
+                    <rect x="350" y="100" width="130" height="35" rx="6" fill="#e67e22" opacity="0.8"/>
+                    <text x="415" y="122" text-anchor="middle" fill="white" font-size="10">message_update ×N</text>
+
+                    <!-- tool_execution_start -->
+                    <rect x="350" y="150" width="130" height="35" rx="6" fill="#e67e22" opacity="0.6"/>
+                    <text x="415" y="172" text-anchor="middle" fill="white" font-size="10">tool_exec_start</text>
+
+                    <!-- tool_execution_end -->
+                    <rect x="510" y="150" width="130" height="35" rx="6" fill="#e67e22" opacity="0.6"/>
+                    <text x="575" y="172" text-anchor="middle" fill="white" font-size="10">tool_exec_end</text>
+
+                    <!-- message_end -->
+                    <rect x="510" y="100" width="120" height="35" rx="6" fill="#27ae60" opacity="0.6"/>
+                    <text x="570" y="122" text-anchor="middle" fill="white" font-size="10">message_end</text>
+
+                    <!-- turn_end -->
+                    <rect x="200" y="200" width="120" height="35" rx="6" fill="#27ae60" opacity="0.8"/>
+                    <text x="260" y="222" text-anchor="middle" fill="white" font-size="10">turn_end</text>
+
+                    <!-- session events -->
+                    <rect x="50" y="270" width="120" height="35" rx="6" fill="#9b59b6" opacity="0.8"/>
+                    <text x="110" y="292" text-anchor="middle" fill="white" font-size="10">session_compact</text>
+
+                    <rect x="200" y="270" width="120" height="35" rx="6" fill="#9b59b6" opacity="0.8"/>
+                    <text x="260" y="292" text-anchor="middle" fill="white" font-size="10">session_fork</text>
+
+                    <rect x="350" y="270" width="120" height="35" rx="6" fill="#9b59b6" opacity="0.8"/>
+                    <text x="410" y="292" text-anchor="middle" fill="white" font-size="10">session_switch</text>
+
+                    <!-- agent_end -->
+                    <rect x="50" y="340" width="120" height="35" rx="6" fill="#e74c3c" opacity="0.8"/>
+                    <text x="110" y="362" text-anchor="middle" fill="white" font-size="10">agent_end</text>
+
+                    <!-- Arrows -->
+                    <line x1="170" y1="67" x2="195" y2="105" stroke="#666" stroke-width="1.5"/>
+                    <line x1="170" y1="117" x2="195" y2="110" stroke="#666" stroke-width="1.5"/>
+                    <line x1="320" y1="117" x2="345" y2="110" stroke="#666" stroke-width="1.5"/>
+                    <line x1="480" y1="117" x2="505" y2="110" stroke="#666" stroke-width="1.5"/>
+                    <line x1="480" y1="167" x2="505" y2="160" stroke="#666" stroke-width="1.5"/>
+                    <line x1="630" y1="117" x2="630" y2="117" stroke="#666" stroke-width="1"/>
+                    <line x1="320" y1="130" x2="320" y2="200" stroke="#666" stroke-width="1.5"/>
+                    <line x1="260" y1="235" x2="260" y2="265" stroke="#666" stroke-width="1.5"/>
+                </svg>
+            </div>
+
+            <h3>事件分类</h3>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>类别</th>
+                        <th>事件</th>
+                        <th>触发时机</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Agent 生命周期</td>
+                        <td>agent_start, agent_end</td>
+                        <td>整个会话开始/结束</td>
+                    </tr>
+                    <tr>
+                        <td>Turn 生命周期</td>
+                        <td>turn_start, turn_end</td>
+                        <td>每一轮（assistant response + tools）</td>
+                    </tr>
+                    <tr>
+                        <td>消息事件</td>
+                        <td>message_start, message_update, message_end</td>
+                        <td>消息流式传输过程中</td>
+                    </tr>
+                    <tr>
+                        <td>工具事件</td>
+                        <td>bash_tool_call, edit_tool_call, *_tool_result</td>
+                        <td>工具调用前后</td>
+                    </tr>
+                    <tr>
+                        <td>会话事件</td>
+                        <td>session_compact, session_fork, session_switch</td>
+                        <td>会话状态变化时</td>
+                    </tr>
+                    <tr>
+                        <td>输入事件</td>
+                        <td>input</td>
+                        <td>用户输入时（可拦截/修改）</td>
+                    </tr>
+                    <tr>
+                        <td>Provider 事件</td>
+                        <td>before_provider_request, after_provider_response</td>
+                        <td>LLM 请求前后（可修改 payload）</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>8.5 示例扩展走读</h2>
+
+            <h3>hello.ts — 最小扩展</h3>
+            <pre class="language-ts collapsible"><code>// examples/extensions/hello.ts
+import type { ExtensionFactory } from "@earendil-works/pi-coding-agent";
+
+const helloExtension: ExtensionFactory = (context) => {
+  return {
+    name: "hello",
+    description: "A simple hello world extension",
+
+    async onAgentStart(event) {
+      context.log("Agent started!");
+    },
+
+    async onBashToolCall(event) {
+      context.log(`Tool called: ${event.toolName}`);
+    },
+  };
+};
+
+export default helloExtension;</code></pre>
+
+            <h3>git-checkpoint.ts — 中等复杂度</h3>
+            <pre class="language-ts collapsible"><code>// examples/extensions/git-checkpoint.ts
+// 自动在每次 turn 结束时创建 git checkpoint
+
+const gitCheckpointExtension: ExtensionFactory = (context) => {
+  return {
+    name: "git-checkpoint",
+    description: "Auto-create git checkpoints after each turn",
+
+    async onTurnEnd(event) {
+      const { message, toolResults } = event;
+
+      // 如果有文件修改，创建 git commit
+      const hasFileChanges = toolResults.some(
+        r => r.toolName === "write" || r.toolName === "edit"
+      );
+
+      if (hasFileChanges) {
+        const exec = context.runtime.exec;
+        await exec("git add -A");
+        await exec(`git commit -m "checkpoint: turn ${message.timestamp}"`);
+      }
+    },
+  };
+};</code></pre>
+        </section>
+
+        <section>
+            <h2>8.6 自定义工具注册</h2>
+            <pre class="language-ts"><code>import { defineTool, Type } from "@earendil-works/pi-coding-agent";
+
+const myToolsExtension: ExtensionFactory = (context) => {
+  return {
+    name: "my-tools",
+    tools: [
+      defineTool({
+        name: "calculator",
+        description: "Evaluate a math expression",
+        parameters: Type.Object({
+          expression: Type.String({ description: "Math expression, e.g. '2 + 2'" }),
+        }),
+        async execute(toolCallId, params) {
+          try {
+            const result = eval(params.expression); // 注意：生产环境不要这样！
+            return {
+              content: [{ type: "text", text: `Result: ${result}` }],
+              details: { expression: params.expression, result },
+            };
+          } catch (e) {
+            return {
+              content: [{ type: "text", text: `Error: ${e.message}` }],
+              details: { error: e.message },
+            };
+          }
+        },
+      }),
+    ],
+  };
+};</code></pre>
+        </section>
+
+        <section>
+            <h2>8.7 UI 扩展</h2>
+            <pre class="language-ts"><code>// 注册自定义 Widget（显示在编辑器上方）
+const statusExtension: ExtensionFactory = (context) => {
+  return {
+    name: "status-widget",
+    widgets: [
+      {
+        placement: "aboveEditor",
+        render: (theme) =&gt; {
+          return [Text({ content: "🟢 Agent Ready", color: theme.success })];
+        },
+      },
+    ],
+
+    // 自定义斜杠命令
+    commands: [
+      {
+        name: "/status",
+        description: "Show agent status",
+        execute: async (ctx) =&gt; {
+          ctx.notify("Agent is running!");
+        },
+      },
+    ],
+  };
+};</code></pre>
+        </section>
+
+        <section class="quiz">
+            <h2>8.8 小测验</h2>
+            <div class="quiz">
+                <div class="quiz-question">
+                    <p><strong>Q1:</strong> 扩展不能在以下哪个时机执行代码？</p>
+                    <div class="quiz-option" data-correct="false">A. Agent 启动时</div>
+                    <div class="quiz-option" data-correct="false">B. 每个工具调用后</div>
+                    <div class="quiz-option" data-correct="true">C. Pi 编译为二进制时</div>
+                    <div class="quiz-option" data-correct="false">D. 用户输入时</div>
+                    <div class="quiz-explanation">✅ 正确答案：C。扩展在 Pi 运行时加载，不能在编译时执行。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q2:</strong> jiti 在扩展系统中的作用是什么？</p>
+                    <div class="quiz-option" data-correct="false">A. 打包扩展为二进制</div>
+                    <div class="quiz-option" data-correct="true">B. 运行时编译 TypeScript 扩展</div>
+                    <div class="quiz-option" data-correct="false">C. 验证扩展的类型安全</div>
+                    <div class="quiz-option" data-correct="false">D. 发布扩展</div>
+                    <div class="quiz-explanation">✅ 正确答案：B。jiti 是一个运行时 TypeScript 编译器，让扩展不需要预编译。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q3:</strong> VIRTUAL_MODULES 解决了什么问题？</p>
+                    <div class="quiz-option" data-correct="false">A. 让扩展可以互相依赖</div>
+                    <div class="quiz-option" data-correct="true">B. 让 Bun 二进制中的扩展能解析 Pi 的包</div>
+                    <div class="quiz-option" data-correct="false">C. 让扩展可以动态加载</div>
+                    <div class="quiz-option" data-correct="false">D. 让扩展可以热重载</div>
+                    <div class="quiz-explanation">✅ 正确答案：B。Bun 二进制没有 node_modules，VIRTUAL_MODULES 在运行时注入预打包的模块。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q4:</strong> <code>before_provider_request</code> 钩子可以做什么？</p>
+                    <div class="quiz-option" data-correct="false">A. 取消 agent 执行</div>
+                    <div class="quiz-option" data-correct="true">B. 修改发送给 LLM 的 payload</div>
+                    <div class="quiz-option" data-correct="false">C. 修改 LLM 的响应</div>
+                    <div class="quiz-option" data-correct="false">D. 切换 LLM 提供商</div>
+                    <div class="quiz-explanation">✅ 正确答案：B。<code>before_provider_request</code> 在 LLM 请求发送前触发，可以检查或修改 payload。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q5:</strong> 扩展可以注册以下哪项？</p>
+                    <div class="quiz-option" data-correct="false">A. 自定义工具</div>
+                    <div class="quiz-option" data-correct="false">B. 斜杠命令</div>
+                    <div class="quiz-option" data-correct="false">C. UI Widget</div>
+                    <div class="quiz-option" data-correct="true">D. 以上全部</div>
+                    <div class="quiz-explanation">✅ 正确答案：D。扩展可以注册工具、命令、Widget、消息渲染器、键绑定等。</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="callout exercise">
+            <h2>8.9 练习</h2>
+            <p>写一个自定义扩展，注册一个 <code>/hello</code> 命令：</p>
+            <pre class="language-ts"><code>// ~/.pi/extensions/hello.ts
+import type { ExtensionFactory } from "@earendil-works/pi-coding-agent";
+
+const factory: ExtensionFactory = (ctx) => ({
+  name: "hello-ext",
+  commands: [
+    {
+      name: "/hello",
+      description: "Say hello",
+      execute: async (cmdCtx) => {
+        cmdCtx.notify("Hello from extension! 👋");
+      },
+    },
+  ],
+
+  async onAgentStart() {
+    ctx.log("Hello extension loaded!");
+  },
+});
+
+export default factory;</code></pre>
+            <p>保存后运行 <code>pi</code>，输入 <code>/hello</code> 测试。</p>
+        </section>
+
+        <section class="next-action-panel" aria-labelledby="ch8-next-action">
+            <h2 id="ch8-next-action">Next Action</h2>
+            <p>读第 9 章时，留意扩展状态和会话持久化在哪里相接，尤其是哪些内容只是扩展内部状态，哪些会进入 agent 上下文。</p>
+        </section>
+
+        <nav class="chapter-nav">
+            <a href="07-tools.html" class="prev">← 第 7 章</a>
+            <a href="09-session-management.html" class="next">第 9 章：会话管理 →</a>
+        </nav>
+    </main>
+
+    <script src="../assets/js/app.js"></script>
+</body>
+</html>

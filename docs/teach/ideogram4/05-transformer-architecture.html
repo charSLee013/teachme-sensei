@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Transformer Architecture</title>
+  <link rel="stylesheet" href="paper.css">
+</head>
+<body>
+<main data-paper>
+  <section class="hero">
+    <p class="kicker">Model core / single-stream DiT</p>
+    <h1>Transformer Architecture</h1>
+    <p class="abstract">Ideogram4Transformer 是一个 34 层单流 velocity predictor。它接收 Qwen3-VL 多层文本特征、noisy image latent tokens、timestep、3D position ids 和 segment/indicator masks，输出 image token velocity。</p>
+  </section>
+
+  <section>
+    <h2>Abstract</h2>
+    <p>本章不讲“Transformer 是什么”这种泛化定义，而是把这个仓库里的核心网络拆成可核对的结构：输入张量、34 层 block、Qwen3-VL 条件注入、MRoPE、AdaLN 和输出 velocity 约束。</p>
+  </section>
+
+  <section>
+    <h2>Claim and Evidence</h2>
+    <div class="claim"><div class="claim-title">Claim</div>
+      <p>The implementation defines a 34-layer Transformer with 4608-dimensional embeddings, 18 attention heads, QK RMSNorm attention, MRoPE, SwiGLU MLP, timestep-driven AdaLN-style modulation, and a final velocity projection to 128 channels.</p>
+      <p><strong>Evidence.</strong> `Ideogram4Config`, `Ideogram4Attention`, `Ideogram4TransformerBlock`, `Ideogram4Transformer.forward`.</p>
+      <p><strong>Boundary.</strong> This page describes inference architecture and tensor contracts. It does not prove private training architecture variants beyond this released code.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Parameter Table</h2>
+    <table>
+      <thead><tr><th>Field</th><th>Value</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td>`emb_dim`</td><td>4608</td><td>Transformer hidden width.</td></tr>
+        <tr><td>`num_layers`</td><td>34</td><td>Number of Transformer blocks.</td></tr>
+        <tr><td>`num_heads`</td><td>18</td><td>Attention heads; head dim is 256.</td></tr>
+        <tr><td>`intermediate_size`</td><td>12288</td><td>SwiGLU MLP hidden width.</td></tr>
+        <tr><td>`adanln_dim`</td><td>512</td><td>Projected timestep conditioning width.</td></tr>
+        <tr><td>`in_channels`</td><td>128</td><td>VAE 32 channels times 2 x 2 patch.</td></tr>
+        <tr><td>`llm_features_dim`</td><td>4096 x 13</td><td>Qwen3-VL hidden size times selected layers.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Shape Ledger</h2>
+    <table>
+      <thead><tr><th>Tensor</th><th>Shape</th><th>Contract</th></tr></thead>
+      <tbody>
+        <tr><td>`llm_features`</td><td>`(B, L, 4096*13)`</td><td>Text feature slots carry Qwen selected layer states; non-text slots are zeroed.</td></tr>
+        <tr><td>`x`</td><td>`(B, L, 128)`</td><td>Image latent tokens; text slots are zero padding for the positive branch.</td></tr>
+        <tr><td>`t`</td><td>`(B,)` or `(B, L)`</td><td>Flow timestep for AdaLN-style conditioning.</td></tr>
+        <tr><td>`position_ids`</td><td>`(B, L, 3)`</td><td>MRoPE coordinates.</td></tr>
+        <tr><td>`segment_ids`</td><td>`(B, L)`</td><td>Attention mask grouping.</td></tr>
+        <tr><td>`indicator`</td><td>`(B, L)`</td><td>Role mask for LLM vs image tokens.</td></tr>
+        <tr><td>`out`</td><td>`(B, L, 128)`</td><td>Velocity; only image token positions are semantically used.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Block Computation</h2>
+    <div class="diagram">image latent x -> input_proj -> image hidden
+Qwen features -> RMSNorm -> llm_cond_proj -> text hidden
+timestep -> sinusoidal embedding -> adaln_proj -> block modulation
+hidden = image hidden + text hidden + image_indicator_embedding
+for 34 blocks:
+  QKV attention with QK RMSNorm + MRoPE + segment mask
+  gated residual from AdaLN modulation
+  SwiGLU MLP
+final layer -> 128-channel velocity</div>
+  </section>
+
+  <section>
+    <h2>Qwen3-VL Conditioning</h2>
+    <p>The pipeline extracts hidden states from 13 Qwen3-VL layers: 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 35. These states are stacked and reshaped into a concatenated feature vector before projection into the DiT hidden width.</p>
+    <div class="claim boundary"><div class="claim-title">Boundary</div><p>The source proves which layers are tapped and how features are concatenated. It does not provide an ablation proving the individual contribution of each tapped layer.</p></div>
+  </section>
+
+  <section>
+    <h2>MRoPE and AdaLN</h2>
+    <table>
+      <thead><tr><th>Mechanism</th><th>Implementation meaning</th><th>Invariant</th></tr></thead>
+      <tbody>
+        <tr><td>MRoPE</td><td>Computes rotary cos/sin from 3-axis `position_ids`; image H/W frequencies are interleaved into configured sections.</td><td>`position_ids` must have last dimension 3.</td></tr>
+        <tr><td>QK RMSNorm</td><td>Normalizes query and key head vectors before attention.</td><td>Hidden size must divide by head count.</td></tr>
+        <tr><td>AdaLN modulation</td><td>Timestep embedding generates scale and gate values for attention and MLP residuals.</td><td>`adanln_dim` must match block modulation input.</td></tr>
+        <tr><td>SwiGLU</td><td>`w2(silu(w1(x)) * w3(x))` feed-forward path.</td><td>Intermediate width fixed by config and weights.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="output-contract">
+    <h2>Output Contract</h2>
+    <p>The final output has the same channel width as image latent tokens. The positive branch discards text positions after the forward pass; the negative branch is image-only. The sampler therefore updates only the image latent sequence.</p>
+  </section>
+
+  <section class="next">
+    <a class="button" href="04-sampling-cfg.html">Sampling / CFG</a>
+    <a class="button primary" href="06-json-caption-protocol.html">Next: JSON Caption</a>
+  </section>
+</main>
+<script src="paper.js" data-root="."></script>
+<script>mountPaperChrome("Transformer");</script>
+</body>
+</html>

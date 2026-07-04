@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第 1 章：认识 Pi — Pi Agent Harness 教学</title>
+    <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>Pi 教学</h2>
+            <span class="version">v0.80.3</span>
+        </div>
+        <nav class="chapter-list">
+            <a href="01-what-is-pi.html" class="active">1. 认识 Pi</a>
+            <a href="02-monorepo.html">2. Monorepo 架构</a>
+            <a href="03-pi-ai.html">3. pi-ai LLM 层</a>
+            <a href="04-agent-core.html">4. Agent 运行时</a>
+            <a href="05-pi-tui.html">5. 终端 UI 库</a>
+            <a href="06-coding-agent.html">6. 主 CLI 架构</a>
+            <a href="07-tools.html">7. 内置工具系统</a>
+            <a href="08-extensions.html">8. 扩展系统</a>
+            <a href="09-session-management.html">9. 会话管理</a>
+            <a href="10-compaction.html">10. 压缩系统</a>
+            <a href="11-interactive-mode.html">11. 交互模式</a>
+            <a href="12-sdk.html">12. 编程式 SDK</a>
+            <a href="13-orchestrator.html">13. 编排器</a>
+            <a href="14-contributing.html">14. 贡献指南</a>
+        </nav>
+    </aside>
+
+    <main class="content">
+        <header class="chapter-header">
+            <span class="chapter-number">第 1 章</span>
+            <h1>认识 Pi — 它是什么，能做什么？</h1>
+            <p class="subtitle">建立直觉：Pi 在软件开发工作流中的位置</p>
+        </header>
+
+        <section class="learner-cues" aria-labelledby="ch1-main-line">
+            <div class="cue-grid">
+                <div class="cue-card">
+                    <h2 id="ch1-main-line">Main Line</h2>
+                    <p>先建立 Pi 的整体轮廓：它是一个终端里的编码 agent，不是单纯聊天框，也不是单个包，而是由 CLI、agent loop、provider 抽象、工具层和会话层共同组成。</p>
+                </div>
+                <div class="cue-card">
+                    <h2>Remember Now</h2>
+                    <p>理解 Pi 的最好入口不是背命令，而是记住它的基本循环：用户消息进入，模型决定，工具执行，结果回流，再由模型收束成回答。</p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>1.1 开场：一个真实的 terminal 会话</h2>
+            <p>让我们先看一段真实的 Pi 使用场景。你在终端中输入一行命令，Pi 就开始帮你工作了：</p>
+
+            <pre class="terminal"><code>$ pi -p "Create a fibonacci function in fib.ts"
+
+[Pi] Thinking...
+[Pi] I'll create a fibonacci function for you.
+
+[Tool Call] bash
+  $ cat > fib.ts << 'EOF'
+  /**
+   * Calculate the nth Fibonacci number
+   * using iterative approach.
+   */
+  export function fibonacci(n: number): number {
+      if (n <= 0) return 0;
+      if (n === 1) return 1;
+      let a = 0, b = 1;
+      for (let i = 2; i <= n; i++) {
+          [a, b] = [b, a + b];
+      }
+      return b;
+  }
+
+  // Example usage
+  console.log(fibonacci(10)); // 55
+  EOF
+
+[Tool Result] File created: fib.ts
+
+[Pi] Done! I've created fib.ts with an iterative fibonacci function.
+It handles edge cases (n=0, n=1) and uses O(1) space.</code></pre>
+
+            <p>这段对话展示了 Pi 的核心工作循环：</p>
+            <ol>
+                <li>你输入一个自然语言请求</li>
+                <li>Pi 调用 LLM（如 Claude、GPT-4）理解你的意图</li>
+                <li>LLM 决定需要执行工具调用（<code>bash</code> 创建文件）</li>
+                <li>Pi 执行工具并返回结果</li>
+                <li>LLM 确认任务完成</li>
+            </ol>
+        </section>
+
+        <section>
+            <h2>1.2 Pi 是什么？</h2>
+            <p><strong>Pi Agent Harness</strong> 是一个终端中的 AI 编码助手。它类似于 <a href="#">Claude Code</a>、<a href="#">Cursor</a>、<a href="#">Aider</a> 等工具，但有几个关键区别：</p>
+
+            <div class="callout info">
+                <strong>Pi 的核心定位</strong>：一个开源的、自扩展的、多 LLM 提供商的交互式编码代理。它不是一个 IDE 插件，而是一个命令行工具，可以与任何编辑器配合使用。
+            </div>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>特性</th>
+                        <th>Pi</th>
+                        <th>传统 Chatbot</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>运行环境</td>
+                        <td>终端（CLI）</td>
+                        <td>Web 界面</td>
+                    </tr>
+                    <tr>
+                        <td>工具调用</td>
+                        <td>✅ 完整工具链</td>
+                        <td>❌ 仅文本</td>
+                    </tr>
+                    <tr>
+                        <td>文件操作</td>
+                        <td>✅ 读写编辑</td>
+                        <td>❌ 无</td>
+                    </tr>
+                    <tr>
+                        <td>Shell 执行</td>
+                        <td>✅ 完整 bash</td>
+                        <td>❌ 无</td>
+                    </tr>
+                    <tr>
+                        <td>会话管理</td>
+                        <td>✅ 持久化 + 分支</td>
+                        <td>⚠️ 简单历史</td>
+                    </tr>
+                    <tr>
+                        <td>LLM 选择</td>
+                        <td>✅ 35 提供商</td>
+                        <td>❌ 绑定单一</td>
+                    </tr>
+                    <tr>
+                        <td>扩展系统</td>
+                        <td>✅ 插件架构</td>
+                        <td>❌ 无</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>1.3 核心能力一览</h2>
+
+            <div class="capability-grid">
+                <div class="capability-card">
+                    <h3>🤖 多 LLM 支持</h3>
+                    <p>35 提供商：Anthropic、OpenAI、Google、xAI、DeepSeek、Mistral、AWS Bedrock、Azure 等。通过统一 API 层调用。</p>
+                </div>
+                <div class="capability-card">
+                    <h3>🔧 工具调用</h3>
+                    <p>7 个内置工具：bash、edit、read、write、grep、find、ls。LLM 可以组合使用这些工具完成复杂任务。</p>
+                </div>
+                <div class="capability-card">
+                    <h3>💾 会话管理</h3>
+                    <p>JSONL 格式持久化，支持会话分支（fork）、树导航、多会话切换。</p>
+                </div>
+                <div class="capability-card">
+                    <h3>🧩 扩展系统</h3>
+                    <p>扩展系统允许你注册自定义工具、命令、键绑定、UI 组件和事件钩子。</p>
+                </div>
+                <div class="capability-card">
+                    <h3>🖥️ 三种运行模式</h3>
+                    <p>Interactive（TUI）、Print（单次命令）、RPC（远程调用）。</p>
+                </div>
+                <div class="capability-card">
+                    <h3>🧠 推理深度控制</h3>
+                    <p>6 个 thinking levels：off → xhigh。不同提供商映射到各自的推理格式。</p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>1.4 Pi vs 传统 Chatbot：Agent Loop</h2>
+            <p>Pi 的核心是一个 <span class="term" data-term="Agent Loop: 代理循环，agent 不断执行 调LLM→处理工具→循环 的循环">Agent Loop</span>。这与传统 chatbot 有本质区别：</p>
+
+            <div class="diagram-container">
+                <svg viewBox="0 0 600 400" class="diagram">
+                    <!-- User -->
+                    <rect x="220" y="20" width="160" height="50" rx="8" fill="#4a9eff" opacity="0.9"/>
+                    <text x="300" y="50" text-anchor="middle" fill="white" font-weight="bold">User</text>
+
+                    <!-- Arrow down -->
+                    <line x1="300" y1="70" x2="300" y2="100" stroke="#888" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                    <!-- Agent Box -->
+                    <rect x="150" y="100" width="300" height="80" rx="8" fill="#2d5aa0" opacity="0.3" stroke="#4a9eff"/>
+                    <text x="300" y="130" text-anchor="middle" fill="white" font-weight="bold">Agent Loop</text>
+                    <text x="300" y="155" text-anchor="middle" fill="#aaa" font-size="12">1. Call LLM with context</text>
+                    <text x="300" y="170" text-anchor="middle" fill="#aaa" font-size="12">2. Execute tool calls</text>
+
+                    <!-- Arrow to LLM -->
+                    <line x1="450" y1="140" x2="520" y2="140" stroke="#888" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <rect x="520" y="115" width="60" height="50" rx="8" fill="#ff6b6b" opacity="0.9"/>
+                    <text x="550" y="145" text-anchor="middle" fill="white" font-weight="bold" font-size="11">LLM</text>
+
+                    <!-- Arrow from LLM back -->
+                    <path d="M 520 140 C 480 200, 480 200, 450 170" fill="none" stroke="#888" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                    <!-- Arrow to Tools -->
+                    <line x1="300" y1="180" x2="300" y2="220" stroke="#888" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                    <!-- Tools Box -->
+                    <rect x="180" y="220" width="240" height="60" rx="8" fill="#2d5aa0" opacity="0.3" stroke="#4a9eff"/>
+                    <text x="300" y="245" text-anchor="middle" fill="white" font-weight="bold">Tools</text>
+                    <text x="300" y="265" text-anchor="middle" fill="#aaa" font-size="11">bash | edit | read | write | grep | find | ls</text>
+
+                    <!-- Arrow to Result -->
+                    <line x1="300" y1="280" x2="300" y2="320" stroke="#888" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                    <!-- Result -->
+                    <rect x="200" y="320" width="200" height="50" rx="8" fill="#27ae60" opacity="0.9"/>
+                    <text x="300" y="350" text-anchor="middle" fill="white" font-weight="bold">Result → Back to User</text>
+
+                    <!-- Loop arrow -->
+                    <text x="470" y="260" fill="#888" font-size="10">loop until done</text>
+                    <path d="M 420 250 C 500 300, 500 350, 300 370" fill="none" stroke="#666" stroke-width="1" stroke-dasharray="4"/>
+                </svg>
+            </div>
+
+            <div class="callout tip">
+                <strong>关键洞察</span>：Agent Loop 让 AI 不再只是"回答问题"，而是"执行任务"。每次工具执行的结果都会反馈给 LLM，形成多轮交互。
+            </div>
+        </section>
+
+        <section>
+            <h2>1.5 快速上手</h2>
+            <pre class="language-bash"><code># 安装
+npm install -g @earendil-works/pi-coding-agent
+
+# 单次打印模式（最简单）
+pi -p "Say exactly: ok"
+
+# 列出可用模型
+pi --list-models
+
+# 交互模式（完整 TUI）
+pi
+
+# 指定提供商和模型
+pi --provider anthropic --model claude-opus-4-7 -p "Hello"
+
+# 查看帮助
+pi --help</code></pre>
+
+            <div class="callout warning">
+                <strong>注意</strong>：运行 Pi 需要配置至少一个 LLM 提供商的 API Key。设置方式：环境变量（如 <code>ANTHROPIC_API_KEY</code>）或交互式登录。
+            </div>
+        </section>
+
+        <section>
+            <h2>1.6 关键术语表</h2>
+            <dl class="term-list">
+                <dt><span class="term" data-term="Agent: 代理，一个能自主执行任务的 AI 系统">Agent</span></dt>
+                <dd>一个 AI 系统，能接收目标、制定计划、调用工具、执行任务。Pi 中的 Agent 基于 LLM + 工具循环。</dd>
+
+                <dt><span class="term" data-term="Tool: 工具，agent 可以调用的函数">Tool</span></dt>
+                <dd>Agent 可以调用的函数。Pi 有 7 个内置工具 + 扩展可以注册自定义工具。每个工具有名称、描述和 JSON Schema 参数定义。</dd>
+
+                <dt><span class="term" data-term="Session: 会话，一次对话的完整状态">Session</span></dt>
+                <dd>一次对话的完整状态，包括消息历史、模型设置、工具调用记录。Pi 以 JSONL 格式持久化会话。</dd>
+
+                <dt><span class="term" data-term="Provider: 提供商，LLM 服务的提供者">Provider</span></dt>
+                <dd>LLM 服务的提供商（如 Anthropic、OpenAI）。Pi 通过统一 API 层支持 35 提供商。</dd>
+
+                <dt><span class="term" data-term="Extension: 扩展，插件模块">Extension</span></dt>
+                <dd>可以扩展 Pi 功能的 TypeScript 模块。可以注册工具、命令、事件钩子、UI 组件。</dd>
+
+                <dt><span class="term" data-term="Compaction: 压缩，缩减会话上下文">Compaction</span></dt>
+                <dd>当会话过长时，用 LLM 生成摘要替换旧消息，以适配上下文窗口限制。</dd>
+
+                <dt><span class="term" data-term="Thinking Level: 推理深度，LLM 的思考强度">Thinking Level</span></dt>
+                <dd>控制 LLM 的推理深度。从 off（无推理）到 xhigh（最强推理），映射到不同提供商各自的推理格式。</dd>
+            </dl>
+        </section>
+
+        <section class="quiz">
+            <h2>1.7 小测验</h2>
+
+            <div class="quiz">
+                <div class="quiz-question">
+                    <p><strong>Q1:</strong> Pi 与传统 chatbot 的核心区别是什么？</p>
+                    <div class="quiz-option" data-correct="false">A. 支持更多语言</div>
+                    <div class="quiz-option" data-correct="true">B. 拥有 Agent Loop 和工具调用能力</div>
+                    <div class="quiz-option" data-correct="false">C. 运行在 Web 浏览器中</div>
+                    <div class="quiz-option" data-correct="false">D. 只能使用一个 LLM 提供商</div>
+                    <div class="quiz-explanation">✅ 正确答案：B。Pi 的核心是 Agent Loop — 它能调用工具执行真实操作，而不只是生成文本。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q2:</strong> Pi 支持多少个 LLM 提供商？</p>
+                    <div class="quiz-option" data-correct="false">A. 5 个</div>
+                    <div class="quiz-option" data-correct="false">B. 12 个</div>
+                    <div class="quiz-option" data-correct="true">C. 35 个</div>
+                    <div class="quiz-option" data-correct="false">D. 仅 1 个</div>
+                    <div class="quiz-explanation">✅ 正确答案：C。Pi 通过 <code>packages/ai/src/providers/</code> 支持 35 个 LLM 提供商。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q3:</strong> 以下哪个不是 Pi 的内置工具？</p>
+                    <div class="quiz-option" data-correct="false">A. bash</div>
+                    <div class="quiz-option" data-correct="false">B. edit</div>
+                    <div class="quiz-option" data-correct="true">C. deploy</div>
+                    <div class="quiz-option" data-correct="false">D. grep</div>
+                    <div class="quiz-explanation">✅ 正确答案：C。Pi 的 7 个内置工具是：bash、edit、read、write、grep、find、ls。没有 deploy。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q4:</strong> Pi 的扩展系统不能做什么？</p>
+                    <div class="quiz-option" data-correct="false">A. 注册自定义工具</div>
+                    <div class="quiz-option" data-correct="false">B. 订阅生命周期事件</div>
+                    <div class="quiz-option" data-correct="true">C. 替换 Pi 的底层 LLM 调用逻辑</div>
+                    <div class="quiz-option" data-correct="false">D. 注册斜杠命令</div>
+                    <div class="quiz-explanation">✅ 正确答案：C。扩展可以添加工具、命令、UI、事件钩子，但不能替换 Pi 的核心 LLM 调用逻辑（那是 <code>pi-ai</code> 包的事）。</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="callout exercise">
+            <h2>1.8 练习</h2>
+            <ol>
+                <li>安装 Pi：<code>npm install -g @earendil-works/pi-coding-agent</code></li>
+                <li>运行 <code>pi --help</code>，了解所有命令行选项</li>
+                <li>运行 <code>pi --list-models</code>，查看可用的 LLM 模型</li>
+                <li>运行 <code>pi -p "Say exactly: hello world"</code>，观察输出</li>
+                <li>运行 <code>pi</code>（不带参数），进入交互模式，按 <code>Ctrl+C</code> 退出</li>
+            </ol>
+        </section>
+
+        <section class="next-action-panel" aria-labelledby="ch1-next-action">
+            <h2 id="ch1-next-action">Next Action</h2>
+            <p>继续读第 2 章，把本章的整体印象落到真实包边界上，确认哪个能力由哪个包负责，再返回本章重新看一次控制循环。</p>
+        </section>
+
+        <nav class="chapter-nav">
+            <span class="prev disabled">← 首页</span>
+            <a href="02-monorepo.html" class="next">第 2 章：Monorepo 架构 →</a>
+        </nav>
+    </main>
+
+    <script src="../assets/js/app.js"></script>
+</body>
+</html>

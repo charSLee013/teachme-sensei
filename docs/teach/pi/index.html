@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Pi Agent Harness 完全解读 — 从 monorepo 架构到 agent loop，14 章带你深入 Pi 的内部实现">
+    <title>Pi Agent Harness 完全解读 — 交互式学习站</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <style>
+        /* ============================================================================
+           Homepage-specific styles — only used on index.html
+           ========================================================================== */
+
+        /* Full-width layout: no sidebar on the homepage */
+        .homepage body {
+            display: block;
+        }
+        .homepage .main-content {
+            margin-left: 0;
+            width: 100%;
+        }
+        .homepage .content-wrapper {
+            max-width: 1100px;
+        }
+
+        /* ---- Hero Section ---- */
+        .hero {
+            position: relative;
+            padding: 4rem 0 3rem;
+            text-align: center;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -120px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(233, 69, 96, 0.12) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .hero > * {
+            position: relative;
+            z-index: 1;
+        }
+        .hero-badge {
+            display: inline-block;
+            padding: 0.35rem 1rem;
+            background: rgba(233, 69, 96, 0.1);
+            border: 1px solid rgba(233, 69, 96, 0.3);
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--accent-primary);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+        }
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 0.6rem;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.15;
+        }
+        .hero .subtitle {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            max-width: 720px;
+            margin: 0 auto 2rem;
+            line-height: 1.7;
+        }
+
+        /* Hero stats */
+        .hero-stats {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 2rem;
+            margin: 2rem 0 2.5rem;
+        }
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 100px;
+        }
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--accent-primary);
+            letter-spacing: -0.02em;
+        }
+        .stat-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        /* Terminal ASCII art */
+        .hero-terminal {
+            display: inline-block;
+            background: var(--bg-code);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem 1.5rem;
+            text-align: left;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            line-height: 1.6;
+            color: var(--text-code);
+            box-shadow: var(--shadow-lg);
+            max-width: 560px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+        .hero-terminal .prompt {
+            color: var(--accent-tertiary);
+        }
+        .hero-terminal .cmd {
+            color: var(--text-primary);
+        }
+        .hero-terminal .arg {
+            color: var(--accent-warm);
+        }
+        .hero-terminal .comment {
+            color: var(--text-muted);
+        }
+        .hero-terminal .output {
+            color: var(--success);
+        }
+
+        /* ---- Section Headings ---- */
+        .section-heading {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .section-heading h2 {
+            border-bottom: none;
+            margin-bottom: 0.4rem;
+            padding-bottom: 0;
+        }
+        .section-heading p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* ---- Learning Outcomes Grid ---- */
+        .learn-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 1.5rem 0 3rem;
+        }
+        .learn-card {
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: var(--radius-lg);
+            transition: transform var(--transition-fast), border-color var(--transition-fast);
+        }
+        .learn-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(233, 69, 96, 0.4);
+        }
+        .learn-card .learn-icon {
+            font-size: 1.6rem;
+            margin-bottom: 0.6rem;
+        }
+        .learn-card h3 {
+            font-size: 1rem;
+            margin: 0 0 0.4rem;
+            color: var(--text-primary);
+        }
+        .learn-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0;
+            line-height: 1.55;
+        }
+
+        /* ---- Chapter Card Grid ---- */
+        .chapter-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin: 1.5rem 0 3rem;
+        }
+        .chapter-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1.25rem;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: var(--radius-lg);
+            text-decoration: none;
+            transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+        }
+        .chapter-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(233, 69, 96, 0.5);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            text-decoration: none;
+        }
+        .chapter-card .chapter-num-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: var(--accent-primary);
+            flex-shrink: 0;
+            transition: background var(--transition-fast), color var(--transition-fast);
+        }
+        .chapter-card:hover .chapter-num-badge {
+            background: var(--accent-primary);
+            color: #fff;
+        }
+        .chapter-card .card-body {
+            flex: 1;
+            min-width: 0;
+        }
+        .chapter-card .card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.3rem;
+            line-height: 1.3;
+        }
+        .chapter-card:hover .card-title {
+            color: var(--accent-primary);
+        }
+        .chapter-card .card-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 0.4rem;
+        }
+        .chapter-card .card-meta {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .chapter-card .card-meta .read-time::before {
+            content: '\23F1';
+            margin-right: 0.2rem;
+        }
+
+        /* ---- Prerequisites & How-to-Use ---- */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin: 1.5rem 0 3rem;
+        }
+        .info-box {
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: var(--radius-lg);
+        }
+        .info-box h3 {
+            margin-top: 0;
+            font-size: 1.05rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .info-box ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .info-box ul li {
+            padding: 0.4rem 0;
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        .info-box ul li::before {
+            content: '\2022';
+            color: var(--accent-tertiary);
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 0.1rem;
+        }
+
+        /* ---- Footer ---- */
+        .site-footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center;
+        }
+        .site-footer .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .site-footer .footer-links a {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+        .site-footer .footer-links a:hover {
+            color: var(--accent-primary);
+        }
+        .site-footer .footer-meta {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        /* ---- Search bar (homepage) ---- */
+        .hero-search {
+            max-width: 480px;
+            margin: 0 auto 1.5rem;
+        }
+        .hero-search input {
+            width: 100%;
+            padding: 0.7rem 1.1rem;
+            background: var(--bg-code);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius-lg);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: var(--font-sans);
+            outline: none;
+            transition: border-color var(--transition-fast);
+        }
+        .hero-search input::placeholder {
+            color: var(--text-muted);
+        }
+        .hero-search input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.15);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+            .hero .subtitle {
+                font-size: 1rem;
+            }
+            .hero-stats {
+                gap: 1rem;
+            }
+            .hero-terminal {
+                font-size: 0.65rem;
+                padding: 1rem;
+            }
+            .learn-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .chapter-grid {
+                grid-template-columns: 1fr;
+            }
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 480px) {
+            .hero {
+                padding: 2.5rem 0 2rem;
+            }
+            .hero h1 {
+                font-size: 1.6rem;
+            }
+            .learn-grid {
+                grid-template-columns: 1fr;
+            }
+            .hero-stats {
+                gap: 0.8rem;
+            }
+            .stat-item {
+                min-width: 70px;
+            }
+            .stat-number {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+</head>
+<body class="homepage">
+
+<main class="main-content" data-searchable data-title="Pi Agent Harness 完全解读">
+    <div class="content-wrapper">
+
+        <!-- ================================================================== -->
+        <!-- HERO SECTION                                                        -->
+        <!-- ================================================================== -->
+        <section class="hero" id="hero">
+            <div class="hero-badge">Interactive Course &middot; 14 Chapters</div>
+            <h1>Pi Agent Harness<br>完全解读</h1>
+            <p class="subtitle">
+                从 monorepo 架构到 agent loop，从多提供商抽象到扩展系统
+                <br>14 章带你深入 Pi 的内部实现
+            </p>
+
+            <!-- Stats -->
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <span class="stat-number">5</span>
+                    <span class="stat-label">Packages</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">798</span>
+                    <span class="stat-label">TypeScript Files</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">294</span>
+                    <span class="stat-label">Test Files</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">35</span>
+                    <span class="stat-label">LLM Providers</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">14</span>
+                    <span class="stat-label">Chapters</span>
+                </div>
+            </div>
+
+            <!-- Terminal ASCII art -->
+            <div class="hero-terminal" aria-label="Pi terminal demo"><span class="prompt">$</span> <span class="cmd">pi</span> <span class="arg">"explain this codebase"</span>
+<span class="comment">┌──────────────────────────────────────┐</span>
+<span class="comment">│  Pi Agent Harness v0.80.3            │</span>
+<span class="comment">│  ──────────────────────────────────  │</span>
+<span class="comment">│  Model:   claude-sonnet-4-5          │</span>
+<span class="comment">│  Tools:   7 loaded                   │</span>
+<span class="comment">│  Session: ./project                  │</span>
+<span class="comment">│  Memory:  247 messages               │</span>
+<span class="comment">└──────────────────────────────────────┘</span>
+
+<span class="output">Analyzing repository structure...</span>
+<span class="output">Found 5 packages, 798 TypeScript files</span>
+<span class="output">Building context from README + src/...</span>
+<span class="output">Ready.</span></div>
+
+            <!-- Search -->
+            <div class="hero-search">
+                <input type="text" id="searchInput" placeholder="&#128269; 搜索章节或主题..." aria-label="搜索章节">
+            </div>
+        </section>
+
+        <section class="learner-cues" aria-labelledby="home-main-line">
+            <div class="cue-grid">
+                <div class="cue-card">
+                    <h2 id="home-main-line">Main Line</h2>
+                    <p>这套课按一条控制路径解释 Pi：CLI 装配 runtime，runtime 驱动 agent loop，agent loop 借助 provider、tools、session 和 TUI 形成用户可见行为。</p>
+                </div>
+                <div class="cue-card">
+                    <h2>Remember Now</h2>
+                    <p>首页数字必须带边界读取。这里的 `798` 是 `packages/` 下的 TypeScript 文件总数，不是单独的生产源码数。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================== -->
+        <!-- WHAT YOU'LL LEARN                                                   -->
+        <!-- ================================================================== -->
+        <section id="learn" aria-labelledby="learn-heading">
+            <div class="section-heading">
+                <h2 id="learn-heading">你会学到什么</h2>
+                <p>6 大核心领域，覆盖 Pi 全栈技术</p>
+            </div>
+
+            <div class="learn-grid">
+                <div class="learn-card">
+                    <div class="learn-icon">&#127960;</div>
+                    <h3>Architecture</h3>
+                    <p>monorepo 架构设计、5 个包的职责划分、依赖链与构建流程</p>
+                </div>
+                <div class="learn-card">
+                    <div class="learn-icon">&#129302;</div>
+                    <h3>AI Integration</h3>
+                    <p>统一 LLM 抽象层、35 个提供商接入、流式响应与认证管理</p>
+                </div>
+                <div class="learn-card">
+                    <div class="learn-icon">&#128295;</div>
+                    <h3>Tool System</h3>
+                    <p>7 个内置工具的设计哲学、扩展 API 与自定义插件机制</p>
+                </div>
+                <div class="learn-card">
+                    <div class="learn-icon">&#128190;</div>
+                    <h3>Sessions</h3>
+                    <p>JSONL 持久化存储、会话分支、压缩与历史导航</p>
+                </div>
+                <div class="learn-card">
+                    <div class="learn-icon">&#128187;</div>
+                    <h3>TUI</h3>
+                    <p>终端 UI 的差分渲染、组件体系与键绑定设计</p>
+                </div>
+                <div class="learn-card">
+                    <div class="learn-icon">&#128269;</div>
+                    <h3>Contributing</h3>
+                    <p>开发工作流、测试策略、发布流程与社区协作指南</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================== -->
+        <!-- CHAPTER DIRECTORY                                                   -->
+        <!-- ================================================================== -->
+        <section id="chapters" aria-labelledby="chapters-heading">
+            <div class="section-heading">
+                <h2 id="chapters-heading">章节目录</h2>
+                <p>点击任意章节开始学习，每章 15&#8209;30 分钟</p>
+            </div>
+
+            <div class="chapter-grid">
+                <a href="chapters/01-what-is-pi.html" class="chapter-card">
+                    <span class="chapter-num-badge">01</span>
+                    <div class="card-body">
+                        <div class="card-title">认识 Pi &mdash; 它是什么，能做什么？</div>
+                        <div class="card-desc">Pi 的定位、核心能力与典型使用场景概览</div>
+                        <div class="card-meta"><span class="read-time">15 分钟</span></div>
+                    </div>
+                </a>
+
+                <a href="chapters/02-monorepo.html" class="chapter-card">
+                    <span class="chapter-num-badge">02</span>
+                    <div class="card-body">
+                        <div class="card-title">Monorepo 架构 &mdash; 5 个包如何协作</div>
+                        <div class="card-desc">npm workspaces、构建脚本、包间依赖关系</div>
+                        <div class="card-meta"><span class="read-time">25 分钟</span></div>
+                    </div>
+                </a>
+
+                <a href="chapters/03-pi-ai.html" class="chapter-card">
+                    <span class="chapter-num-badge">03</span>
+                    <div class="card-body">
+                        <div class="card-title">pi-ai &mdash; 统一 LLM API 层</div>
+                        <div class="card-desc">多提供商抽象、请求路由、流式处理与错误重试</div>
+                        <div class="card-meta"><span class="read-time">25 分钟</span></div>
+                    </div>
+                </a>
+
+                <a href="chapters/04-agent-core.html" class="chapter-card">
+                    <span class="chapter-num-badge">04</span>
+                    <div class="card-body">
+                        <div class="card-title">pi-agent-core &mdash; Agent 运行时</div>
+                        <div class="card-desc">ReAct 循环、工具调用、消息流转与生命周期钩子</div>
+                        <div class="card-meta"><span class="read-time">30 分钟</span></div>
+                    </div>
+                </a>
+
+                <a href="chapters/05-pi-tui.html" class="chapter-card">
+                    <span class="chapter-num-badge">05</span>
+                    <div class="card-body">
+                        <div class="card-title">pi-tui &mdash; 终端 UI 库</div>
+                        <div class="card-desc">差分渲染引擎、组件模型、主题与键绑定系统</div>
+                        <div class="card-meta"><span class="read-time">25 分钟</span></div>
+                    </div>
+                </a>
+
+                <a href="chapters/06-coding-agent.html" class="chapter-card">
+                    <span class="chapter-num-badge">06</span>
+                    <div class="card-body">
+                        <div class="card-title">pi-coding-agent &mdash; 主 CLI 架构</div>
+                        <div class="card-desc">命令行入口、配置加载、会话编排与启动流程</div>
+                        <div class="card-meta"><span class="read-time">20 分钟</span></div>
+                    </div>
+                </a>
+
+                <a href="chapters/07-tools.html" class="chapter-card">
+                    <span class="chapter-num-badge">07</span>
+                    <div class="card-body">
+                        <div class="card-title">内置工具系统 &mdash; 7 个工具的设计</div>
+                        <div class="card-desc">read / bash / edit / write / grep / find / ls — 7 个内置工具的实现</div>
+                        <div class="card-meta"><span class="read-time">30 分钟</span></div>
+                    </div>
+                </a>
+
+                <a href="chapters/08-extensions.html" class="chapter-card">
+                    <span class="chapter-num-badge">08</span>
+                    <div class="card-body">
+                        <div class="card-title">扩展系统 &mdash; 插件架构详解</div>
+                        <div class="card-desc">工具注册、事件订阅、自定义命令与 UI 扩展开发</div>
+                        <div class="card-meta"><span class="read-time">25 分钟</span></div>
+                    </div>
+                </a>
+
+                <a href="chapters/09-session-management.html" class="chapter-card">
+                    <span class="chapter-num-badge">09</span>
+                    <div class="card-body">
+                        <div class="card-title">会话管理 &mdash; 持久化、分支与导航</div>
+                        <div class="card-desc">JSONL 存储格式、分支创建、时间线回溯与会话恢复</div>
+                        <div class="card-meta"><span class="read-time">20 分钟</span></div>
+                    </div>
+                </a>
+
+                <a href="chapters/10-compaction.html" class="chapter-card">
+                    <span class="chapter-num-badge">10</span>
+                    <div class="card-body">
+                        <div class="card-title">压缩系统 &mdash; 管理 LLM 上下文窗口</div>
+                        <div class="card-desc">摘要压缩、令牌预算、滑动窗口与上下文优化策略</div>
+                        <div class="card-meta"><span class="read-time">20 分钟</span></div>
+                    </div>
+                </a>
+
+                <a href="chapters/11-interactive-mode.html" class="chapter-card">
+                    <span class="chapter-num-badge">11</span>
+                    <div class="card-body">
+                        <div class="card-title">交互模式 &mdash; TUI 实现详解</div>
+                        <div class="card-desc">终端界面布局、输入处理、流式输出渲染与状态管理</div>
+                        <div class="card-meta"><span class="read-time">25 分钟</span></div>
+                    </div>
+                </a>
+
+                <a href="chapters/12-sdk.html" class="chapter-card">
+                    <span class="chapter-num-badge">12</span>
+                    <div class="card-body">
+                        <div class="card-title">编程式 SDK &mdash; 把 Pi 当库用</div>
+                        <div class="card-desc">在 Node.js/TypeScript 程序中嵌入 Pi Agent</div>
+                        <div class="card-meta"><span class="read-time">20 分钟</span></div>
+                    </div>
+                </a>
+
+                <a href="chapters/13-orchestrator.html" class="chapter-card">
+                    <span class="chapter-num-badge">13</span>
+                    <div class="card-body">
+                        <div class="card-title">编排器 &mdash; 多代理协调（实验性）</div>
+                        <div class="card-desc">多 Agent 协作模式、任务分发、消息总线与编排策略</div>
+                        <div class="card-meta"><span class="read-time">25 分钟</span></div>
+                    </div>
+                </a>
+
+                <a href="chapters/14-contributing.html" class="chapter-card">
+                    <span class="chapter-num-badge">14</span>
+                    <div class="card-body">
+                        <div class="card-title">贡献指南与开发实践</div>
+                        <div class="card-desc">代码风格、测试规范、提交流程、发布检查清单与社区准则</div>
+                        <div class="card-meta"><span class="read-time">15 分钟</span></div>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- ================================================================== -->
+        <!-- PREREQUISITES                                                        -->
+        <!-- ================================================================== -->
+        <section id="prerequisites" aria-labelledby="prerequisites-heading">
+            <div class="section-heading">
+                <h2 id="prerequisites-heading">前置知识</h2>
+                <p>开始之前，确保你具备以下基础</p>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-box">
+                    <h3>&#128187; 技术要求</h3>
+                    <ul>
+                        <li>TypeScript 熟练（中级以上）</li>
+                        <li>Node.js 与 npm 使用经验</li>
+                        <li>对 LLM API 有基本认知（prompt、token、streaming）</li>
+                        <li>熟悉终端命令行操作</li>
+                    </ul>
+                </div>
+                <div class="info-box">
+                    <h3>&#128218; 推荐工具</h3>
+                    <ul>
+                        <li>Node.js 18+ 与 npm</li>
+                        <li>VS Code 或类似编辑器</li>
+                        <li>一个 LLM API 密钥（可选）</li>
+                        <li>Git 基础操作能力</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================== -->
+        <!-- HOW TO USE THIS SITE                                                 -->
+        <!-- ================================================================== -->
+        <section id="how-to-use" aria-labelledby="howto-heading">
+            <div class="section-heading">
+                <h2 id="howto-heading">如何使用本站</h2>
+                <p>灵活的学习方式，按你的节奏来</p>
+            </div>
+
+            <div class="learn-grid">
+                <div class="learn-card">
+                    <div class="learn-icon">&#128218;</div>
+                    <h3>循序渐进</h3>
+                    <p>按章节顺序通读，建立完整的知识体系。每章 15&#8209;30 分钟，总计约 5 小时。</p>
+                </div>
+                <div class="learn-card">
+                    <div class="learn-icon">&#128270;</div>
+                    <h3>按需跳读</h3>
+                    <p>点击目录卡片直接跳转到特定主题，快速查阅感兴趣的技术细节。</p>
+                </div>
+                <div class="learn-card">
+                    <div class="learn-icon">&#128187;</div>
+                    <h3>源码对照</h3>
+                    <p>每章包含真实源代码走读，边读边对照实际仓库，加深理解。</p>
+                </div>
+                <div class="learn-card">
+                    <div class="learn-icon">&#127919;</div>
+                    <h3>练习测验</h3>
+                    <p>每章末尾附带互动小测验与编程练习，验证你的掌握程度。</p>
+                </div>
+                <div class="learn-card">
+                    <div class="learn-icon">&#128269;</div>
+                    <h3>全文搜索</h3>
+                    <p>使用顶部搜索框跨章节查找关键词，快速定位相关内容。</p>
+                </div>
+                <div class="learn-card">
+                    <div class="learn-icon">&#128196;</div>
+                    <h3>离线可用</h3>
+                    <p>纯静态站点，无外部依赖。可克隆到本地随时随地学习。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================== -->
+        <!-- ARCHITECTURE OVERVIEW SVG                                             -->
+        <!-- ================================================================== -->
+        <section id="architecture-overview" aria-labelledby="arch-heading">
+            <div class="section-heading">
+                <h2 id="arch-heading">架构总览</h2>
+                <p>5 个包，一个统一的工作流</p>
+            </div>
+
+            <div class="diagram-container">
+                <svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pi 包架构图">
+                    <!-- Background boxes -->
+                    <rect x="20" y="20" width="150" height="80" rx="8" fill="#16213e" stroke="#e94560" stroke-width="1.5"/>
+                    <text x="95" y="55" text-anchor="middle" fill="#e94560" font-family="monospace" font-size="14" font-weight="bold">pi-ai</text>
+                    <text x="95" y="75" text-anchor="middle" fill="#b0b0b0" font-family="sans-serif" font-size="11">LLM 抽象层</text>
+
+                    <rect x="190" y="20" width="150" height="80" rx="8" fill="#16213e" stroke="#0f9b8e" stroke-width="1.5"/>
+                    <text x="265" y="55" text-anchor="middle" fill="#0f9b8e" font-family="monospace" font-size="14" font-weight="bold">pi-agent-core</text>
+                    <text x="265" y="75" text-anchor="middle" fill="#b0b0b0" font-family="sans-serif" font-size="11">Agent 运行时</text>
+
+                    <rect x="360" y="20" width="150" height="80" rx="8" fill="#16213e" stroke="#f5a623" stroke-width="1.5"/>
+                    <text x="435" y="55" text-anchor="middle" fill="#f5a623" font-family="monospace" font-size="14" font-weight="bold">pi-tui</text>
+                    <text x="435" y="75" text-anchor="middle" fill="#b0b0b0" font-family="sans-serif" font-size="11">终端 UI 库</text>
+
+                    <rect x="530" y="20" width="150" height="80" rx="8" fill="#16213e" stroke="#533483" stroke-width="1.5"/>
+                    <text x="605" y="55" text-anchor="middle" fill="#533483" font-family="monospace" font-size="14" font-weight="bold">pi-coding-agent</text>
+                    <text x="605" y="75" text-anchor="middle" fill="#b0b0b0" font-family="sans-serif" font-size="11">主 CLI 入口</text>
+
+                    <!-- Arrows between top row -->
+                    <line x1="170" y1="60" x2="188" y2="60" stroke="#e94560" stroke-width="1.5" marker-end="url(#arrow)"/>
+                    <line x1="340" y1="60" x2="358" y2="60" stroke="#0f9b8e" stroke-width="1.5" marker-end="url(#arrow)"/>
+                    <line x1="510" y1="60" x2="528" y2="60" stroke="#f5a623" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+                    <!-- Bottom layer -->
+                    <rect x="100" y="150" width="500" height="80" rx="8" fill="#0d1117" stroke="#3498db" stroke-width="1.5"/>
+                    <text x="350" y="185" text-anchor="middle" fill="#3498db" font-family="monospace" font-size="13" font-weight="bold">Sessions &amp; Storage Layer</text>
+                    <text x="350" y="208" text-anchor="middle" fill="#7a8a9a" font-family="sans-serif" font-size="11">JSONL Persistence &middot; Branching &middot; Compaction</text>
+
+                    <!-- Arrows down -->
+                    <line x1="95" y1="100" x2="200" y2="148" stroke="#e94560" stroke-width="1" stroke-dasharray="4,3"/>
+                    <line x1="265" y1="100" x2="300" y2="148" stroke="#0f9b8e" stroke-width="1" stroke-dasharray="4,3"/>
+                    <line x1="435" y1="100" x2="400" y2="148" stroke="#f5a623" stroke-width="1" stroke-dasharray="4,3"/>
+                    <line x1="605" y1="100" x2="500" y2="148" stroke="#533483" stroke-width="1" stroke-dasharray="4,3"/>
+
+                    <!-- Arrow marker -->
+                    <defs>
+                        <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                            <polygon points="0 0, 8 3, 0 6" fill="#b0b0b0"/>
+                        </marker>
+                    </defs>
+                </svg>
+            </div>
+        </section>
+
+        <!-- ================================================================== -->
+        <!-- QUICK START CTA                                                     -->
+        <!-- ================================================================== -->
+        <section style="text-align: center; margin: 3rem 0;">
+            <a href="chapters/01-what-is-pi.html" style="
+                display: inline-flex;
+                align-items: center;
+                gap: 0.6rem;
+                padding: 0.9rem 2.2rem;
+                background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+                color: #fff;
+                border-radius: var(--radius-lg);
+                font-size: 1.05rem;
+                font-weight: 700;
+                text-decoration: none;
+                transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+                box-shadow: 0 4px 16px rgba(233, 69, 96, 0.35);
+            " onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(233, 69, 96, 0.45)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(233, 69, 96, 0.35)'">
+                从第 1 章开始 &#8594;
+            </a>
+            <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted);">
+                或 <a href="chapters/02-monorepo.html">跳到第 2 章</a> 直接看架构
+            </p>
+        </section>
+
+        <section class="next-action-panel" aria-labelledby="home-next-action">
+            <h2 id="home-next-action">Next Action</h2>
+            <p>先读第 1 章建立包图，再进入第 2 章和第 6 章，把 workspace 结构和 CLI 启动链连起来。需要核对强事实时，回到 `course-map.html` 或 backstage 的 source matrix。</p>
+        </section>
+
+        <!-- ================================================================== -->
+        <!-- FOOTER                                                               -->
+        <!-- ================================================================== -->
+        <footer class="site-footer">
+            <div class="footer-links">
+                <a href="https://github.com/earendil-works/pi" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://pi.dev" target="_blank" rel="noopener">pi.dev</a>
+                <a href="https://github.com/earendil-works/pi/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+                <a href="#hero">回到顶部</a>
+            </div>
+            <p class="footer-meta">
+                Generated for learning purposes &middot; Pi Agent Harness Teaching Site
+            </p>
+        </footer>
+
+    </div><!-- /.content-wrapper -->
+</main>
+
+<!-- Search results overlay (shared with chapter pages) -->
+<div class="search-results" id="searchResults">
+    <div class="results-header">
+        <h3>搜索结果</h3>
+        <button class="results-close" id="searchResultsClose" aria-label="关闭搜索">&times;</button>
+    </div>
+    <div id="searchResultsList"></div>
+</div>
+
+<script src="assets/js/app.js"></script>
+</body>
+</html>

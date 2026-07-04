@@ -1,0 +1,65 @@
+{
+  "created_at": "2026-06-28T18:17:19Z",
+  "required": [
+    "paper-course/index.html",
+    "manifest.paper-course.json",
+    "artifacts/feedback-regression-matrix.md",
+    "paper-course/artifacts/source-matrix.md",
+    "artifacts/misconception-audits/paper-course-v2.md",
+    "proof/paper-course-playwright-results.json",
+    ".codex/long-horizon/Prompt.md",
+    ".codex/long-horizon/Plan.md",
+    ".codex/long-horizon/Implement.md",
+    ".codex/long-horizon/Documentation.md"
+  ],
+  "missing": [],
+  "items": [
+    {
+      "path": "paper-course/index.html",
+      "size": 5613,
+      "sha256": "827498e0a753250f5c49bd6ccca4ff539887a0c6b926cf4924780becfe666c17"
+    },
+    {
+      "path": "manifest.paper-course.json",
+      "size": 861,
+      "sha256": "2b5cec0887942772e606efa330666f7b46eb687377c9bf90dc1b59c8729d654a"
+    },
+    {
+      "path": "artifacts/feedback-regression-matrix.md",
+      "size": 2461,
+      "sha256": "95a22a05679e9111e95e5fb59852b0ac7c8be13d90e3a08f8684c49478226919"
+    },
+    {
+      "path": "artifacts/misconception-audits/paper-course-v2.md",
+      "size": 2224,
+      "sha256": "9bbcc36a96426a90db040ef13d5492a0c732dc73c553e2d29fa32bee17c915d9"
+    },
+    {
+      "path": "proof/paper-course-playwright-results.json",
+      "size": 5631,
+      "sha256": "e79b010f91f1283a406177c43d998a0fb3f5375b13f94b0dcc55d6b543290bdd"
+    },
+    {
+      "path": ".codex/long-horizon/Prompt.md",
+      "size": 2987,
+      "sha256": "1886ad3da7fc058a712a8b1b70aa218bba5e89c4db7563fbe82495ee17ece591"
+    },
+    {
+      "path": ".codex/long-horizon/Plan.md",
+      "size": 3956,
+      "sha256": "ecbe6add7ea8ec660fcc8ad2d5edbd8fe99c56644f735a8ce92c3d7f4bc26f95"
+    },
+    {
+      "path": ".codex/long-horizon/Implement.md",
+      "size": 1851,
+      "sha256": "2a824420a2dc17cce3183524cd46401864b3557c9450fc45e037c1b05a398d0c"
+    },
+    {
+      "path": ".codex/long-horizon/Documentation.md",
+      "size": 2634,
+      "sha256": "19cb2a0d53b1bfa0f8e1e1a9fc3dbabc77ca6a692a41b669d278410d533ce9b8"
+    }
+  ],
+  "status": "pass",
+  "note": "Fallback artifact survival check because long-horizon finalizer dependency verify_artifact_survival.py is missing on this host."
+}

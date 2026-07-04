@@ -1,0 +1,56 @@
+{
+  "generated_at": "2026-07-02",
+  "status": "passed",
+  "missing": [],
+  "self_entry_omitted": true,
+  "summary": {
+    "required_file_count": 42,
+    "missing_count": 0
+  },
+  "required_files": [
+    { "path": "MISSION.md", "size_bytes": 841, "sha256": "9aa8bd1d69c5382d8f39327b35fa228a95a76319247e75d5e2d7f68ed65e5bcb" },
+    { "path": "RESOURCES.md", "size_bytes": 1155, "sha256": "1403f385221c62dd837c572987726499d7406be97795344306cae14ffbd6527a" },
+    { "path": "GLOSSARY.md", "size_bytes": 1032, "sha256": "11410f56f16f6077825996740a71771b3d4b686e3dc67706781bd5ee8c47b1ae" },
+    { "path": "NOTES.md", "size_bytes": 584, "sha256": "6e639e96571e7b36acfd56663dcddb3d7f6ed473f8aba993c45c7e4390634789" },
+    { "path": "manifest.json", "size_bytes": 9223, "sha256": "0ea9a318061278555e3edc20ad56bb8d7bec11ff5d1c58df83166287c36c2e9b" },
+    { "path": "course-map.html", "size_bytes": 4125, "sha256": "fa699996ef44b176f6e90345e68bdcbcdafec3fc426784c7cd7a23442a43ce25" },
+    { "path": "index.html", "size_bytes": 37629, "sha256": "79c2904d833c76fce690d906fbfe92b3a6b5985945da7871aace76813a284f27" },
+
+    { "path": "chapters/01-what-is-pi.html", "size_bytes": 18153, "sha256": "7ed6bb6e2bfa0193baa8bc909b580648bee3a9952f58b35536ddd62d8731cbca" },
+    { "path": "chapters/02-monorepo.html", "size_bytes": 18928, "sha256": "d28808724a1e22da0ec3af0349292bbaa7ebc2c07273c4fc7aaf13b171fa54fd" },
+    { "path": "chapters/03-pi-ai.html", "size_bytes": 21387, "sha256": "aa7540b2bb20336d6a1ff934dfa581d8143eee17918405e8da9cdc04a64bbcaf" },
+    { "path": "chapters/04-agent-core.html", "size_bytes": 45744, "sha256": "fd09690fbe3f2c314bb9f5042a2d22ea131512ca28c55eaf662c4ed362d0145f" },
+    { "path": "chapters/05-pi-tui.html", "size_bytes": 17394, "sha256": "5e0bdf9969f30c8be67fb7858602a9841ab7980a44662cb9048ef32300e48636" },
+    { "path": "chapters/06-coding-agent.html", "size_bytes": 67793, "sha256": "7984777861d9c0bc15ac8468c5593a10c16bd75bf74d7a73baf7d575183c51ba" },
+    { "path": "chapters/07-tools.html", "size_bytes": 19746, "sha256": "81d258e5909d9da369610ac77e99fd7c23715925e75e7592fd3f669feca9e432" },
+    { "path": "chapters/08-extensions.html", "size_bytes": 22231, "sha256": "c98724205069528fdd5881f19989a4164f5fa5f3ad993a36d8621f182178a87e" },
+    { "path": "chapters/09-session-management.html", "size_bytes": 28441, "sha256": "343c397f6ef0fe2c70f8870029302ae3fd23d4cd302211dd716afa59d210dd9e" },
+    { "path": "chapters/10-compaction.html", "size_bytes": 21493, "sha256": "1ff7a191c6efd242470ccb9d1d651259f99b88fede79e969553a05cc5da352c5" },
+    { "path": "chapters/11-interactive-mode.html", "size_bytes": 26992, "sha256": "df5c520a74c629fbaee0eabf72fba54cd8b846b282e90c7d56e3fb7a715e36cd" },
+    { "path": "chapters/12-sdk.html", "size_bytes": 19092, "sha256": "4f0e51808136539bc38ab939918dfeec67d80363156e937efddc01368d1260f7" },
+    { "path": "chapters/13-orchestrator.html", "size_bytes": 22032, "sha256": "95f5e69b2e7b708c301ac7e7a9a8ac9a23a606333cae49a5bb5b783d6ea835aa" },
+    { "path": "chapters/14-contributing.html", "size_bytes": 23376, "sha256": "5ded9179bd3e6177fe36bf7c9da27c93180037cf26a711fb90e959913e2c654f" },
+
+    { "path": "artifacts/source-matrix.md", "size_bytes": 17532, "sha256": "dffe3321c6d25a93650dd773eed50d5b6b92e2818c82aa78beb0808867b6e0f7" },
+    { "path": "artifacts/misconception-audits/01-radius-is-not-visibility.md", "size_bytes": 1360, "sha256": "ae5c7e35b947662a938b0e8e44bf3cab37d18cc5bcc2a2b0701e1faebe5ccffc" },
+    { "path": "artifacts/misconception-audits/02-sdk-events-not-string-literals.md", "size_bytes": 1460, "sha256": "f248484f15c4770d8b2193349ddaca2eab668b0323263288a917fda3fe85122d" },
+    { "path": "artifacts/misconception-audits/03-tools-no-websearch-no-delegation.md", "size_bytes": 1410, "sha256": "b239b5b45937c7ab4938eea1dfcd219913237ea945b402cd2e10b1a5bca52db6" },
+    { "path": "artifacts/misconception-audits/04-test-sh-is-simple.md", "size_bytes": 1369, "sha256": "d7744933a65ce7990260b4864e8a7fb108626c872abc3d86d3d8f44bfd38fe59" },
+    { "path": "artifacts/misconception-audits/05-lgtm-is-pr-gate-not-merge-quorum.md", "size_bytes": 1160, "sha256": "c8009831f3af96186e52e4bd593925d58d49d58f92679e27cfe1b0d7982b9334" },
+    { "path": "artifacts/misconception-audits/06-counts-and-locking-claims-must-match-files.md", "size_bytes": 1461, "sha256": "287837ddb499d8200ea7fb668a6565c3bfdd521f6b3248e534df52acf04b9428" },
+
+    { "path": "proof/static-link-check.md", "size_bytes": 1306, "sha256": "a86a1a726cbcf1699aacbebaddcbc62768d19c824f75add744060709f456d40a" },
+    { "path": "proof/playwright-results.json", "size_bytes": 3206, "sha256": "13a5e662a3451b18f3a0b864112ff471bee63a430a629d22ef804bb7c1c2e0e0" },
+
+    { "path": "proof/screenshots/index-desktop.png", "size_bytes": 757571, "sha256": "79dcee84aa5ca22bd961fe266a64c2df1c1fa70a092d3377b71e96dfdd7c1028" },
+    { "path": "proof/screenshots/index-mobile.png", "size_bytes": 604092, "sha256": "3b9d26ac9af9f095e6ebd055d9bc6b61833d9ae97d900777f177183cd2e4676f" },
+    { "path": "proof/screenshots/course-map-desktop.png", "size_bytes": 214634, "sha256": "eba1cd05302c3a7fff898b60eee1d51672e03f23ade0e65a078cdd5450e3f432" },
+    { "path": "proof/screenshots/course-map-mobile.png", "size_bytes": 195029, "sha256": "98e71dba4cb47e289e1a26789e7bbcabd68d3935644efb440c6226cdeb226244" },
+    { "path": "proof/screenshots/ch04-desktop.png", "size_bytes": 2725575, "sha256": "1da0cd692126c760aed5d18821e29194f5868b032d1040a86567f5cbdbf35f83" },
+    { "path": "proof/screenshots/ch04-mobile.png", "size_bytes": 2310410, "sha256": "34b83aa4db4932b721bab3bd345dfea005a30cd132e1715c23398c3afde226b6" },
+    { "path": "proof/screenshots/ch06-desktop.png", "size_bytes": 3170085, "sha256": "f9b625df495517ad4e2eff9ffd0d83fe9ca044cec98696a8884c76a6586ce23f" },
+    { "path": "proof/screenshots/ch06-mobile.png", "size_bytes": 2751565, "sha256": "b380c1bdb9154d4ad7bc59c64ac6814de4f4a4d9411114672a78d7d25f3f6483" },
+    { "path": "proof/screenshots/ch14-desktop.png", "size_bytes": 1356257, "sha256": "2443f17c7423ea9d4b71236b69c4336f6e0605a87fa693e5fad15170f3eeae2b" },
+    { "path": "proof/screenshots/ch14-mobile.png", "size_bytes": 1178984, "sha256": "9afd0d41c0c8665ec7d458c1d842da0029aa1d36cf626f13516e568689d5abbb" }
+  ]
+}

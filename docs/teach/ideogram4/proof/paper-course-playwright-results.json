@@ -1,0 +1,180 @@
+[
+  {
+    "file": "paper-course/01-model-card.html",
+    "viewport": "desktop",
+    "h1": "Model and Runtime Card",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/desktop__paper-course__01-model-card.html.png"
+  },
+  {
+    "file": "paper-course/02-cli-api-contract.html",
+    "viewport": "desktop",
+    "h1": "CLI / API Contract",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/desktop__paper-course__02-cli-api-contract.html.png"
+  },
+  {
+    "file": "paper-course/03-token-packing.html",
+    "viewport": "desktop",
+    "h1": "Token Packing Mechanism",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/desktop__paper-course__03-token-packing.html.png"
+  },
+  {
+    "file": "paper-course/04-sampling-cfg.html",
+    "viewport": "desktop",
+    "h1": "Sampling and Classifier-Free Guidance",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/desktop__paper-course__04-sampling-cfg.html.png"
+  },
+  {
+    "file": "paper-course/05-transformer-architecture.html",
+    "viewport": "desktop",
+    "h1": "Transformer Architecture",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/desktop__paper-course__05-transformer-architecture.html.png"
+  },
+  {
+    "file": "paper-course/06-json-caption-protocol.html",
+    "viewport": "desktop",
+    "h1": "JSON Caption Protocol",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/desktop__paper-course__06-json-caption-protocol.html.png"
+  },
+  {
+    "file": "paper-course/07-training-public-record.html",
+    "viewport": "desktop",
+    "h1": "训练方式与公开信息分层",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/desktop__paper-course__07-training-public-record.html.png"
+  },
+  {
+    "file": "paper-course/index.html",
+    "viewport": "desktop",
+    "h1": "Ideogram 4 推理系统技术报告",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/desktop__paper-course__index.html.png"
+  },
+  {
+    "file": "paper-course/appendix/evidence.html",
+    "viewport": "desktop",
+    "h1": "证据附录",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/desktop__paper-course__appendix__evidence.html.png"
+  },
+  {
+    "file": "paper-course/appendix/module-index.html",
+    "viewport": "desktop",
+    "h1": "系统层模块索引",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/desktop__paper-course__appendix__module-index.html.png"
+  },
+  {
+    "file": "paper-course/01-model-card.html",
+    "viewport": "mobile",
+    "h1": "Model and Runtime Card",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/mobile__paper-course__01-model-card.html.png"
+  },
+  {
+    "file": "paper-course/02-cli-api-contract.html",
+    "viewport": "mobile",
+    "h1": "CLI / API Contract",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/mobile__paper-course__02-cli-api-contract.html.png"
+  },
+  {
+    "file": "paper-course/03-token-packing.html",
+    "viewport": "mobile",
+    "h1": "Token Packing Mechanism",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/mobile__paper-course__03-token-packing.html.png"
+  },
+  {
+    "file": "paper-course/04-sampling-cfg.html",
+    "viewport": "mobile",
+    "h1": "Sampling and Classifier-Free Guidance",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/mobile__paper-course__04-sampling-cfg.html.png"
+  },
+  {
+    "file": "paper-course/05-transformer-architecture.html",
+    "viewport": "mobile",
+    "h1": "Transformer Architecture",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/mobile__paper-course__05-transformer-architecture.html.png"
+  },
+  {
+    "file": "paper-course/06-json-caption-protocol.html",
+    "viewport": "mobile",
+    "h1": "JSON Caption Protocol",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/mobile__paper-course__06-json-caption-protocol.html.png"
+  },
+  {
+    "file": "paper-course/07-training-public-record.html",
+    "viewport": "mobile",
+    "h1": "训练方式与公开信息分层",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/mobile__paper-course__07-training-public-record.html.png"
+  },
+  {
+    "file": "paper-course/index.html",
+    "viewport": "mobile",
+    "h1": "Ideogram 4 推理系统技术报告",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/mobile__paper-course__index.html.png"
+  },
+  {
+    "file": "paper-course/appendix/evidence.html",
+    "viewport": "mobile",
+    "h1": "证据附录",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/mobile__paper-course__appendix__evidence.html.png"
+  },
+  {
+    "file": "paper-course/appendix/module-index.html",
+    "viewport": "mobile",
+    "h1": "系统层模块索引",
+    "nav": 10,
+    "errors": [],
+    "screenshot": "proof/paper-course-screenshots/mobile__paper-course__appendix__module-index.html.png"
+  },
+  {
+    "interaction": "token-packing",
+    "before": "14 text + 64 image = 78 tokens",
+    "after": "30 text + 64 image = 94 tokens",
+    "changed": true
+  },
+  {
+    "interaction": "token-lattice-3d",
+    "before": "angle = 18deg",
+    "after": "angle = -32deg",
+    "changed": true
+  },
+  {
+    "interaction": "sampling-cfg",
+    "before": "gw = 3.0",
+    "after": "gw = 7.0",
+    "changed": true
+  }
+]

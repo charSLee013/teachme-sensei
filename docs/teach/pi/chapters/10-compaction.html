@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 10: 压缩系统 — 管理 LLM 上下文窗口 | Pi Agent Harness</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Sidebar -->
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">&#9776;</button>
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <h2>Pi Agent Harness</h2>
+        <div class="subtitle">Interactive Teaching</div>
+    </div>
+    <div class="sidebar-search">
+        <input type="text" id="searchInput" placeholder="搜索章节..." aria-label="搜索">
+    </div>
+    <div class="sidebar-nav">
+        <ul class="chapter-list">
+            <li><a href="01-what-is-pi.html"><span class="chapter-num">1</span> What is Pi</a></li>
+            <li><a href="02-monorepo.html"><span class="chapter-num">2</span> Monorepo 结构</a></li>
+            <li><a href="03-pi-ai.html"><span class="chapter-num">3</span> pi-ai 包</a></li>
+            <li><a href="04-agent-core.html"><span class="chapter-num">4</span> Agent 运行时</a></li>
+            <li><a href="05-pi-tui.html"><span class="chapter-num">5</span> pi-tui 终端 UI</a></li>
+            <li><a href="06-coding-agent.html"><span class="chapter-num">6</span> 主 CLI 架构</a></li>
+            <li><a href="07-tools.html"><span class="chapter-num">7</span> 工具系统</a></li>
+            <li><a href="08-extensions.html"><span class="chapter-num">8</span> 扩展系统</a></li>
+            <li><a href="09-session-management.html"><span class="chapter-num">9</span> 会话管理</a></li>
+            <li><a href="10-compaction.html" class="active"><span class="chapter-num">10</span> 压缩系统</a></li>
+            <li><a href="11-interactive-mode.html"><span class="chapter-num">11</span> 交互模式</a></li>
+            <li><a href="12-sdk.html"><span class="chapter-num">12</span> 编程式 SDK</a></li>
+            <li><a href="13-orchestrator.html"><span class="chapter-num">13</span> 编排器</a></li>
+            <li><a href="14-contributing.html"><span class="chapter-num">14</span> 贡献指南</a></li>
+        </ul>
+    </div>
+    <div class="sidebar-progress">
+        <div class="progress-label"><span>学习进度</span><span>0 / 14 章节</span></div>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+</nav>
+
+<!-- Search Results Overlay -->
+<div class="search-results" id="searchResults">
+    <div class="results-header">
+        <h3>搜索结果</h3>
+        <button class="results-close" id="searchResultsClose">&times;</button>
+    </div>
+    <div id="searchResultsList"></div>
+</div>
+
+<!-- Main Content -->
+<main class="main-content" data-chapter-id="10-compaction" data-searchable data-title="Chapter 10: 压缩系统">
+    <article class="content-wrapper">
+
+        <h1>Chapter 10: 压缩系统 — 管理 LLM 上下文窗口</h1>
+        <p>LLM 的上下文窗口有限（<span class="term" data-term="128K-200K tokens">128K-200K tokens</span>），而一次编程对话很容易超出这个限制。Pi 的 <span class="term" data-term="compaction system">压缩系统</span> 通过 LLM 生成摘要来压缩历史对话，使会话可以无限延续。</p>
+
+        <section class="learner-cues" aria-labelledby="ch10-main-line">
+            <div class="cue-grid">
+                <div class="cue-card">
+                    <h2 id="ch10-main-line">Main Line</h2>
+                    <p>压缩系统解决的不是“怎样删旧消息”，而是“怎样在丢掉细节前保住继续工作的最小上下文”。</p>
+                </div>
+                <div class="cue-card">
+                    <h2>Remember Now</h2>
+                    <p>Compaction 是用摘要替代早期历史，而不是硬截断。只要你忘了这点，就会误解为什么 Pi 还要维护结构化摘要格式和切断点规则。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <h2 id="why-compaction">10.1 为什么需要压缩</h2>
+        <!-- ================================================================ -->
+        <p>一次典型编程对话包含大量 token：系统提示、工具定义、文件内容、工具结果。一轮简单的"读文件-改文件-验证"就可能消耗 10K-30K tokens。当累计上下文逼近窗口上限时，必须压缩历史。</p>
+
+        <div class="callout callout-info">
+            <div class="callout-title">压缩 vs 截断</div>
+            <p><strong>截断</strong>直接丢弃最早的消息，会丢失重要上下文。<strong>压缩</strong>用 LLM 生成结构化摘要，保留关键信息（目标、约束、进度、决策），只丢弃冗余细节。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="auto-manual">10.2 自动 vs 手动压缩</h2>
+        <!-- ================================================================ -->
+        <p>Pi 支持两种触发方式：</p>
+        <ul>
+            <li><strong>自动</strong>：每次模型响应后检查 token 用量，超过阈值时自动触发。由 <code>shouldCompact()</code> 决定。</li>
+            <li><strong>手动</strong>：用户输入 <code>/compact</code> 命令，或扩展调用 <code>prepareCompaction()</code> 自定义压缩策略。</li>
+        </ul>
+
+        <pre><code class="language-ts">export function shouldCompact(
+    contextTokens: number,
+    contextWindow: number,
+    settings: CompactionSettings,
+): boolean {
+    if (!settings.enabled) return false;
+    return contextTokens > contextWindow - settings.reserveTokens;
+}</code></pre>
+
+        <p>例如 contextWindow=128000，reserveTokens=16384，则当 contextTokens 超过 111616 时触发压缩。</p>
+
+        <!-- ================================================================ -->
+        <h2 id="compaction-flow">10.3 压缩流程</h2>
+        <!-- ================================================================ -->
+
+        <div class="diagram-container">
+            <svg viewBox="0 0 520 440" xmlns="http://www.w3.org/2000/svg" class="diagram-svg">
+                <!-- Step 1: prepareCompaction -->
+                <rect x="10" y="10" width="500" height="55" rx="6" fill="#1e2a3a" stroke="#533483"/>
+                <text x="20" y="32" fill="#bc8cff" font-size="12" font-weight="600" font-family="Inter, sans-serif">1. prepareCompaction()</text>
+                <text x="20" y="52" fill="#b0b0b0" font-size="10" font-family="JetBrains Mono, monospace">findCutPoint() | extractFileOperations() | 计算 tokensBefore</text>
+
+                <!-- Arrow -->
+                <line x1="260" y1="65" x2="260" y2="85" stroke="#533483" stroke-width="2"/>
+                <polygon points="255,85 260,95 265,85" fill="#533483"/>
+
+                <!-- Step 2: serialize -->
+                <rect x="10" y="100" width="500" height="55" rx="6" fill="#1e2a3a" stroke="#0f9b8e"/>
+                <text x="20" y="122" fill="#0f9b8e" font-size="12" font-weight="600" font-family="Inter, sans-serif">2. serializeConversation() + convertToLlm()</text>
+                <text x="20" y="142" fill="#b0b0b0" font-size="10" font-family="JetBrains Mono, monospace">AgentMessage[] → Message[] → "[User]: ...\n[Assistant]: ..."</text>
+
+                <!-- Arrow -->
+                <line x1="260" y1="155" x2="260" y2="175" stroke="#0f9b8e" stroke-width="2"/>
+                <polygon points="255,175 260,185 265,175" fill="#0f9b8e"/>
+
+                <!-- Step 3: LLM Summary -->
+                <rect x="10" y="190" width="500" height="55" rx="6" fill="#1e2a3a" stroke="#e94560"/>
+                <text x="20" y="212" fill="#e94560" font-size="12" font-weight="600" font-family="Inter, sans-serif">3. generateSummary() — LLM 调用</text>
+                <text x="20" y="232" fill="#b0b0b0" font-size="10" font-family="JetBrains Mono, monospace">SUMMARIZATION_PROMPT + conversation → AssistantMessage</text>
+
+                <!-- Arrow -->
+                <line x1="260" y1="245" x2="260" y2="265" stroke="#e94560" stroke-width="2"/>
+                <polygon points="255,265 260,275 265,265" fill="#e94560"/>
+
+                <!-- Step 4: CompactionEntry -->
+                <rect x="10" y="280" width="500" height="55" rx="6" fill="#1e2a3a" stroke="#f5a623"/>
+                <text x="20" y="302" fill="#f5a623" font-size="12" font-weight="600" font-family="Inter, sans-serif">4. appendCompaction() — 写入 session</text>
+                <text x="20" y="322" fill="#b0b0b0" font-size="10" font-family="JetBrains Mono, monospace">CompactionEntry { summary, firstKeptEntryId, tokensBefore, details }</text>
+
+                <!-- Arrow -->
+                <line x1="260" y1="335" x2="260" y2="355" stroke="#f5a623" stroke-width="2"/>
+                <polygon points="255,355 260,365 265,355" fill="#f5a623"/>
+
+                <!-- Step 5: Reload -->
+                <rect x="10" y="370" width="500" height="55" rx="6" fill="#1e2a3a" stroke="#2ecc71"/>
+                <text x="20" y="392" fill="#2ecc71" font-size="12" font-weight="600" font-family="Inter, sans-serif">5. reload session — buildSessionContext()</text>
+                <text x="20" y="412" fill="#b0b0b0" font-size="10" font-family="JetBrains Mono, monospace">新上下文 = summary + 保留消息 + 新消息</text>
+            </svg>
+        </div>
+
+        <h3>核心入口：<code>compact()</code></h3>
+
+        <pre><code class="language-ts">export async function compact(
+    preparation: CompactionPreparation,
+    model: Model&lt;any&gt;,
+    apiKey: string | undefined,
+    headers?: Record&lt;string, string&gt;,
+    customInstructions?: string,
+    signal?: AbortSignal,
+    thinkingLevel?: ThinkingLevel,
+    streamFn?: StreamFn,
+    env?: Record&lt;string, string&gt;,
+): Promise&lt;CompactionResult&gt; {
+    const { firstKeptEntryId, messagesToSummarize, turnPrefixMessages,
+            isSplitTurn, tokensBefore, previousSummary, fileOps, settings } = preparation;
+
+    let summary: string;
+    if (isSplitTurn && turnPrefixMessages.length > 0) {
+        // 并行生成历史摘要和 turn 前缀摘要
+        const [historyResult, turnPrefixResult] = await Promise.all([...]);
+        summary = `${historyResult}\n\n---\n\n**Turn Context (split turn):**\n\n${turnPrefixResult}`;
+    } else {
+        summary = await generateSummary(messagesToSummarize, model, ...);
+    }
+
+    // 附加文件操作信息
+    const { readFiles, modifiedFiles } = computeFileLists(fileOps);
+    summary += formatFileOperations(readFiles, modifiedFiles);
+
+    return { summary, firstKeptEntryId, tokensBefore, details: { readFiles, modifiedFiles } };
+}</code></pre>
+
+        <!-- ================================================================ -->
+        <h2 id="file-ops">10.4 文件操作追踪</h2>
+        <!-- ================================================================ -->
+        <p>压缩时会追踪哪些文件被读取/修改，附加到摘要末尾，让模型知道哪些文件已被处理：</p>
+
+        <pre><code class="language-ts">export function extractFileOpsFromMessage(message: AgentMessage, fileOps: FileOperations): void {
+    if (message.role !== "assistant") return;
+    for (const block of message.content) {
+        if (block.type !== "toolCall") continue;
+        const path = block.arguments?.path;
+        if (!path) continue;
+        switch (block.name) {
+            case "read":    fileOps.read.add(path); break;
+            case "write":   fileOps.written.add(path); break;
+            case "edit":    fileOps.edited.add(path); break;
+        }
+    }
+}
+
+export function formatFileOperations(readFiles: string[], modifiedFiles: string[]): string {
+    const sections: string[] = [];
+    if (readFiles.length > 0)
+        sections.push(`&lt;read-files&gt;\n${readFiles.join("\n")}\n&lt;/read-files&gt;`);
+    if (modifiedFiles.length > 0)
+        sections.push(`&lt;modified-files&gt;\n${modifiedFiles.join("\n")}\n&lt;/modified-files&gt;`);
+    return sections.length > 0 ? `\n\n${sections.join("\n\n")}` : "";
+}</code></pre>
+
+        <!-- ================================================================ -->
+        <h2 id="branch-summary">10.5 分支摘要</h2>
+        <!-- ================================================================ -->
+        <p>当用户在会话树中导航到不同分支时，被放弃的分支需要生成摘要以免丢失上下文：</p>
+
+        <pre><code class="language-ts">export function collectEntriesForBranchSummary(
+    session: ReadonlySessionManager,
+    oldLeafId: string | null,
+    targetId: string,
+): CollectEntriesResult {
+    // 1. 找到 oldLeafId 和 targetId 的最近公共祖先
+    // 2. 从 oldLeafId 向公共 ancestor 遍历，收集 entries
+    // 3. 返回 { entries, commonAncestorId }
+}
+
+export async function generateBranchSummary(
+    entries: SessionEntry[],
+    options: GenerateBranchSummaryOptions,
+): Promise&lt;BranchSummaryResult&gt; {
+    const contextWindow = model.contextWindow || 128000;
+    const tokenBudget = contextWindow - reserveTokens;
+    const { messages, fileOps } = prepareBranchEntries(entries, tokenBudget);
+    // ... LLM 生成摘要，附加文件操作信息
+}</code></pre>
+
+        <div class="callout callout-tip">
+            <div class="callout-title">Branch vs Compaction</div>
+            <p>Compaction 是"向前看"——压缩旧消息为新消息腾空间。Branch Summary 是"回头看"——总结被放弃的路径以便将来返回时恢复上下文。两者都用 LLM 生成摘要，但触发时机和目的不同。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="token-estimation">10.6 Token 估算</h2>
+        <!-- ================================================================ -->
+        <p>Pi 使用 <span class="term" data-term="chars/4 heuristic">字符数/4 启发式</span> 估算 token，因为精确计数需要模型特定的 tokenizer：</p>
+
+        <pre><code class="language-ts">export function estimateTokens(message: AgentMessage): number {
+    let chars = 0;
+    switch (message.role) {
+        case "user":
+            chars = estimateTextAndImageContentChars(message.content);
+            return Math.ceil(chars / 4);
+        case "assistant":
+            for (const block of message.content) {
+                if (block.type === "text") chars += block.text.length;
+                else if (block.type === "thinking") chars += block.thinking.length;
+                else if (block.type === "toolCall")
+                    chars += block.name.length + JSON.stringify(block.arguments).length;
+            }
+            return Math.ceil(chars / 4);
+        case "bashExecution":
+            chars = message.command.length + message.output.length;
+            return Math.ceil(chars / 4);
+        // ...
+    }
+}</code></pre>
+
+        <p>更精确的估算来自模型的 usage 数据：</p>
+
+        <pre><code class="language-ts">export function calculateContextTokens(usage: Usage): number {
+    return usage.totalTokens || usage.input + usage.output + usage.cacheRead + usage.cacheWrite;
+}
+
+export function estimateContextTokens(messages: AgentMessage[]): ContextUsageEstimate {
+    // 如果有模型 usage，使用它 + 估算后续消息
+    // 否则全部使用 estimateTokens()
+}</code></pre>
+
+        <!-- ================================================================ -->
+        <h2 id="settings">10.7 CompactionSettings</h2>
+        <!-- ================================================================ -->
+
+        <pre><code class="language-ts">export interface CompactionSettings {
+    enabled: boolean;
+    reserveTokens: number;    // 为响应预留的 token 数
+    keepRecentTokens: number; // 压缩时保留最近多少 token 的消息
+}
+
+export const DEFAULT_COMPACTION_SETTINGS: CompactionSettings = {
+    enabled: true,
+    reserveTokens: 16384,
+    keepRecentTokens: 20000,
+};</code></pre>
+
+        <p><code>findCutPoint()</code> 从最新消息反向累加，直到达到 <code>keepRecentTokens</code>，然后在该位置切断。切断点必须是 user/assistant 消息（不能在 toolResult 中间切断）。</p>
+
+        <!-- ================================================================ -->
+        <h2 id="exercise">10.8 练习：分析压缩效果</h2>
+        <!-- ================================================================ -->
+        <div class="callout callout-exercise">
+            <div class="callout-title">Exercise</div>
+            <p>给定一个包含 50 条消息的 session.jsonl 文件（含 compaction entry），编写一个脚本：</p>
+            <ol>
+                <li>加载文件，解析所有 entries</li>
+                <li>找到最新的 compaction entry</li>
+                <li>计算 <code>tokensBefore</code> 和压缩后实际 token 数（用 <code>estimateTokens()</code>）</li>
+                <li>输出压缩比率（after / before）</li>
+            </ol>
+            <p><strong>提示</strong>：可以从 <code>firstKeptEntryId</code> 开始向后统计所有消息的 token 数。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="quiz">10.9 Quiz</h2>
+        <!-- ================================================================ -->
+        <div class="quiz">
+            <div class="quiz-question">1. 为什么 Pi 使用 chars/4 而不是精确 tokenizer 来估算 token？</div>
+            <ul class="quiz-options">
+                <li data-correct="true">不同模型的 tokenizer 不同，chars/4 是跨模型的保守估算</li>
+                <li data-correct="false">chars/4 比 tokenizer 更准确</li>
+                <li data-correct="false">tokenizer 计算太慢，影响性能</li>
+                <li data-correct="false">LLM API 不支持返回 token 数量</li>
+            </ul>
+            <div class="quiz-explanation">chars/4 是粗略但通用的估算。Pi 在有可能时（模型返回 usage）使用精确数据，否则回退到启发式。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">2. <code>findCutPoint()</code> 在什么位置切断消息列表？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">总是在第一条 user 消息处</li>
+                <li data-correct="true">从最新反向累加到 keepRecentTokens，在 user/assistant 消息处切断</li>
+                <li data-correct="false">在任意消息处，只要达到 token 上限</li>
+                <li data-correct="false">在 compaction entry 之后的第一条消息处</li>
+            </ul>
+            <div class="quiz-explanation">切断点必须是 user 或 assistant 消息（不能切断 toolResult），否则会破坏 tool call/result 的配对。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">3. 压缩摘要的格式要求是什么？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">自由格式，任意长度</li>
+                <li data-correct="true">结构化格式，包含 Goal、Progress、Key Decisions 等固定章节</li>
+                <li data-correct="false">只包含修改过的文件列表</li>
+                <li data-correct="false">JSON 格式，包含 messages 数组</li>
+            </ul>
+            <div class="quiz-explanation">SUMMARIZATION_PROMPT 要求 LLM 输出固定格式的 markdown 章节，确保摘要包含所有关键上下文。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">4. Branch Summary 和 Compaction 的主要区别是什么？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">Branch Summary 更快，Compaction 更慢</li>
+                <li data-correct="true">Compaction 为腾空间向前压缩；Branch Summary 总结被放弃的路径</li>
+                <li data-correct="false">Compaction 只能手动触发，Branch Summary 自动触发</li>
+                <li data-correct="false">Branch Summary 不调用 LLM</li>
+            </ul>
+            <div class="quiz-explanation">两者都用 LLM 生成摘要。Compaction 在上下文超限时触发，Branch Summary 在用户导航到树的另一分支时触发。</div>
+        </div>
+
+        <section class="next-action-panel" aria-labelledby="ch10-next-action">
+            <h2 id="ch10-next-action">Next Action</h2>
+            <p>带着“摘要替代历史”的视角去读第 11 章和第 12 章，观察交互 UI 和 SDK 接口分别怎样暴露或隐藏 compaction 的存在。</p>
+        </section>
+
+        <!-- Chapter Navigation -->
+        <nav class="chapter-nav">
+            <a href="09-session-management.html" class="nav-prev">上一章：会话管理</a>
+            <a href="11-interactive-mode.html" class="nav-next">下一章：交互模式</a>
+        </nav>
+
+    </article>
+</main>
+
+<script src="../assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 9: 会话管理 — 持久化、分支与导航 | Pi Agent Harness</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Sidebar -->
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">&#9776;</button>
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <h2>Pi Agent Harness</h2>
+        <div class="subtitle">Interactive Teaching</div>
+    </div>
+    <div class="sidebar-search">
+        <input type="text" id="searchInput" placeholder="搜索章节..." aria-label="搜索">
+    </div>
+    <div class="sidebar-nav">
+        <ul class="chapter-list">
+            <li><a href="01-what-is-pi.html"><span class="chapter-num">1</span> What is Pi</a></li>
+            <li><a href="02-monorepo.html"><span class="chapter-num">2</span> Monorepo 结构</a></li>
+            <li><a href="03-pi-ai.html"><span class="chapter-num">3</span> pi-ai 包</a></li>
+            <li><a href="04-agent-core.html"><span class="chapter-num">4</span> Agent 运行时</a></li>
+            <li><a href="05-pi-tui.html"><span class="chapter-num">5</span> pi-tui 终端 UI</a></li>
+            <li><a href="06-coding-agent.html"><span class="chapter-num">6</span> 主 CLI 架构</a></li>
+            <li><a href="07-tools.html"><span class="chapter-num">7</span> 工具系统</a></li>
+            <li><a href="08-extensions.html"><span class="chapter-num">8</span> 扩展系统</a></li>
+            <li><a href="09-session-management.html" class="active"><span class="chapter-num">9</span> 会话管理</a></li>
+            <li><a href="10-compaction.html"><span class="chapter-num">10</span> 压缩系统</a></li>
+            <li><a href="11-interactive-mode.html"><span class="chapter-num">11</span> 交互模式</a></li>
+            <li><a href="12-sdk.html"><span class="chapter-num">12</span> 编程式 SDK</a></li>
+            <li><a href="13-orchestrator.html"><span class="chapter-num">13</span> 编排器</a></li>
+            <li><a href="14-contributing.html"><span class="chapter-num">14</span> 贡献指南</a></li>
+        </ul>
+    </div>
+    <div class="sidebar-progress">
+        <div class="progress-label"><span>学习进度</span><span>0 / 14 章节</span></div>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+</nav>
+
+<!-- Search Results Overlay -->
+<div class="search-results" id="searchResults">
+    <div class="results-header">
+        <h3>搜索结果</h3>
+        <button class="results-close" id="searchResultsClose">&times;</button>
+    </div>
+    <div id="searchResultsList"></div>
+</div>
+
+<!-- Main Content -->
+<main class="main-content" data-chapter-id="09-session" data-searchable data-title="Chapter 9: 会话管理">
+    <article class="content-wrapper">
+
+        <h1>Chapter 9: 会话管理 — 持久化、分支与导航</h1>
+        <p>Pi 的会话系统把每次对话持久化为一个 <span class="term" data-term="append-only JSONL file">append-only JSONL 文件</span>，支持树状分支、标签标记和版本迁移。本章深入解析 <code>SessionManager</code> 的核心数据结构与 API。</p>
+
+        <section class="learner-cues" aria-labelledby="ch9-main-line">
+            <div class="cue-grid">
+                <div class="cue-card">
+                    <h2 id="ch9-main-line">Main Line</h2>
+                    <p>会话系统是 Pi 把“一个瞬时问答”变成“可恢复、可分支、可审计的长期工作流”的关键层。</p>
+                </div>
+                <div class="cue-card">
+                    <h2>Remember Now</h2>
+                    <p>这里最重要的不是 JSONL 这个文件格式本身，而是 append-only 和树状分支语义：旧记录不改，新的路径从 leaf 往外长。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <h2 id="why-session">9.1 为什么需要会话管理</h2>
+        <!-- ================================================================ -->
+        <p>一个 coding agent 的对话可能持续数小时甚至数天。会话管理解决了三个核心问题：</p>
+        <ul>
+            <li><strong>持久化</strong>：崩溃恢复、跨天续聊。Pi 退出后重启可用 <code>--session &lt;id&gt;</code> 或 <code>--continue</code> 恢复。</li>
+            <li><strong>分支</strong>：用户想回到某条消息重新提问，而不丢失已有的对话历史。</li>
+            <li><strong>可观测性</strong>：所有交互以结构化 JSONL 存储，方便导出、分析和调试。</li>
+        </ul>
+
+        <div class="callout callout-info">
+            <div class="callout-title">Info</div>
+            <p>会话文件默认存放在 <code>~/.pi/agent/sessions/&lt;encoded-cwd&gt;/</code> 下，文件名格式为 <code>&lt;timestamp&gt;_&lt;sessionId&gt;.jsonl</code>。每个项目目录对应一个独立的 session 子目录。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="jsonl-format">9.2 JSONL 存储格式</h2>
+        <!-- ================================================================ -->
+        <p>每行一个 JSON 对象。第一行永远是 <span class="term" data-term="session header">SessionHeader</span>，后续行是各种 <span class="term" data-term="session entry">SessionEntry</span>。</p>
+
+        <pre><code class="language-ts">// 一个典型的 session.jsonl 文件（每行一个 JSON）
+{"type":"session","version":3,"id":"0192ef8e-...","timestamp":"2025-11-01T10:00:00.000Z","cwd":"/Users/alice/project"}
+{"type":"message","id":"a1b2c3d4","parentId":null,"timestamp":"2025-11-01T10:00:01.000Z","message":{"role":"user","content":[{"type":"text","text":"帮我写一个排序函数"}]}}
+{"type":"message","id":"e5f6g7h8","parentId":"a1b2c3d4","timestamp":"2025-11-01T10:00:05.000Z","message":{"role":"assistant","content":[{"type":"text","text":"好的，我来写一个快速排序："},{"type":"toolCall","name":"write","arguments":{"path":"sort.ts","content":"..."}}]}}
+{"type":"message","id":"i9j0k1l2","parentId":"e5f6g7h8","timestamp":"2025-11-01T10:00:06.000Z","message":{"role":"toolResult","content":[{"type":"text","text":"File written"}],"toolCallId":"..."}}
+{"type":"message","id":"m3n4o5p6","parentId":"i9j0k1l2","timestamp":"2025-11-01T10:00:07.000Z","message":{"role":"assistant","content":[{"type":"text","text":"已写入 sort.ts"}]}}
+{"type":"compaction","id":"q7r8s9t0","parentId":"m3n4o5p6","timestamp":"2025-11-01T10:05:00.000Z","summary":"## Goal\n...","firstKeptEntryId":"e5f6g7h8","tokensBefore":18500}
+</code></pre>
+
+        <div class="callout callout-tip">
+            <div class="callout-title">Tip</div>
+            <p>JSONL 而非 JSON 数组：append-only 写入不需要解析整个文件，崩溃时不会损坏已有数据。读取时逐行 <code>JSON.parse</code> 即可。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="session-header">9.3 SessionHeader 结构</h2>
+        <!-- ================================================================ -->
+        <p>每个会话文件的第一行是 header，包含会话的元数据：</p>
+
+        <pre><code class="language-ts">export const CURRENT_SESSION_VERSION = 3;
+
+export interface SessionHeader {
+    type: "session";
+    version?: number;       // v1 sessions 没有此字段
+    id: string;             // UUID v7
+    timestamp: string;      // ISO 8601
+    cwd: string;            // 工作目录
+    parentSession?: string; // fork 来源的 session 路径
+}</code></pre>
+
+        <ul>
+            <li><code>version</code>：当前固定为 <code>3</code>。旧版本会在加载时自动迁移（见 <a href="#migration">9.7 版本迁移</a>）。</li>
+            <li><code>id</code>：使用 UUID v7，按时间排序。</li>
+            <li><code>cwd</code>：会话绑定的工作目录，影响 session 的查找和恢复。</li>
+            <li><code>parentSession</code>：如果该会话是从另一个会话 fork 出来的，这里记录源文件路径。</li>
+        </ul>
+
+        <!-- ================================================================ -->
+        <h2 id="entry-types">9.4 SessionEntry 类型层次</h2>
+        <!-- ================================================================ -->
+        <p>每个 entry 都有 <code>id</code>、<code>parentId</code>、<code>timestamp</code> 三个基础字段。<code>id</code> 是 8 字符短 UUID（碰撞检测），<code>parentId</code> 指向上一个 entry，形成树结构。</p>
+
+        <pre><code class="language-ts">export interface SessionEntryBase {
+    type: string;
+    id: string;
+    parentId: string | null;
+    timestamp: string;
+}</code></pre>
+
+        <p>共有 <strong>9 种 entry 类型</strong>：</p>
+
+        <pre><code class="language-ts collapsible">// 1. 用户/助手消息
+export interface SessionMessageEntry extends SessionEntryBase {
+    type: "message";
+    message: AgentMessage;
+}
+
+// 2. 思考级别变更
+export interface ThinkingLevelChangeEntry extends SessionEntryBase {
+    type: "thinking_level_change";
+    thinkingLevel: string;
+}
+
+// 3. 模型变更
+export interface ModelChangeEntry extends SessionEntryBase {
+    type: "model_change";
+    provider: string;
+    modelId: string;
+}
+
+// 4. 压缩摘要
+export interface CompactionEntry&lt;T = unknown&gt; extends SessionEntryBase {
+    type: "compaction";
+    summary: string;
+    firstKeptEntryId: string;
+    tokensBefore: number;
+    details?: T;
+    fromHook?: boolean;
+}
+
+// 5. 分支摘要
+export interface BranchSummaryEntry&lt;T = unknown&gt; extends SessionEntryBase {
+    type: "branch_summary";
+    fromId: string;
+    summary: string;
+    details?: T;
+    fromHook?: boolean;
+}
+
+// 6. 扩展自定义数据（不进入 LLM 上下文）
+export interface CustomEntry&lt;T = unknown&gt; extends SessionEntryBase {
+    type: "custom";
+    customType: string;
+    data?: T;
+}
+
+// 7. 标签
+export interface LabelEntry extends SessionEntryBase {
+    type: "label";
+    targetId: string;
+    label: string | undefined;
+}
+
+// 8. 会话元数据（如显示名称）
+export interface SessionInfoEntry extends SessionEntryBase {
+    type: "session_info";
+    name?: string;
+}
+
+// 9. 扩展自定义消息（进入 LLM 上下文）
+export interface CustomMessageEntry&lt;T = unknown&gt; extends SessionEntryBase {
+    type: "custom_message";
+    customType: string;
+    content: string | (TextContent | ImageContent)[];
+    details?: T;
+    display: boolean;
+}
+
+// 联合类型
+export type SessionEntry =
+    | SessionMessageEntry
+    | ThinkingLevelChangeEntry
+    | ModelChangeEntry
+    | CompactionEntry
+    | BranchSummaryEntry
+    | CustomEntry
+    | CustomMessageEntry
+    | LabelEntry
+    | SessionInfoEntry;</code></pre>
+
+        <div class="callout callout-info">
+            <div class="callout-title">CustomEntry vs CustomMessageEntry</div>
+            <p><code>CustomEntry</code> 仅用于扩展持久化自己的状态，<strong>不参与</strong> LLM 上下文。<code>CustomMessageEntry</code> 的内容会被 <code>buildSessionContext()</code> 转成 user 消息发给 LLM。用 <code>display: false</code> 可隐藏渲染。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="session-tree">9.5 会话树结构</h2>
+        <!-- ================================================================ -->
+        <p>每个 entry 通过 <code>parentId</code> 指向父节点，形成一棵树。<span class="term" data-term="leaf pointer">leaf 指针</span> 指向当前对话位置。</p>
+
+        <div class="diagram-container">
+            <svg viewBox="0 0 520 340" xmlns="http://www.w3.org/2000/svg" class="diagram-svg">
+                <!-- Header -->
+                <rect x="10" y="10" width="500" height="30" rx="4" fill="#1e2a3a" stroke="#3a4a5a"/>
+                <text x="20" y="30" fill="#e6e6e6" font-size="11" font-family="JetBrains Mono, monospace">SessionHeader (id: 0192ef8e...)</text>
+
+                <!-- Root message -->
+                <rect x="10" y="55" width="200" height="28" rx="4" fill="#0f3460" stroke="#533483"/>
+                <text x="20" y="73" fill="#e6e6e6" font-size="10" font-family="JetBrains Mono, monospace">msg: "帮我排序"</text>
+                <text x="225" y="73" fill="#7a8a9a" font-size="9" font-family="JetBrains Mono, monospace">id=a1b2</text>
+
+                <!-- Arrow a1b2 -> e5f6 -->
+                <line x1="110" y1="83" x2="110" y2="100" stroke="#533483" stroke-width="1.5"/>
+
+                <!-- Assistant response -->
+                <rect x="10" y="105" width="200" height="28" rx="4" fill="#0f3460" stroke="#533483"/>
+                <text x="20" y="123" fill="#e6e6e6" font-size="10" font-family="JetBrains Mono, monospace">assistant: write()</text>
+                <text x="225" y="123" fill="#7a8a9a" font-size="9" font-family="JetBrains Mono, monospace">id=e5f6</text>
+
+                <!-- Arrow e5f6 -> i9j0 -->
+                <line x1="110" y1="133" x2="110" y2="150" stroke="#533483" stroke-width="1.5"/>
+
+                <!-- Tool result -->
+                <rect x="10" y="155" width="200" height="28" rx="4" fill="#16213e" stroke="#3a4a5a"/>
+                <text x="20" y="173" fill="#b0b0b0" font-size="10" font-family="JetBrains Mono, monospace">toolResult: "written"</text>
+                <text x="225" y="173" fill="#7a8a9a" font-size="9" font-family="JetBrains Mono, monospace">id=i9j0</text>
+
+                <!-- Arrow i9j0 -> m3n4 -->
+                <line x1="110" y1="183" x2="110" y2="200" stroke="#533483" stroke-width="1.5"/>
+
+                <!-- Assistant final -->
+                <rect x="10" y="205" width="200" height="28" rx="4" fill="#0f3460" stroke="#533483"/>
+                <text x="20" y="223" fill="#e6e6e6" font-size="10" font-family="JetBrains Mono, monospace">assistant: "完成"</text>
+                <text x="225" y="223" fill="#7a8a9a" font-size="9" font-family="JetBrains Mono, monospace">id=m3n4</text>
+
+                <!-- Compaction node -->
+                <rect x="10" y="255" width="200" height="28" rx="4" fill="#2d1b4e" stroke="#bc8cff"/>
+                <text x="20" y="273" fill="#bc8cff" font-size="10" font-family="JetBrains Mono, monospace">compaction: summary</text>
+                <text x="225" y="273" fill="#bc8cff" font-size="9" font-family="JetBrains Mono, monospace">id=q7r8</text>
+
+                <!-- Arrow m3n4 -> q7r8 -->
+                <line x1="110" y1="233" x2="110" y2="255" stroke="#bc8cff" stroke-width="1.5"/>
+
+                <!-- Branch point (dotted) -->
+                <line x1="110" y1="173" x2="310" y2="173" stroke="#e94560" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <line x1="310" y1="173" x2="310" y2="205" stroke="#e94560" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+                <!-- Branch message -->
+                <rect x="320" y="205" width="190" height="28" rx="4" fill="#1b2d1b" stroke="#2ecc71"/>
+                <text x="330" y="223" fill="#2ecc71" font-size="10" font-family="JetBrains Mono, monospace">branch: "改用冒泡"</text>
+
+                <!-- Legend -->
+                <rect x="320" y="255" width="14" height="14" rx="2" fill="#0f3460" stroke="#533483"/>
+                <text x="340" y="266" fill="#b0b0b0" font-size="9" font-family="Inter, sans-serif">message</text>
+                <rect x="320" y="275" width="14" height="14" rx="2" fill="#2d1b4e" stroke="#bc8cff"/>
+                <text x="340" y="286" fill="#b0b0b0" font-size="9" font-family="Inter, sans-serif">compaction</text>
+                <rect x="320" y="295" width="14" height="14" rx="2" fill="#1b2d1b" stroke="#2ecc71"/>
+                <text x="340" y="306" fill="#b0b0b0" font-size="9" font-family="Inter, sans-serif">branch</text>
+                <line x1="320" y1="322" x2="334" y2="322" stroke="#e94560" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <text x="340" y="326" fill="#b0b0b0" font-size="9" font-family="Inter, sans-serif">branch path</text>
+
+                <!-- Leaf pointer -->
+                <polygon points="315,200 320,195 320,205" fill="#f5a623"/>
+                <text x="280" y="193" fill="#f5a623" font-size="9" font-family="JetBrains Mono, monospace">leaf</text>
+            </svg>
+        </div>
+
+        <p>树结构带来的能力：</p>
+        <ul>
+            <li><strong>分支（branch）</strong>：把 leaf 移到任意历史 entry，下一次 append 就会长出新的分支，旧分支不受影响。</li>
+            <li><strong>提取（createBranchedSession）</strong>：把一条路径导出为独立的 session 文件。</li>
+            <li><strong>遍历（getTree）</strong>：返回完整树，用于 TUI 中的树选择器。</li>
+        </ul>
+
+        <!-- ================================================================ -->
+        <h2 id="session-manager">9.6 SessionManager API</h2>
+        <!-- ================================================================ -->
+        <p><code>SessionManager</code> 是会话系统的核心类，提供读写、树遍历和工厂方法。</p>
+
+        <pre><code class="language-ts collapsible">export class SessionManager {
+    private sessionId: string;
+    private sessionFile: string | undefined;
+    private fileEntries: FileEntry[];
+    private byId: Map&lt;string, SessionEntry&gt;;
+    private leafId: string | null;
+
+    // ---- 工厂方法 ----
+    static create(cwd: string, sessionDir?: string, options?: NewSessionOptions): SessionManager;
+    static open(path: string, sessionDir?: string, cwdOverride?: string): SessionManager;
+    static continueRecent(cwd: string, sessionDir?: string): SessionManager;
+    static inMemory(cwd?: string, options?: NewSessionOptions): SessionManager;
+    static forkFrom(sourcePath: string, targetCwd: string, sessionDir?: string): SessionManager;
+
+    // ---- 写入 ----
+    appendMessage(message: Message): string;
+    appendThinkingLevelChange(thinkingLevel: string): string;
+    appendModelChange(provider: string, modelId: string): string;
+    appendCompaction(summary: string, firstKeptEntryId: string, tokensBefore: number): string;
+    appendCustomEntry(customType: string, data?: unknown): string;
+    appendCustomMessageEntry(customType: string, content: string | (TextContent|ImageContent)[], display: boolean): string;
+    appendSessionInfo(name: string): string;
+    appendLabelChange(targetId: string, label: string | undefined): string;
+
+    // ---- 读取 ----
+    getHeader(): SessionHeader | null;
+    getEntries(): SessionEntry[];
+    getTree(): SessionTreeNode[];
+    getLeafId(): string | null;
+    getBranch(fromId?: string): SessionEntry[];
+    buildSessionContext(): SessionContext;
+
+    // ---- 树操作 ----
+    branch(branchFromId: string): void;
+    resetLeaf(): void;
+    branchWithSummary(branchFromId: string | null, summary: string): string;
+    createBranchedSession(leafId: string): string | undefined;
+}</code></pre>
+
+        <h3>buildSessionContext()</h3>
+        <p>这是最重要的读取方法——它从 leaf 向根遍历，收集消息，并处理压缩摘要和分支摘要：</p>
+
+        <pre><code class="language-ts">export function buildSessionContext(
+    entries: SessionEntry[],
+    leafId?: string | null,
+    byId?: Map&lt;string, SessionEntry&gt;,
+): SessionContext {
+    // 1. 找到 leaf 节点
+    // 2. 从 leaf 向根遍历，收集完整路径
+    // 3. 提取 thinkingLevel、model 设置
+    // 4. 处理 compaction：先放摘要，再放保留的消息，最后放压缩后的消息
+    // 5. 返回 { messages, thinkingLevel, model }
+}</code></pre>
+
+        <div class="callout callout-tip">
+            <div class="callout-title">延迟写入</div>
+            <p><code>_persist()</code> 在没有 assistant 消息之前不会创建文件。这避免了空 session 文件——只有当模型真正回复了才落盘。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="migration">9.7 版本迁移（CURRENT_SESSION_VERSION = 3）</h2>
+        <!-- ================================================================ -->
+        <p>会话文件支持向前兼容。加载时检测到旧版本会自动迁移并覆写文件：</p>
+
+        <pre><code class="language-ts">/** v1 -> v2: 添加 id/parentId 树结构 */
+function migrateV1ToV2(entries: FileEntry[]): void {
+    let prevId: string | null = null;
+    for (const entry of entries) {
+        if (entry.type === "session") { entry.version = 2; continue; }
+        entry.id = generateId(ids);
+        entry.parentId = prevId;
+        prevId = entry.id;
+        // 将 firstKeptEntryIndex 转换为 firstKeptEntryId
+        if (entry.type === "compaction") {
+            const comp = entry as CompactionEntry & { firstKeptEntryIndex?: number };
+            if (typeof comp.firstKeptEntryIndex === "number") {
+                const targetEntry = entries[comp.firstKeptEntryIndex];
+                if (targetEntry) comp.firstKeptEntryId = targetEntry.id;
+                delete comp.firstKeptEntryIndex;
+            }
+        }
+    }
+}
+
+/** v2 -> v3: 将 hookMessage 重命名为 custom */
+function migrateV2ToV3(entries: FileEntry[]): void {
+    for (const entry of entries) {
+        if (entry.type === "session") { entry.version = 3; continue; }
+        if (entry.type === "message") {
+            const msg = entry as SessionMessageEntry;
+            if (msg.message.role === "hookMessage") {
+                msg.message.role = "custom";
+            }
+        }
+    }
+}
+
+function migrateToCurrentVersion(entries: FileEntry[]): boolean {
+    const header = entries.find((e) => e.type === "session") as SessionHeader;
+    const version = header?.version ?? 1;
+    if (version >= CURRENT_SESSION_VERSION) return false;
+    if (version < 2) migrateV1ToV2(entries);
+    if (version < 3) migrateV2ToV3(entries);
+    return true;
+}</code></pre>
+
+        <div class="callout callout-info">
+            <div class="callout-title">迁移是原地修改</div>
+            <p>迁移直接修改 <code>entries</code> 数组中的对象，然后调用 <code>_rewriteFile()</code> 覆写整个 JSONL 文件。因为 JSONL 是 append-only 格式，迁移是唯一需要覆写文件的场景。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="exercise">9.8 练习：手动创建会话文件</h2>
+        <!-- ================================================================ -->
+        <div class="callout callout-exercise">
+            <div class="callout-title">Exercise</div>
+            <p>创建一个最小的合法 session.jsonl 文件，包含：</p>
+            <ol>
+                <li>一个 v3 版本的 SessionHeader</li>
+                <li>一条 user 消息（"hello"）</li>
+                <li>一条 assistant 回复（"Hi there!"）</li>
+                <li>一个 compaction entry（summary 自拟）</li>
+            </ol>
+            <p>然后用 <code>SessionManager.open()</code> 加载它，调用 <code>buildSessionContext()</code> 验证消息列表是否正确。</p>
+            <p><strong>提示</strong>：<code>id</code> 字段可以用 <code>crypto.randomUUID().slice(0, 8)</code> 生成，<code>parentId</code> 按顺序指向上一个 entry。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="quiz">9.9 Quiz</h2>
+        <!-- ================================================================ -->
+        <div class="quiz">
+            <div class="quiz-question">1. 会话文件为什么使用 JSONL 而不是 JSON 数组？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">JSONL 解析更快</li>
+                <li data-correct="true">支持 append-only 写入，崩溃时不损坏已有数据</li>
+                <li data-correct="false">JSONL 文件体积更小</li>
+                <li data-correct="false">JSON 数组不支持 tree 结构</li>
+            </ul>
+            <div class="quiz-explanation">JSONL 每行独立，追加写入时不需要解析整个文件。崩溃时只有最后一行可能损坏，其余行保持完整。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">2. <code>buildSessionContext()</code> 遇到 compaction entry 时如何处理？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">跳过 compaction 之前的所有消息</li>
+                <li data-correct="true">先放摘要，再放 firstKeptEntryId 之后保留的消息，最后放压缩后新消息</li>
+                <li data-correct="false">把摘要追加到消息列表末尾</li>
+                <li data-correct="false">直接返回原始消息，不做任何处理</li>
+            </ul>
+            <div class="quiz-explanation">compaction 的核心语义是：用摘要替代被压缩的消息，但保留最近的消息。所以顺序是摘要 → 保留消息 → 新消息。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">3. <code>CustomEntry</code> 和 <code>CustomMessageEntry</code> 的关键区别是什么？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">CustomEntry 只能存字符串，CustomMessageEntry 可以存图片</li>
+                <li data-correct="true">CustomMessageEntry 参与 LLM 上下文，CustomEntry 不参与</li>
+                <li data-correct="false">CustomEntry 可以删除，CustomMessageEntry 不能删除</li>
+                <li data-correct="false">没有区别，只是历史遗留的两套接口</li>
+            </ul>
+            <div class="quiz-explanation">CustomEntry 用于扩展持久化内部状态（不进入 LLM），CustomMessageEntry 的内容会被转成 user 消息发给 LLM。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">4. 当前 <code>CURRENT_SESSION_VERSION</code> 的值是？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">1</li>
+                <li data-correct="false">2</li>
+                <li data-correct="true">3</li>
+                <li data-correct="false">4</li>
+            </ul>
+            <div class="quiz-explanation">当前版本为 3。v2 引入了 id/parentId 树结构，v3 将 hookMessage 角色重命名为 custom。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">5. <code>branch()</code> 操作会修改已有 entries 吗？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">会，删除分支后的所有 entry</li>
+                <li data-correct="true">不会，只移动 leaf 指针，下次 append 创建新分支</li>
+                <li data-correct="false">会，给旧 entry 打上 "archived" 标记</li>
+                <li data-correct="false">会，把所有 parentId 重定向到新的 leaf</li>
+            </ul>
+            <div class="quiz-explanation">SessionManager 严格 append-only。branch() 只改变 leafId 指针，已有 entries 永远不被修改。</div>
+        </div>
+
+        <section class="next-action-panel" aria-labelledby="ch9-next-action">
+            <h2 id="ch9-next-action">Next Action</h2>
+            <p>紧接着读第 10 章，观察 compaction 和 branch summary 如何以新的 session entries 形式落回这套 append-only 存储模型。</p>
+        </section>
+
+        <!-- Chapter Navigation -->
+        <nav class="chapter-nav">
+            <a href="08-extensions.html" class="nav-prev">上一章：扩展系统</a>
+            <a href="10-compaction.html" class="nav-next">下一章：压缩系统</a>
+        </nav>
+
+    </article>
+</main>
+
+<script src="../assets/js/app.js"></script>
+</body>
+</html>

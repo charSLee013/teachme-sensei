@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 11: 交互模式 — TUI 实现详解 | Pi Agent Harness</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Sidebar -->
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">&#9776;</button>
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <h2>Pi Agent Harness</h2>
+        <div class="subtitle">Interactive Teaching</div>
+    </div>
+    <div class="sidebar-search">
+        <input type="text" id="searchInput" placeholder="搜索章节..." aria-label="搜索">
+    </div>
+    <div class="sidebar-nav">
+        <ul class="chapter-list">
+            <li><a href="01-what-is-pi.html"><span class="chapter-num">1</span> What is Pi</a></li>
+            <li><a href="02-monorepo.html"><span class="chapter-num">2</span> Monorepo 结构</a></li>
+            <li><a href="03-pi-ai.html"><span class="chapter-num">3</span> pi-ai 包</a></li>
+            <li><a href="04-agent-core.html"><span class="chapter-num">4</span> Agent 运行时</a></li>
+            <li><a href="05-pi-tui.html"><span class="chapter-num">5</span> pi-tui 终端 UI</a></li>
+            <li><a href="06-coding-agent.html"><span class="chapter-num">6</span> 主 CLI 架构</a></li>
+            <li><a href="07-tools.html"><span class="chapter-num">7</span> 工具系统</a></li>
+            <li><a href="08-extensions.html"><span class="chapter-num">8</span> 扩展系统</a></li>
+            <li><a href="09-session-management.html"><span class="chapter-num">9</span> 会话管理</a></li>
+            <li><a href="10-compaction.html"><span class="chapter-num">10</span> 压缩系统</a></li>
+            <li><a href="11-interactive-mode.html" class="active"><span class="chapter-num">11</span> 交互模式</a></li>
+            <li><a href="12-sdk.html"><span class="chapter-num">12</span> 编程式 SDK</a></li>
+            <li><a href="13-orchestrator.html"><span class="chapter-num">13</span> 编排器</a></li>
+            <li><a href="14-contributing.html"><span class="chapter-num">14</span> 贡献指南</a></li>
+        </ul>
+    </div>
+    <div class="sidebar-progress">
+        <div class="progress-label"><span>学习进度</span><span>0 / 14 章节</span></div>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+</nav>
+
+<!-- Search Results Overlay -->
+<div class="search-results" id="searchResults">
+    <div class="results-header">
+        <h3>搜索结果</h3>
+        <button class="results-close" id="searchResultsClose">&times;</button>
+    </div>
+    <div id="searchResultsList"></div>
+</div>
+
+<!-- Main Content -->
+<main class="main-content" data-chapter-id="11-interactive" data-searchable data-title="Chapter 11: 交互模式">
+    <article class="content-wrapper">
+
+        <h1>Chapter 11: 交互模式 — TUI 实现详解</h1>
+        <p>Pi 的 <span class="term" data-term="Terminal User Interface">交互模式</span> 是一个全功能 TUI 应用，基于 <code>pi-tui</code> 渲染引擎构建。本章解析 <code>InteractiveMode</code> 类的组件架构、流渲染、按键绑定和主题系统。</p>
+
+        <section class="learner-cues" aria-labelledby="ch11-main-line">
+            <div class="cue-grid">
+                <div class="cue-card">
+                    <h2 id="ch11-main-line">Main Line</h2>
+                    <p>交互模式是 Pi 把底层 agent、tool、session 事件翻译成可操作终端体验的那一层，所以它既是 UI，又是行为编排器。</p>
+                </div>
+                <div class="cue-card">
+                    <h2>Remember Now</h2>
+                    <p>InteractiveMode 不替代 `AgentSession`。它订阅事件、渲染状态、处理按键，然后把真正的业务动作交回 runtime。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <h2 id="overview">11.1 InteractiveMode 概览</h2>
+        <!-- ================================================================ -->
+        <p><code>InteractiveMode</code> 是 TUI 的主控制器，负责渲染和用户交互，业务逻辑委托给 <code>AgentSession</code>。它订阅 agent 事件流并实时更新 UI。</p>
+
+        <pre><code class="language-ts">export class InteractiveMode {
+    private runtimeHost: AgentSessionRuntime;
+    private ui: TUI;
+    private chatContainer: Container;
+    private editor: EditorComponent;
+    private footer: FooterComponent;
+    private keybindings: KeybindingsManager;
+    private themeController: InteractiveThemeController;
+
+    // 流式消息追踪
+    private streamingComponent: AssistantMessageComponent | undefined;
+    private streamingMessage: AssistantMessage | undefined;
+    private pendingTools = new Map&lt;string, ToolExecutionComponent&gt;();
+
+    async run(): Promise&lt;void&gt; {
+        await this.init();
+        // 主交互循环
+        while (true) {
+            const userInput = await this.getUserInput();
+            await this.session.prompt(userInput);
+        }
+    }
+}</code></pre>
+
+        <!-- ================================================================ -->
+        <h2 id="components">11.2 组件架构</h2>
+        <!-- ================================================================ -->
+
+        <div class="diagram-container">
+            <svg viewBox="0 0 520 460" xmlns="http://www.w3.org/2000/svg" class="diagram-svg">
+                <!-- TUI root -->
+                <rect x="10" y="10" width="500" height="35" rx="4" fill="#2d1b4e" stroke="#bc8cff"/>
+                <text x="20" y="32" fill="#bc8cff" font-size="11" font-weight="600" font-family="Inter, sans-serif">TUI (pi-tui root)</text>
+
+                <!-- Header -->
+                <rect x="10" y="55" width="500" height="30" rx="4" fill="#1e2a3a" stroke="#3a4a5a"/>
+                <text x="20" y="74" fill="#e6e6e6" font-size="10" font-family="JetBrains Mono, monospace">Header (logo + keybinding hints)</text>
+
+                <!-- Loaded resources -->
+                <rect x="10" y="95" width="500" height="25" rx="4" fill="#1e2a3a" stroke="#3a4a5a"/>
+                <text x="20" y="112" fill="#b0b0b0" font-size="10" font-family="JetBrains Mono, monospace">LoadedResources (skills, prompts, extensions)</text>
+
+                <!-- Chat container (large) -->
+                <rect x="10" y="130" width="500" height="140" rx="4" fill="#0f3460" stroke="#533483"/>
+                <text x="20" y="150" fill="#e6e6e6" font-size="10" font-weight="600" font-family="Inter, sans-serif">Chat Container</text>
+                <rect x="25" y="160" width="230" height="25" rx="3" fill="#16213e" stroke="#3a4a5a"/>
+                <text x="35" y="177" fill="#b0b0b0" font-size="9" font-family="JetBrains Mono, monospace">UserMessageComponent</text>
+                <rect x="25" y="192" width="230" height="25" rx="3" fill="#16213e" stroke="#3a4a5a"/>
+                <text x="35" y="209" fill="#b0b0b0" font-size="9" font-family="JetBrains Mono, monospace">AssistantMessageComponent</text>
+                <rect x="25" y="224" width="230" height="25" rx="3" fill="#16213e" stroke="#3a4a5a"/>
+                <text x="35" y="241" fill="#b0b0b0" font-size="9" font-family="JetBrains Mono, monospace">ToolExecutionComponent</text>
+                <rect x="25" y="256" width="230" height="15" rx="3" fill="#16213e" stroke="#3a4a5a" opacity="0.6"/>
+                <text x="35" y="267" fill="#7a8a9a" font-size="9" font-family="JetBrains Mono, monospace">... more messages</text>
+
+                <!-- Selectors on right -->
+                <rect x="275" y="160" width="220" height="25" rx="3" fill="#1b2d1b" stroke="#2ecc71"/>
+                <text x="285" y="177" fill="#2ecc71" font-size="9" font-family="JetBrains Mono, monospace">SessionSelectorComponent</text>
+                <rect x="275" y="192" width="220" height="25" rx="3" fill="#1b2d1b" stroke="#2ecc71"/>
+                <text x="285" y="209" fill="#2ecc71" font-size="9" font-family="JetBrains Mono, monospace">ModelSelectorComponent</text>
+                <rect x="275" y="224" width="220" height="25" rx="3" fill="#1b2d1b" stroke="#2ecc71"/>
+                <text x="285" y="241" fill="#2ecc71" font-size="9" font-family="JetBrains Mono, monospace">TreeSelectorComponent</text>
+                <rect x="275" y="256" width="220" height="25" rx="3" fill="#1b2d1b" stroke="#2ecc71" opacity="0.6"/>
+                <text x="285" y="267" fill="#2ecc71" font-size="9" font-family="JetBrains Mono, monospace">TrustSelectorComponent</text>
+
+                <!-- Extension widgets -->
+                <rect x="10" y="280" width="500" height="25" rx="4" fill="#1e2a3a" stroke="#3a4a5a"/>
+                <text x="20" y="297" fill="#b0b0b0" font-size="10" font-family="JetBrains Mono, monospace">Extension Widgets (above editor)</text>
+
+                <!-- Editor -->
+                <rect x="10" y="315" width="500" height="50" rx="4" fill="#0d1117" stroke="#e94560"/>
+                <text x="20" y="335" fill="#e94560" font-size="10" font-weight="600" font-family="Inter, sans-serif">Editor (CustomEditor — pi-tui)</text>
+                <text x="20" y="355" fill="#7a8a9a" font-size="9" font-family="JetBrains Mono, monospace">autocomplete, bash mode, image paste</text>
+
+                <!-- Status -->
+                <rect x="10" y="375" width="500" height="25" rx="4" fill="#1e2a3a" stroke="#3a4a5a"/>
+                <text x="20" y="392" fill="#b0b0b0" font-size="10" font-family="JetBrains Mono, monospace">Status Indicator (idle/working/compaction/error)</text>
+
+                <!-- Footer -->
+                <rect x="10" y="410" width="500" height="35" rx="4" fill="#1e2a3a" stroke="#3a4a5a"/>
+                <text x="20" y="428" fill="#e6e6e6" font-size="10" font-family="JetBrains Mono, monospace">Footer (model, provider, git branch, session name)</text>
+                <text x="20" y="442" fill="#7a8a9a" font-size="9" font-family="JetBrains Mono, monospace">FooterDataProvider — reactive data source</text>
+            </svg>
+        </div>
+
+        <h3>主要组件一览</h3>
+        <ul>
+            <li><strong>ArminComponent</strong>：品牌标识/吉祥物渲染</li>
+            <li><strong>AssistantMessageComponent</strong>：渲染助手回复（支持 thinking 块、tool calls）</li>
+            <li><strong>UserMessageComponent</strong>：渲染用户消息</li>
+            <li><strong>EditorComponent / CustomEditor</strong>：输入框，支持 autocomplete、bash mode、外部编辑器</li>
+            <li><strong>FooterComponent</strong>：底部状态栏</li>
+            <li><strong>ToolExecutionComponent</strong>：工具执行结果展示（支持展开/折叠）</li>
+            <li><strong>SessionSelectorComponent</strong>：会话选择器（搜索、过滤、重命名、删除）</li>
+            <li><strong>ModelSelectorComponent</strong>：模型选择器</li>
+            <li><strong>TreeSelectorComponent</strong>：会话树导航器</li>
+            <li><strong>TrustSelectorComponent</strong>：项目信任选择器</li>
+            <li><strong>CompactionSummaryMessageComponent / BranchSummaryMessageComponent</strong>：压缩/分支摘要渲染</li>
+        </ul>
+
+        <!-- ================================================================ -->
+        <h2 id="streaming">11.3 流式渲染</h2>
+        <!-- ================================================================ -->
+        <p>当模型开始流式响应时，<code>InteractiveMode</code> 通过事件订阅实时更新 UI：</p>
+
+        <pre><code class="language-ts">// 事件处理核心逻辑
+switch (event.type) {
+    case "message_start":
+        if (event.message.role === "assistant") {
+            this.streamingComponent = new AssistantMessageComponent(
+                undefined, this.hideThinkingBlock,
+                this.getMarkdownThemeWithSettings(),
+                this.hiddenThinkingLabel, this.outputPad,
+            );
+            this.streamingMessage = event.message;
+            this.chatContainer.addChild(this.streamingComponent);
+            this.streamingComponent.updateContent(this.streamingMessage);
+        }
+        break;
+
+    case "message_update":
+        if (this.streamingComponent && event.message.role === "assistant") {
+            this.streamingMessage = event.message;
+            this.streamingComponent.updateContent(this.streamingMessage);
+            // 检测新 toolCall，创建 ToolExecutionComponent
+            for (const content of this.streamingMessage.content) {
+                if (content.type === "toolCall" && !this.pendingTools.has(content.id)) {
+                    const component = new ToolExecutionComponent(content.name, ...);
+                    this.pendingTools.set(content.id, component);
+                }
+            }
+        }
+        break;
+
+    case "message_end":
+        if (this.streamingComponent && event.message.role === "assistant") {
+            this.streamingComponent.updateContent(this.streamingMessage);
+            this.streamingComponent = undefined;  // 停止流式更新
+        }
+        break;
+}</code></pre>
+
+        <div class="callout callout-tip">
+            <div class="callout-title">流式 vs 一次性渲染</div>
+            <p>流式期间使用同一个 <code>AssistantMessageComponent</code> 实例反复调用 <code>updateContent()</code>，只在 <code>message_end</code> 后销毁。这避免了组件频繁创建销毁的开销。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="keybindings">11.4 按键绑定</h2>
+        <!-- ================================================================ -->
+        <p>Pi 有两层按键系统：<code>pi-tui</code> 内置的 TUI 按键 + Pi 自身的应用按键。用户可以通过配置文件自定义。</p>
+
+        <pre><code class="language-ts">export const KEYBINDINGS = {
+    ...TUI_KEYBINDINGS,
+    "app.interrupt":        { defaultKeys: "escape", description: "Cancel or abort" },
+    "app.clear":            { defaultKeys: "ctrl+c", description: "Clear editor" },
+    "app.exit":             { defaultKeys: "ctrl+d", description: "Exit when editor empty" },
+    "app.suspend":          { defaultKeys: "ctrl+z", description: "Suspend to background" },
+    "app.thinking.cycle":   { defaultKeys: "shift+tab", description: "Cycle thinking level" },
+    "app.model.cycleForward":  { defaultKeys: "ctrl+p", description: "Cycle to next model" },
+    "app.model.cycleBackward": { defaultKeys: "shift+ctrl+p", description: "Cycle to previous model" },
+    "app.model.select":     { defaultKeys: "ctrl+l", description: "Open model selector" },
+    "app.tools.expand":      { defaultKeys: "ctrl+o", description: "Toggle tool output" },
+    "app.thinking.toggle":  { defaultKeys: "ctrl+t", description: "Toggle thinking blocks" },
+    "app.editor.external":  { defaultKeys: "ctrl+g", description: "Open external editor" },
+    "app.message.followUp": { defaultKeys: "alt+enter", description: "Queue follow-up message" },
+    "app.session.resume":   { defaultKeys: "ctrl+r", description: "Open session picker" },
+    "app.tree.foldOrUp":    { defaultKeys: "ctrl+k", description: "Fold node or go up" },
+    "app.tree.unfoldOrDown":{ defaultKeys: "ctrl+j", description: "Unfold node or go down" },
+    // ... 更多按键绑定
+};</code></pre>
+
+        <h3>模式特定按键</h3>
+        <p>不同模式下按键行为不同：</p>
+        <ul>
+            <li><strong>普通模式</strong>：Enter 发送消息，<code>!</code> 前缀进入 bash 模式</li>
+            <li><strong>选择器模式</strong>：j/k 导航，Enter 选择，q/Esc 退出</li>
+            <li><strong>树选择器模式</strong>：Ctrl+K/Ctrl+J 折叠/展开，e 编辑消息</li>
+            <li><strong>外部编辑器模式</strong>：在 <code>$EDITOR</code> 中编辑，保存退出后发送</li>
+        </ul>
+
+        <!-- ================================================================ -->
+        <h2 id="autocomplete">11.5 自动补全</h2>
+        <!-- ================================================================ -->
+        <p>编辑器支持多种补全源，通过 <code>CombinedAutocompleteProvider</span> 组合：</p>
+
+        <pre><code class="language-ts">private createBaseAutocompleteProvider(): AutocompleteProvider {
+    // 1. 内置斜杠命令
+    const slashCommands: SlashCommand[] = BUILTIN_SLASH_COMMANDS.map(cmd =&gt; ({
+        name: cmd.name, description: cmd.description,
+    }));
+
+    // 2. 模型选择器的模糊匹配
+    const modelCommand = slashCommands.find(c =&gt; c.name === "model");
+    modelCommand.getArgumentCompletions = (prefix) =&gt; {
+        const items = models.map(m =&gt; ({ label: `${m.provider}/${m.id}`, ... }));
+        return fuzzyFilter(items, prefix, getModelSearchText);
+    };
+
+    // 3. 提示模板
+    const templateCommands = this.session.promptTemplates.map(cmd =&gt; ({
+        name: cmd.name, description: cmd.description,
+    }));
+
+    // 4. 扩展注册的命令
+    const extensionCommands = this.session.extensionRunner
+        .getRegisteredCommands()
+        .filter(cmd =&gt; !builtinCommandNames.has(cmd.name));
+
+    // 5. Skill 命令 (skill:name)
+    const skillCommandList = this.session.resourceLoader.getSkills().skills.map(skill =&gt; ({
+        name: `skill:${skill.name}`, description: skill.description,
+    }));
+
+    return new CombinedAutocompleteProvider(
+        [...slashCommands, ...templateCommands, ...extensionCommands, ...skillCommandList],
+        this.sessionManager.getCwd(), this.fdPath,
+    );
+}</code></pre>
+
+        <h3>文件路径补全</h3>
+        <p>输入 <code>@</code> 触发文件路径补全，使用系统 <code>fd</code> 命令搜索文件，支持模糊匹配。</p>
+
+        <!-- ================================================================ -->
+        <h2 id="themes">11.6 主题系统</h2>
+        <!-- ================================================================ -->
+        <p>Pi 支持 JSON 格式的主题文件，运行时可通过 <code>/theme</code> 切换：</p>
+
+        <pre><code class="language-ts">export class Theme {
+    readonly name?: string;
+    private fgColors: Map&lt;ThemeColor, string&gt;;
+    private bgColors: Map&lt;ThemeBg, string&gt;;
+    private mode: ColorMode;
+
+    fg(color: ThemeColor, text: string): string { ... }
+    bg(color: ThemeBg, text: string): string { ... }
+    bold(text: string): string { ... }
+    italic(text: string): string { ... }
+    underline(text: string): string { ... }
+    getThinkingBorderColor(level: ThinkingLevel): (str: string) =&gt; string { ... }
+}</code></pre>
+
+        <p>主题 JSON 结构示例：</p>
+
+        <pre><code class="language-ts">// 主题文件 (~/.pi/agent/themes/my-theme.json)
+{
+  "name": "My Theme",
+  "fg": {
+    "default": "#e6e6e6",
+    "muted": "#7a8a9a",
+    "accent": "#e94560",
+    "dim": "#5a6a7a"
+  },
+  "bg": {
+    "default": "#1a1a2e",
+    "header": "#16213e"
+  },
+  "mode": "ansi",  // "ansi" | "truecolor"
+  "vars": {
+    "primary": "#e94560"
+  }
+}</code></pre>
+
+        <div class="callout callout-info">
+            <div class="callout-title">highlight.js 集成</div>
+            <p>代码高亮使用 highlight.js，根据当前主题自动选择配色方案。Markdown 渲染器（<code>pi-tui</code> 的 <code>Markdown</code> 组件）在终端中输出带 ANSI 颜色的代码块。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="trust">11.7 项目信任流</h2>
+        <!-- ================================================================ -->
+        <p>当用户在一个没有 <code>.pi/</code> 目录的项目中首次运行 Pi 时，会触发信任确认：</p>
+
+        <pre><code class="language-ts">// trust-manager.ts
+export class ProjectTrustStore {
+    get(cwd: string): ProjectTrustDecision;  // boolean | null
+    set(cwd: string, decision: ProjectTrustDecision): void;
+    setMany(decisions: ProjectTrustUpdate[]): void;
+}
+
+// InteractiveMode 中检查信任
+private async checkProjectTrust(): Promise&lt;void&gt; {
+    if (hasTrustRequiringProjectResources(this.session.resourceLoader)) {
+        const options = getProjectTrustOptions(this.sessionManager.getCwd());
+        // 弹出 TrustSelectorComponent 让用户选择
+    }
+}</code></pre>
+
+        <p>信任级别：</p>
+        <ul>
+            <li><strong>会话级</strong>：仅本次会话信任</li>
+            <li><strong>项目级</strong>：写入 <code>.pi/trust.json</code>，永久信任</li>
+            <li><strong>拒绝</strong>：不加载项目资源（skills、prompts、extensions）</li>
+        </ul>
+
+        <!-- ================================================================ -->
+        <h2 id="session-picker">11.8 会话选择器 UI</h2>
+        <!-- ================================================================ -->
+        <p>按 <code>Ctrl+R</code> 打开会话选择器，支持搜索、过滤、排序：</p>
+
+        <pre><code class="language-ts">// SessionSelectorComponent 核心功能
+class SessionSelectorHeader implements Component {
+    private scope: "current" | "all";     // 当前项目 vs 全部
+    private sortMode: SortMode;            // 按时间 / 按名称
+    private nameFilter: NameFilter;       // 是否只显示命名会话
+}
+
+// 使用示例
+function formatSessionDate(date: Date): string {
+    // "now", "5m", "2h", "3d", "2w", "1mo", "1y"
+}
+
+// 搜索支持模糊匹配
+filterAndSortSessions(sessions, query, scope, sortMode);</code></pre>
+
+        <p>选择器显示：会话名称（如有）、首条消息预览、消息数量、相对时间、cwd 路径。支持重命名、删除（含非破坏性删除）操作。</p>
+
+        <!-- ================================================================ -->
+        <h2 id="exercise">11.9 练习：修改 UI 组件</h2>
+        <!-- ================================================================ -->
+        <div class="callout callout-exercise">
+            <div class="callout-title">Exercise</div>
+            <p>修改 <code>AssistantMessageComponent</code>，在流式渲染时显示实时 token 计数：</p>
+            <ol>
+                <li>找到 <code>updateContent()</code> 方法，在每次调用时根据消息内容估算 token 数</li>
+            <li>在组件底部显示一个状态行：<code>"tokens: 1234 | tool calls: 2"</code></li>
+            <li>使用 <code>estimateTokens()</code> 函数（从 <code>compaction.ts</code> 导入）</li>
+            <li>运行 Pi 并触发一次对话，观察 token 计数实时变化</li>
+        </ol>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="quiz">11.10 Quiz</h2>
+        <!-- ================================================================ -->
+        <div class="quiz">
+            <div class="quiz-question">1. <code>InteractiveMode</code> 如何接收模型的流式响应？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">通过轮询 <code>session.getMessages()</code></li>
+                <li data-correct="true">通过订阅 agent 事件流（message_start / message_update / message_end）</li>
+                <li data-correct="false">通过 WebSocket 连接</li>
+                <li data-correct="false">通过共享内存 buffer</li>
+            </ul>
+            <div class="quiz-explanation">InteractiveMode 订阅 AgentSession 的事件流，根据事件类型更新 UI 组件。这是响应式架构的核心。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">2. <code>CombinedAutocompleteProvider</code> 不处理以下哪种补全？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">内置斜杠命令（如 /model）</li>
+                <li data-correct="false">扩展注册的命令</li>
+                <li data-correct="true">代码语义补全（如 LSP 补全）</li>
+                <li data-correct="false">Skill 命令（skill:name）</li>
+            </ul>
+            <div class="quiz-explanation">Pi 的 autocomplete 处理命令、模型、模板、扩展和 skill 的补全。代码语义补全由 LSP 或其他专用工具处理，不在 autocomplete provider 范围内。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">3. 主题系统的颜色模式 <code>ansi</code> 和 <code>truecolor</code> 的区别是？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">ansi 支持更多颜色，truecolor 只支持 256 色</li>
+                <li data-correct="true">ansi 使用 256 色或 16 色，truecolor 使用 24 位 RGB</li>
+                <li data-correct="false">没有区别，只是名字不同</li>
+                <li data-correct="false">truecolor 仅适用于 light 主题</li>
+            </ul>
+            <div class="quiz-explanation">truecolor（24 位）支持约 1677 万色，但需要终端支持。ansi 模式兼容性更好，适用于老旧终端。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">4. 项目信任流的主要目的是什么？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">验证用户身份</li>
+                <li data-correct="true">确认用户是否允许 Pi 加载项目本地资源（skills、extensions 等）</li>
+                <li data-correct="false">加密会话文件</li>
+                <li data-correct="false">限制 API 调用频率</li>
+            </ul>
+            <div class="quiz-explanation">项目信任流防止恶意仓库通过 Pi 的 skills/extensions 机制执行未授权代码。用户必须显式信任项目后，Pi 才会加载本地资源。</div>
+        </div>
+
+        <section class="next-action-panel" aria-labelledby="ch11-next-action">
+            <h2 id="ch11-next-action">Next Action</h2>
+            <p>回看第 5 章和第 6 章，确认哪些复杂度来自 TUI 渲染本身，哪些复杂度来自 CLI runtime 和会话控制。</p>
+        </section>
+
+        <!-- Chapter Navigation -->
+        <nav class="chapter-nav">
+            <a href="10-compaction.html" class="nav-prev">上一章：压缩系统</a>
+            <a href="12-sdk.html" class="nav-next">下一章：编程式 SDK</a>
+        </nav>
+
+    </article>
+</main>
+
+<script src="../assets/js/app.js"></script>
+</body>
+</html>

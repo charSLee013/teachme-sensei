@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第 4 章：pi-agent-core — Agent 运行时 — Pi Agent Harness 教学</title>
+    <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>Pi 教学</h2>
+            <span class="version">v0.80.3</span>
+        </div>
+        <nav class="chapter-list">
+            <a href="01-what-is-pi.html">1. 认识 Pi</a>
+            <a href="02-monorepo.html">2. Monorepo 架构</a>
+            <a href="03-pi-ai.html">3. pi-ai LLM 层</a>
+            <a href="04-agent-core.html" class="active">4. Agent 运行时</a>
+            <a href="05-pi-tui.html">5. 终端 UI 库</a>
+            <a href="06-coding-agent.html">6. 主 CLI 架构</a>
+            <a href="07-tools.html">7. 内置工具系统</a>
+            <a href="08-extensions.html">8. 扩展系统</a>
+            <a href="09-session-management.html">9. 会话管理</a>
+            <a href="10-compaction.html">10. 压缩系统</a>
+            <a href="11-interactive-mode.html">11. 交互模式</a>
+            <a href="12-sdk.html">12. 编程式 SDK</a>
+            <a href="13-orchestrator.html">13. 编排器</a>
+            <a href="14-contributing.html">14. 贡献指南</a>
+        </nav>
+    </aside>
+
+    <main class="content">
+        <header class="chapter-header">
+            <span class="chapter-number">第 4 章</span>
+            <h1>pi-agent-core — Agent 运行时</h1>
+            <p class="subtitle">深入理解 Agent 的核心循环、消息系统、工具执行与事件机制</p>
+        </header>
+<section class="learner-cues" aria-labelledby="ch4-main-line">
+  <div class="cue-grid">
+    <div class="cue-card">
+      <h2 id="ch4-main-line">Main Line</h2>
+      <p>本章真正要学的是 agent 如何维持一个可继续、可中断、可插工具的控制循环，而不是背诵每个事件名。</p>
+    </div>
+    <div class="cue-card">
+      <h2>Remember Now</h2>
+      <p>Agent 本身不替模型做决策。它负责保存状态、组织消息、执行工具和发事件，决策点仍然落在模型响应和钩子回调上。</p>
+    </div>
+  </div>
+</section>
+<div class="container">
+
+  <h2>Chapter 4: pi-agent-core — Agent 运行时</h2>
+
+  <!-- ============================================================ -->
+  <h2>1. Agent 的核心循环</h2>
+
+  <p>Agent 的本质是一个<strong>循环</strong>：接收用户消息，调用 LLM 获取响应，如果响应中包含工具调用则执行工具，将结果反馈给 LLM，然后重复——直到 LLM 给出最终回答。</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 520" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13">
+      <!-- Background -->
+      <rect width="720" height="520" rx="8" fill="#161b22"/>
+
+      <!-- Actors -->
+      <rect x="40" y="20" width="90" height="36" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="85" y="43" text-anchor="middle" fill="#58a6ff" font-weight="600">User</text>
+
+      <rect x="190" y="20" width="110" height="36" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="245" y="43" text-anchor="middle" fill="#3fb950" font-weight="600">Agent Loop</text>
+
+      <rect x="370" y="20" width="110" height="36" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="425" y="43" text-anchor="middle" fill="#bc8cff" font-weight="600">LLM Provider</text>
+
+      <rect x="550" y="20" width="110" height="36" rx="6" fill="#21262d" stroke="#30363d"/>
+      <text x="605" y="43" text-anchor="middle" fill="#d29922" font-weight="600">Tools</text>
+
+      <!-- Lifelines -->
+      <line x1="85" y1="56" x2="85" y2="490" stroke="#30363d" stroke-dasharray="4,4"/>
+      <line x1="245" y1="56" x2="245" y2="490" stroke="#30363d" stroke-dasharray="4,4"/>
+      <line x1="425" y1="56" x2="425" y2="490" stroke="#30363d" stroke-dasharray="4,4"/>
+      <line x1="605" y1="56" x2="605" y2="490" stroke="#30363d" stroke-dasharray="4,4"/>
+
+      <!-- Step 1: User -> Agent: prompt -->
+      <line x1="85" y1="90" x2="245" y2="90" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowBlue)"/>
+      <text x="165" y="83" text-anchor="middle" fill="#58a6ff" font-size="12">1. prompt(msg)</text>
+
+      <!-- Step 2: Agent -> LLM: messages -->
+      <line x1="245" y1="120" x2="425" y2="120" stroke="#bc8cff" stroke-width="2" marker-end="url(#arrowPurple)"/>
+      <text x="335" y="113" text-anchor="middle" fill="#bc8cff" font-size="12">2. stream(messages)</text>
+
+      <!-- Step 3: LLM -> Agent: assistant response -->
+      <line x1="425" y1="155" x2="245" y2="155" stroke="#3fb950" stroke-width="2" marker-end="url(#arrowGreen)"/>
+      <text x="335" y="148" text-anchor="middle" fill="#3fb950" font-size="12">3. assistant message</text>
+
+      <!-- Decision box -->
+      <rect x="185" y="175" width="120" height="40" rx="6" fill="rgba(210,153,34,0.15)" stroke="#d29922"/>
+      <text x="245" y="199" text-anchor="middle" fill="#d29922" font-weight="600" font-size="12">tool calls?</text>
+
+      <!-- Branch: has tool calls -->
+      <line x1="305" y1="195" x2="605" y2="195" stroke="#d29922" stroke-width="2" marker-end="url(#arrowOrange)"/>
+      <text x="455" y="188" text-anchor="middle" fill="#d29922" font-size="11">yes</text>
+      <text x="455" y="210" text-anchor="middle" fill="#8b949e" font-size="10">4. execute tools</text>
+
+      <!-- Tool -> Agent: results -->
+      <line x1="605" y1="235" x2="245" y2="235" stroke="#3fb950" stroke-width="2" marker-end="url(#arrowGreen)"/>
+      <text x="425" y="228" text-anchor="middle" fill="#3fb950" font-size="11">5. tool results</text>
+
+      <!-- Loop back -->
+      <path d="M 245 250 L 140 250 L 140 110 L 245 110" fill="none" stroke="#8b949e" stroke-width="1.5" stroke-dasharray="6,3"/>
+      <text x="130" y="185" text-anchor="end" fill="#8b949e" font-size="10">loop back</text>
+
+      <!-- Branch: no tool calls -->
+      <line x1="245" y1="270" x2="85" y2="270" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowBlue)"/>
+      <text x="165" y="263" text-anchor="middle" fill="#58a6ff" font-size="12">6. final response</text>
+      <text x="165" y="285" text-anchor="middle" fill="#8b949e" font-size="10">(no tool calls → done)</text>
+
+      <!-- Arrow markers -->
+      <defs>
+        <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M 0 0 L 8 3 L 0 6 Z" fill="#58a6ff"/>
+        </marker>
+        <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M 0 0 L 8 3 L 0 6 Z" fill="#3fb950"/>
+        </marker>
+        <marker id="arrowPurple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M 0 0 L 8 3 L 0 6 Z" fill="#bc8cff"/>
+        </marker>
+        <marker id="arrowOrange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M 0 0 L 8 3 L 0 6 Z" fill="#d29922"/>
+        </marker>
+      </defs>
+    </svg>
+  </div>
+
+  <div class="callout callout-info">
+    <strong>核心概念</strong>
+    Agent 循环的关键设计：<strong>LLM 是决策者</strong>。Agent 本身不决定下一步做什么——它将上下文交给 LLM，LLM 决定是输出文本还是调用工具。这种设计使得 Agent 的行为完全由 prompt + tools 驱动。
+  </div>
+
+  <!-- ============================================================ -->
+  <h2>2. 代码走读：agent-loop.ts</h2>
+
+  <p><code>packages/agent/src/agent-loop.ts</code> 是 Agent 运行时的核心文件。它导出了三个关键函数，构成循环的入口和主逻辑。</p>
+
+  <h3>2.1 agentLoop() — 入口点</h3>
+
+  <span class="code-label">agent-loop.ts</span>
+  <pre><code><span class="code-highlight">export function agentLoop(
+  prompts: AgentMessage[],
+  context: AgentContext,
+  config: AgentLoopConfig,
+  signal?: AbortSignal,
+  streamFn?: StreamFn,
+): EventStream&lt;AgentEvent, AgentMessage[]&gt;</span> {
+  const stream = createAgentStream();
+
+  void runAgentLoop(
+    prompts,
+    context,
+    config,
+    async (event) => { stream.push(event); },
+    signal,
+    streamFn,
+  ).then((messages) => {
+    stream.end(messages);
+  });
+
+  return stream;
+}</code></pre>
+
+  <p><code>agentLoop</code> 是<strong>非阻塞</strong>的：它创建一个 <code>EventStream</code>，异步启动 <code>runAgentLoop</code>，然后立即返回流。调用方通过订阅事件流来获取实时更新。</p>
+
+  <h3>2.2 runAgentLoop() — 核心循环</h3>
+
+  <span class="code-label">agent-loop.ts</span>
+  <pre><code>export async function runAgentLoop(
+  prompts: AgentMessage[],
+  context: AgentContext,
+  config: AgentLoopConfig,
+  emit: AgentEventSink,
+  signal?: AbortSignal,
+  streamFn?: StreamFn,
+): Promise&lt;AgentMessage[]&gt; {
+  const newMessages: AgentMessage[] = [...prompts];
+  const currentContext: AgentContext = {
+    ...context,
+    messages: [...context.messages, ...prompts],
+  };
+
+  await emit({ type: "agent_start" });
+  await emit({ type: "turn_start" });
+  <span class="code-annotation">// ... emit message_start/end for each prompt
+
+  await runLoop(currentContext, newMessages, config, signal, emit, streamFn);
+  return newMessages;
+}</code></pre>
+
+  <h3>2.3 agentLoopContinue() — 重试/继续</h3>
+
+  <span class="code-label">agent-loop.ts</span>
+  <pre><code>export function agentLoopContinue(
+  context: AgentContext,
+  config: AgentLoopConfig,
+  signal?: AbortSignal,
+  streamFn?: StreamFn,
+): EventStream&lt;AgentEvent, AgentMessage[]&gt; {
+  if (context.messages.length === 0) {
+    throw new Error("Cannot continue: no messages in context");
+  }
+  <span class="code-highlight">if (context.messages[context.messages.length - 1].role === "assistant") {
+    throw new Error("Cannot continue from message role: assistant");
+  }</span>
+
+  const stream = createAgentStream();
+  void runAgentLoopContinue(...);
+  return stream;
+}</code></pre>
+
+  <div class="callout callout-warn">
+    <strong>约束</strong>
+    <code>agentLoopContinue</code> 要求上下文最后一条消息必须是 <code>user</code> 或 <code>toolResult</code>。这是 LLM provider 的硬性要求——不能从 assistant 消息之后继续。
+  </div>
+
+  <h3>2.4 runLoop() — 真正的循环逻辑</h3>
+
+  <p>这是整个运行时的<strong>心脏</strong>。它包含内外两个循环：</p>
+
+  <ul>
+    <li><strong>外层循环</strong>：处理 follow-up 消息（agent 本该停止时，有新消息到达）</li>
+    <li><strong>内层循环</strong>：处理 steering 消息 + tool calls</li>
+  </ul>
+
+  <span class="code-label">agent-loop.ts — runLoop (简化)</span>
+  <pre><code>async function runLoop(...) {
+  let currentContext = initialContext;
+  let config = initialConfig;
+  let firstTurn = true;
+  let pendingMessages = (await config.getSteeringMessages?.()) || [];
+
+  <span class="code-highlight">while (true) {</span>                       // outer: follow-up loop
+    let hasMoreToolCalls = true;
+
+    <span class="code-highlight">while (hasMoreToolCalls || pendingMessages.length > 0) {</span>  // inner: tool loop
+      if (!firstTurn) await emit({ type: "turn_start" });
+
+      // 1. Process pending steering messages
+      for (const message of pendingMessages) {
+        currentContext.messages.push(message);
+        newMessages.push(message);
+      }
+
+      // 2. Stream assistant response from LLM
+      const message = await streamAssistantResponse(...);
+
+      // 3. Check for error/abort
+      if (message.stopReason === "error" || message.stopReason === "aborted") {
+        await emit({ type: "agent_end", messages: newMessages });
+        return;
+      }
+
+      // 4. Execute tool calls
+      const toolCalls = message.content.filter(c => c.type === "toolCall");
+      if (toolCalls.length > 0) {
+        const batch = await executeToolCalls(...);
+        hasMoreToolCalls = !batch.terminate;
+        // ... push results
+      }
+
+      await emit({ type: "turn_end", message, toolResults });
+
+      // 5. prepareNextTurn — dynamic model/context switching
+      const nextTurn = await config.prepareNextTurn?.(...);
+      if (nextTurn) {
+        currentContext = nextTurn.context ?? currentContext;
+        config = { ...config, model: nextTurn.model ?? config.model, ... };
+      }
+
+      // 6. shouldStopAfterTurn — graceful stop
+      if (await config.shouldStopAfterTurn?.(...)) {
+        await emit({ type: "agent_end", messages: newMessages });
+        return;
+      }
+
+      // 7. Poll for new steering messages
+      pendingMessages = (await config.getSteeringMessages?.()) || [];
+    }
+
+    // 8. Agent would stop — check for follow-up messages
+    const followUpMessages = (await config.getFollowUpMessages?.()) || [];
+    if (followUpMessages.length > 0) {
+      pendingMessages = followUpMessages;
+      continue;  // back to outer loop
+    }
+
+    break;  // truly done
+  }
+
+  await emit({ type: "agent_end", messages: newMessages });
+}</code></pre>
+
+  <div class="callout callout-tip">
+    <strong>设计洞察</strong>
+    注意 <code>prepareNextTurn</code> 在 <code>shouldStopAfterTurn</code> 之前调用。这意味着你可以在改变模型配置之后、决定是否停止之前，基于新的状态做出判断。这个顺序是有意为之的。
+  </div>
+
+  <!-- ============================================================ -->
+  <h2>3. Agent 类</h2>
+
+  <p><code>Agent</code> 类（<code>packages/agent/src/agent.ts</code>）是<strong>有状态的高层封装</strong>。它包装了低层的 <code>agentLoop</code> / <code>agentLoopContinue</code>，管理 transcript、事件分发和消息队列。</p>
+
+  <h3>3.1 AgentOptions — 配置</h3>
+
+  <span class="code-label">agent.ts — AgentOptions</span>
+  <pre><code>export interface AgentOptions {
+  initialState?: Partial&lt;Omit&lt;AgentState,
+    "pendingToolCalls" | "isStreaming" | "streamingMessage" | "errorMessage"&gt;&gt;;
+  convertToLlm?: (messages: AgentMessage[]) =&gt; Message[] | Promise&lt;Message[]&gt;;
+  transformContext?: (messages: AgentMessage[], signal?: AbortSignal) =&gt;
+    Promise&lt;AgentMessage[]&gt;;
+  streamFn?: StreamFn;
+  getApiKey?: (provider: string) =&gt;
+    Promise&lt;string | undefined&gt; | string | undefined;
+  beforeToolCall?: (context: BeforeToolCallContext, signal?: AbortSignal) =&gt;
+    Promise&lt;BeforeToolCallResult | undefined&gt;;
+  afterToolCall?: (context: AfterToolCallContext, signal?: AbortSignal) =&gt;
+    Promise&lt;AfterToolCallResult | undefined&gt;;
+  prepareNextTurn?: ...;
+  steeringMode?: QueueMode;
+  followUpMode?: QueueMode;
+  sessionId?: string;
+  thinkingBudgets?: ThinkingBudgets;
+  transport?: Transport;
+  maxRetryDelayMs?: number;
+  toolExecution?: ToolExecutionMode;
+}</code></pre>
+
+  <h3>3.2 AgentState — 可观察状态</h3>
+
+  <span class="code-label">types.ts — AgentState</span>
+  <pre><code>export interface AgentState {
+  systemPrompt: string;
+  model: Model&lt;any&gt;;
+  thinkingLevel: ThinkingLevel;
+
+  <span class="code-highlight">set tools(tools: AgentTool&lt;any&gt;[]);   // 赋值时自动 copy
+  get tools(): AgentTool&lt;any&gt;[];
+  set messages(messages: AgentMessage[]); // 赋值时自动 copy
+  get messages(): AgentMessage[];</span>
+
+  readonly isStreaming: boolean;
+  readonly streamingMessage?: AgentMessage;
+  readonly pendingToolCalls: ReadonlySet&lt;string&gt;;
+  readonly errorMessage?: string;
+}</code></pre>
+
+  <p><code>tools</code> 和 <code>messages</code> 使用 <strong>accessor properties</strong>（getter/setter），赋值时自动复制数组。这防止外部代码持有内部数组的引用后意外修改 Agent 状态。</p>
+
+  <h3>3.3 createMutableAgentState() — 内部可变状态</h3>
+
+  <span class="code-label">agent.ts — createMutableAgentState</span>
+  <pre><code>function createMutableAgentState(initialState?: Partial&lt;...&gt;): MutableAgentState {
+  let tools = initialState?.tools?.slice() ?? [];
+  let messages = initialState?.messages?.slice() ?? [];
+
+  return {
+    systemPrompt: initialState?.systemPrompt ?? "",
+    model: initialState?.model ?? DEFAULT_MODEL,
+    thinkingLevel: initialState?.thinkingLevel ?? "off",
+
+    get tools() { return tools; },
+    set tools(nextTools: AgentTool&lt;any&gt;[]) { tools = nextTools.slice(); },
+
+    get messages() { return messages; },
+    set messages(nextMessages: AgentMessage[]) { messages = nextMessages.slice(); },
+
+    isStreaming: false,
+    streamingMessage: undefined,
+    pendingToolCalls: new Set&lt;string&gt;(),
+    errorMessage: undefined,
+  };
+}</code></pre>
+
+  <h3>3.4 Agent 的公共 API</h3>
+
+  <table>
+    <tr><th>方法</th><th>说明</th></tr>
+    <tr><td><code>prompt(input)</code></td><td>发送新消息启动循环。接受 string、AgentMessage 或 AgentMessage[]</td></tr>
+    <tr><td><code>continue()</code></td><td>从当前 transcript 继续。最后一条消息必须是 user 或 toolResult</td></tr>
+    <tr><td><code>steer(message)</code></td><td>注入 steering 消息（在当前 turn 结束后）</td></tr>
+    <tr><td><code>followUp(message)</code></td><td>注入 follow-up 消息（在 agent 本应停止后）</td></tr>
+    <tr><td><code>subscribe(listener)</code></td><td>订阅 AgentEvent。返回取消订阅函数</td></tr>
+    <tr><td><code>abort()</code></td><td>中止当前运行</td></tr>
+    <tr><td><code>waitForIdle()</code></td><td>等待当前运行及所有 listener 完成</td></tr>
+    <tr><td><code>reset()</code></td><td>清除 transcript 和队列</td></tr>
+  </table>
+
+  <div class="callout callout-warn">
+    <strong>并发保护</strong>
+    <code>prompt()</code> 和 <code>continue()</code> 不允许并行调用。如果 Agent 正在运行，它们会抛出错误。正确做法是使用 <code>steer()</code> / <code>followUp()</code> 队列消息，或等待 <code>waitForIdle()</code>。
+  </div>
+
+  <!-- ============================================================ -->
+  <h2>4. AgentMessage vs Message — 消息类型系统</h2>
+
+  <p>pi-agent-core 使用两套消息类型：</p>
+  <ul>
+    <li><strong>Message</strong>：LLM provider 理解的标准消息（user, assistant, toolResult）</li>
+    <li><strong>AgentMessage</strong>：扩展消息，包含 LLM 消息 + 自定义应用消息</li>
+  </ul>
+
+  <h3>4.1 AgentMessage 的定义</h3>
+
+  <span class="code-label">types.ts</span>
+  <pre><code>export interface CustomAgentMessages {
+  <span class="code-annotation">// Empty by default - apps extend via declaration merging</span>
+}
+
+<span class="code-highlight">export type AgentMessage = Message | CustomAgentMessages[keyof CustomAgentMessages];</span></code></pre>
+
+  <p>通过 TypeScript 的 <strong>declaration merging</strong>，应用可以扩展自定义消息类型：</p>
+
+  <pre><code>declare module "@earendil-works/pi-agent-core" {
+  interface CustomAgentMessages {
+    <span class="code-highlight">artifact: ArtifactMessage;</span>
+    <span class="code-highlight">notification: NotificationMessage;</span>
+  }
+}
+
+<span class="code-annotation">// 现在 AgentMessage 自动包含 ArtifactMessage 和 NotificationMessage</span></code></pre>
+
+  <h3>4.2 convertToLlm() — AgentMessage → Message 转换</h3>
+
+  <p>Agent 内部全程使用 <code>AgentMessage[]</code>。只有在<strong>调用 LLM 的边界</strong>才需要转换为 <code>Message[]</code>。这是 <code>convertToLlm</code> 的职责：</p>
+
+  <span class="code-label">agent-loop.ts — streamAssistantResponse</span>
+  <pre><code>async function streamAssistantResponse(...): Promise&lt;AssistantMessage&gt; {
+  <span class="code-annotation">// 1. transformContext 操作的是 AgentMessage[]
+  let messages = context.messages;
+  if (config.transformContext) {
+    messages = await config.transformContext(messages, signal);
+  }
+
+  // 2. convertToLlm 操作的是 AgentMessage[] → Message[]
+  const llmMessages = await config.convertToLlm(messages);</span>
+
+  <span class="code-annotation">// 3. 构建 LLM context
+  const llmContext: Context = {
+    systemPrompt: context.systemPrompt,
+    messages: llmMessages,
+    tools: context.tools,
+  };</span>
+
+  const response = await streamFunction(config.model, llmContext, ...);
+  <span class="code-annotation">// ... handle streaming events</span>
+}</code></pre>
+
+  <h3>4.3 默认转换行为</h3>
+
+  <span class="code-label">agent.ts — defaultConvertToLlm</span>
+  <pre><code>function defaultConvertToLlm(messages: AgentMessage[]): Message[] {
+  return messages.filter(
+    (message) => message.role === "user"
+      || message.role === "assistant"
+      || message.role === "toolResult",
+  );
+}</code></pre>
+
+  <p>默认实现简单地<strong>过滤掉</strong>非 LLM 消息。自定义消息类型如果 <code>role</code> 不是上述三者之一，会被自动排除。你也可以提供自定义 <code>convertToLlm</code> 来将自定义消息转换为 LLM 可理解的形式。</p>
+
+  <h3>4.4 transformContext() — 上下文窗口管理</h3>
+
+  <p><code>transformContext</code> 在 <code>convertToLlm</code> <strong>之前</strong>运行，操作的是 <code>AgentMessage[]</code>。适用于：</p>
+
+  <ul>
+    <li>裁剪旧消息以适配 context window</li>
+    <li>从外部源注入上下文</li>
+    <li>压缩历史对话</li>
+  </ul>
+
+  <div class="callout callout-info">
+    <strong>两个转换的顺序</strong>
+    <code>transformContext(AgentMessage[]) → AgentMessage[]</code> 先执行，然后 <code>convertToLlm(AgentMessage[]) → Message[]</code> 执行。这种分层设计让你可以在 AgentMessage 层面操作（包括自定义消息），再转换为 LLM 格式。
+  </div>
+
+  <!-- ============================================================ -->
+  <h2>5. 工具执行模式</h2>
+
+  <p>当 LLM 返回的 assistant 消息包含多个 tool call 时，Agent 支持两种执行策略。</p>
+
+  <h3>5.1 sequential vs parallel</h3>
+
+  <span class="code-label">types.ts — ToolExecutionMode</span>
+  <pre><code>export type ToolExecutionMode = "sequential" | "parallel";</code></pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 380" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12">
+      <rect width="700" height="380" rx="8" fill="#161b22"/>
+
+      <!-- Sequential column -->
+      <rect x="30" y="20" width="300" height="34" rx="6" fill="rgba(88,166,255,0.15)" stroke="#58a6ff"/>
+      <text x="180" y="42" text-anchor="middle" fill="#58a6ff" font-weight="600" font-size="13">Sequential 模式</text>
+
+      <rect x="60" y="75" width="240" height="30" rx="4" fill="#21262d" stroke="#30363d"/>
+      <text x="180" y="95" text-anchor="middle" fill="#e6edf3">prepare Tool A</text>
+
+      <rect x="60" y="115" width="240" height="30" rx="4" fill="#21262d" stroke="#30363d"/>
+      <text x="180" y="135" text-anchor="middle" fill="#e6edf3">execute Tool A → result</text>
+
+      <rect x="60" y="155" width="240" height="30" rx="4" fill="#21262d" stroke="#30363d"/>
+      <text x="180" y="175" text-anchor="middle" fill="#e6edf3">prepare Tool B</text>
+
+      <rect x="60" y="195" width="240" height="30" rx="4" fill="#21262d" stroke="#30363d"/>
+      <text x="180" y="215" text-anchor="middle" fill="#e6edf3">execute Tool B → result</text>
+
+      <rect x="60" y="235" width="240" height="30" rx="4" fill="#21262d" stroke="#30363d"/>
+      <text x="180" y="255" text-anchor="middle" fill="#e6edf3">prepare Tool C</text>
+
+      <rect x="60" y="275" width="240" height="30" rx="4" fill="#21262d" stroke="#30363d"/>
+      <text x="180" y="295" text-anchor="middle" fill="#e6edf3">execute Tool C → result</text>
+
+      <text x="180" y="330" text-anchor="middle" fill="#8b949e">总时间 = A + B + C</text>
+
+      <!-- Parallel column -->
+      <rect x="370" y="20" width="300" height="34" rx="6" fill="rgba(63,185,80,0.15)" stroke="#3fb950"/>
+      <text x="520" y="42" text-anchor="middle" fill="#3fb950" font-weight="600" font-size="13">Parallel 模式 (默认)</text>
+
+      <rect x="400" y="75" width="240" height="30" rx="4" fill="#21262d" stroke="#30363d"/>
+      <text x="520" y="95" text-anchor="middle" fill="#e6edf3">prepare Tool A, B, C (顺序)</text>
+
+      <!-- Parallel execution blocks -->
+      <rect x="400" y="120" width="70" height="40" rx="4" fill="rgba(63,185,80,0.15)" stroke="#3fb950"/>
+      <text x="435" y="144" text-anchor="middle" fill="#3fb950" font-size="11">Tool A</text>
+
+      <rect x="480" y="120" width="70" height="40" rx="4" fill="rgba(63,185,80,0.15)" stroke="#3fb950"/>
+      <text x="515" y="144" text-anchor="middle" fill="#3fb950" font-size="11">Tool B</text>
+
+      <rect x="560" y="120" width="70" height="40" rx="4" fill="rgba(63,185,80,0.15)" stroke="#3fb950"/>
+      <text x="595" y="144" text-anchor="middle" fill="#3fb950" font-size="11">Tool C</text>
+
+      <text x="520" y="185" text-anchor="middle" fill="#8b949e" font-size="11">三个工具同时执行</text>
+
+      <rect x="400" y="200" width="240" height="30" rx="4" fill="#21262d" stroke="#30363d"/>
+      <text x="520" y="220" text-anchor="middle" fill="#e6edf3">emit results (按原始顺序)</text>
+
+      <text x="520" y="255" text-anchor="middle" fill="#8b949e">总时间 ≈ max(A, B, C)</text>
+
+      <!-- Annotation -->
+      <rect x="370" y="280" width="300" height="70" rx="6" fill="rgba(188,140,255,0.08)" stroke="#bc8cff"/>
+      <text x="520" y="302" text-anchor="middle" fill="#bc8cff" font-weight="600" font-size="11">注意</text>
+      <text x="520" y="320" text-anchor="middle" fill="#8b949e" font-size="10">单个工具可设置 executionMode</text>
+      <text x="520" y="336" text-anchor="middle" fill="#8b949e" font-size="10">为 sequential 来覆盖全局默认值</text>
+    </svg>
+  </div>
+
+  <h3>5.2 执行决策逻辑</h3>
+
+  <span class="code-label">agent-loop.ts — executeToolCalls</span>
+  <pre><code>async function executeToolCalls(...): Promise&lt;ExecutedToolCallBatch&gt; {
+  const toolCalls = assistantMessage.content.filter(c =&gt; c.type === "toolCall");
+
+  <span class="code-highlight">const hasSequentialToolCall = toolCalls.some(
+    (tc) =&gt; currentContext.tools?.find((t) =&gt; t.name === tc.name)
+      ?.executionMode === "sequential",
+  );
+
+  if (config.toolExecution === "sequential" || hasSequentialToolCall) {
+    return executeToolCallsSequential(...);
+  }
+  return executeToolCallsParallel(...);
+}</span></code></pre>
+
+  <p>决策规则：</p>
+  <ol>
+    <li>如果全局 <code>toolExecution === "sequential"</code>，所有工具顺序执行</li>
+    <li>如果某个工具声明了 <code>executionMode: "sequential"</code>，降级为顺序执行</li>
+    <li>否则使用并行执行</li>
+  </ol>
+
+  <h3>5.3 beforeToolCall / afterToolCall 钩子</h3>
+
+  <p>每个工具调用都有两个生命周期钩子：</p>
+
+  <table>
+    <tr><th>钩子</th><th>时机</th><th>能力</th></tr>
+    <tr>
+      <td><code>beforeToolCall</code></td>
+      <td>参数验证后，执行前</td>
+      <td>可阻止执行（<code>{ block: true }</code>）</td>
+    </tr>
+    <tr>
+      <td><code>afterToolCall</code></td>
+      <td>执行完成后</td>
+      <td>可覆盖 result.content / details / isError / terminate</td>
+    </tr>
+  </table>
+
+  <span class="code-label">types.ts — AfterToolCallResult</span>
+  <pre><code>export interface AfterToolCallResult {
+  content?: (TextContent | ImageContent)[];  <span class="code-annotation">// 替换全部 content</span>
+  details?: unknown;                         <span class="code-annotation">// 替换全部 details</span>
+  isError?: boolean;                         <span class="code-annotation">// 覆盖错误标志</span>
+  terminate?: boolean;                       <span class="code-annotation">// 覆盖终止提示</span>
+}</code></pre>
+
+  <!-- ============================================================ -->
+  <h2>6. 高级控制钩子</h2>
+
+  <p>Agent 循环提供了四个强大的控制钩子，让你在运行时动态影响 Agent 行为。</p>
+
+  <h3>6.1 shouldStopAfterTurn — 优雅停止</h3>
+
+  <span class="code-label">types.ts — ShouldStopAfterTurnContext</span>
+  <pre><code>export interface ShouldStopAfterTurnContext {
+  message: AssistantMessage;
+  toolResults: ToolResultMessage[];
+  context: AgentContext;
+  newMessages: AgentMessage[];
+}
+
+<span class="code-annotation">// 在 AgentLoopConfig 中
+shouldStopAfterTurn?: (context: ShouldStopAfterTurnContext)
+  =&gt; boolean | Promise&lt;boolean&gt;;</span></code></pre>
+
+  <p>每轮结束后调用。返回 <code>true</code> 则 Agent 停止。这发生在 <code>turn_end</code> 之后、polling steering/follow-up 之前。</p>
+
+  <div class="callout callout-tip">
+    <strong>典型用途</strong>
+    检测 context window 即将溢出、用户取消了任务、或达到了最大轮次限制。
+  </div>
+
+  <h3>6.2 prepareNextTurn — 动态切换模型和上下文</h3>
+
+  <span class="code-label">types.ts — AgentLoopTurnUpdate</span>
+  <pre><code>export interface AgentLoopTurnUpdate {
+  context?: AgentContext;       <span class="code-annotation">// 替换整个上下文</span>
+  model?: Model&lt;any&gt;;            <span class="code-annotation">// 切换模型</span>
+  thinkingLevel?: ThinkingLevel; <span class="code-annotation">// 切换推理级别</span>
+}
+
+<span class="code-annotation">// 在 AgentLoopConfig 中
+prepareNextTurn?: (context: PrepareNextTurnContext)
+  =&gt; AgentLoopTurnUpdate | undefined | Promise&lt;...&gt;;</span></code></pre>
+
+  <p>在 <code>shouldStopAfterTurn</code> <strong>之前</strong>调用。返回 <code>undefined</code> 表示保持当前配置不变。</p>
+
+  <h3>6.3 getSteeringMessages — 中途注入</h3>
+
+  <p>在每轮 tool calls 执行完毕后调用。返回的消息会在下一轮 LLM 调用之前注入到上下文中。适用于"边跑边指导"的场景。</p>
+
+  <h3>6.4 getFollowUpMessages — 后续消息</h3>
+
+  <p>在 Agent <strong>本应停止</strong>时调用（没有 tool calls、没有 steering 消息）。返回的消息会让 Agent 继续运行。适用于 post-completion follow-up。</p>
+
+  <h3>6.5 QueueMode — 队列模式</h3>
+
+  <span class="code-label">types.ts — QueueMode</span>
+  <pre><code>export type QueueMode = "all" | "one-at-a-time";</code></pre>
+
+  <p>控制消息队列的排水方式：</p>
+  <ul>
+    <li><code>"all"</code>：排水点到达时，一次性注入所有队列中的消息</li>
+    <li><code>"one-at-a-time"</code>：每次只注入最老的一条，其余等待下一个排水点</li>
+  </ul>
+
+  <span class="code-label">agent.ts — PendingMessageQueue</span>
+  <pre><code>class PendingMessageQueue {
+  private messages: AgentMessage[] = [];
+  public mode: QueueMode;
+
+  drain(): AgentMessage[] {
+    if (this.mode === "all") {
+      const drained = this.messages.slice();
+      this.messages = [];
+      return drained;
+    }
+    <span class="code-annotation">// one-at-a-time: 只取第一条
+    const first = this.messages[0];
+    this.messages = this.messages.slice(1);
+    return [first];</span>
+  }
+}</code></pre>
+
+  <!-- ============================================================ -->
+  <h2>7. 事件系统</h2>
+
+  <p>Agent 通过事件流向外部传递实时状态更新。事件是<strong>按顺序 emit 的</strong>，每个事件都携带足够的信息供 UI 渲染。</p>
+
+  <h3>7.1 AgentEvent 联合类型</h3>
+
+  <span class="code-label">types.ts — AgentEvent</span>
+  <pre><code>export type AgentEvent =
+  <span class="code-annotation">// Agent lifecycle</span>
+  | { type: "agent_start" }
+  | { type: "agent_end"; messages: AgentMessage[] }
+
+  <span class="code-annotation">// Turn lifecycle</span>
+  | { type: "turn_start" }
+  | { type: "turn_end"; message: AgentMessage; toolResults: ToolResultMessage[] }
+
+  <span class="code-annotation">// Message lifecycle</span>
+  | { type: "message_start"; message: AgentMessage }
+  | { type: "message_update"; message: AgentMessage;
+      assistantMessageEvent: AssistantMessageEvent }
+  | { type: "message_end"; message: AgentMessage }
+
+  <span class="code-annotation">// Tool execution lifecycle</span>
+  | { type: "tool_execution_start"; toolCallId: string;
+      toolName: string; args: any }
+  | { type: "tool_execution_update"; toolCallId: string;
+      toolName: string; args: any; partialResult: any }
+  | { type: "tool_execution_end"; toolCallId: string;
+      toolName: string; result: any; isError: boolean };</code></pre>
+
+  <h3>7.2 一个 Turn 的事件时间线</h3>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
+      <rect width="720" height="360" rx="8" fill="#161b22"/>
+
+      <!-- Timeline axis -->
+      <line x1="60" y1="180" x2="680" y2="180" stroke="#30363d" stroke-width="2"/>
+
+      <!-- Events -->
+      <circle cx="80" cy="180" r="6" fill="#58a6ff"/>
+      <text x="80" y="210" text-anchor="middle" fill="#58a6ff" font-size="10">agent_start</text>
+
+      <circle cx="140" cy="180" r="6" fill="#3fb950"/>
+      <text x="140" y="210" text-anchor="middle" fill="#3fb950" font-size="10">turn_start</text>
+
+      <circle cx="200" cy="180" r="6" fill="#bc8cff"/>
+      <text x="200" y="210" text-anchor="middle" fill="#bc8cff" font-size="10">message_start</text>
+      <text x="200" y="224" text-anchor="middle" fill="#6e7681" font-size="9">(user msg)</text>
+
+      <circle cx="260" cy="180" r="6" fill="#bc8cff"/>
+      <text x="260" y="210" text-anchor="middle" fill="#bc8cff" font-size="10">message_end</text>
+
+      <circle cx="320" cy="180" r="6" fill="#bc8cff"/>
+      <text x="320" y="210" text-anchor="middle" fill="#bc8cff" font-size="10">message_start</text>
+      <text x="320" y="224" text-anchor="middle" fill="#6e7681" font-size="9">(assistant)</text>
+
+      <circle cx="370" cy="180" r="5" fill="#d29922"/>
+      <text x="370" y="160" text-anchor="middle" fill="#d29922" font-size="9">message_update</text>
+      <text x="370" y="224" text-anchor="middle" fill="#6e7681" font-size="9">(streaming...)</text>
+
+      <circle cx="420" cy="180" r="6" fill="#bc8cff"/>
+      <text x="420" y="210" text-anchor="middle" fill="#bc8cff" font-size="10">message_end</text>
+
+      <circle cx="480" cy="180" r="6" fill="#d29922"/>
+      <text x="480" y="210" text-anchor="middle" fill="#d29922" font-size="10">tool_exec_start</text>
+
+      <circle cx="530" cy="180" r="5" fill="#d29922"/>
+      <text x="530" y="160" text-anchor="middle" fill="#d29922" font-size="9">tool_exec_update</text>
+
+      <circle cx="580" cy="180" r="6" fill="#d29922"/>
+      <text x="580" y="210" text-anchor="middle" fill="#d29922" font-size="10">tool_exec_end</text>
+
+      <circle cx="620" cy="180" r="6" fill="#3fb950"/>
+      <text x="620" y="210" text-anchor="middle" fill="#3fb950" font-size="10">turn_end</text>
+
+      <circle cx="680" cy="180" r="6" fill="#58a6ff"/>
+      <text x="680" y="210" text-anchor="middle" fill="#58a6ff" font-size="10">agent_end</text>
+
+      <!-- Phase labels -->
+      <rect x="140" y="260" width="180" height="28" rx="4" fill="rgba(63,185,80,0.08)" stroke="#3fb950" stroke-width="0.5"/>
+      <text x="230" y="278" text-anchor="middle" fill="#3fb950" font-size="11">Turn: LLM 响应</text>
+
+      <rect x="460" y="260" width="160" height="28" rx="4" fill="rgba(210,153,34,0.08)" stroke="#d29922" stroke-width="0.5"/>
+      <text x="540" y="278" text-anchor="middle" fill="#d29922" font-size="11">Tool 执行阶段</text>
+
+      <!-- Legend -->
+      <rect x="60" y="310" width="600" height="36" rx="6" fill="#21262d" stroke="#30363d"/>
+      <circle cx="85" cy="328" r="5" fill="#58a6ff"/>
+      <text x="95" y="332" fill="#8b949e" font-size="10">Lifecycle</text>
+      <circle cx="165" cy="328" r="5" fill="#bc8cff"/>
+      <text x="175" y="332" fill="#8b949e" font-size="10">Message</text>
+      <circle cx="255" cy="328" r="5" fill="#d29922"/>
+      <text x="265" y="332" fill="#8b949e" font-size="10">Tool Exec</text>
+      <circle cx="345" cy="328" r="5" fill="#3fb950"/>
+      <text x="355" y="332" fill="#8b949e" font-size="10">Turn</text>
+    </svg>
+  </div>
+
+  <div class="callout callout-info">
+    <strong>message_update 只在流式传输时出现</strong>
+    对于 assistant 消息，<code>message_start</code> → 多个 <code>message_update</code> → <code>message_end</code> 构成流式传输的完整序列。user 和 toolResult 消息只产生 <code>message_start</code> 和 <code>message_end</code>。
+  </div>
+
+  <!-- ============================================================ -->
+  <h2>8. Thinking Levels — 推理深度</h2>
+
+  <p>Agent 支持六个级别的推理深度，对应不同 LLM 的 "thinking" / "reasoning" 能力。</p>
+
+  <span class="code-label">types.ts — ThinkingLevel</span>
+  <pre><code>export type ThinkingLevel =
+  | "off" | "minimal" | "low" | "medium" | "high" | "xhigh";</code></pre>
+
+  <table>
+    <tr><th>Level</th><th>说明</th><th>典型用途</th></tr>
+    <tr><td><code>off</code></td><td>不使用推理</td><td>简单任务，速度优先</td></tr>
+    <tr><td><code>minimal</code></td><td>最小推理</td><td>几乎不需要思考</td></tr>
+    <tr><td><code>low</code></td><td>少量推理</td><td>简单推理任务</td></tr>
+    <tr><td><code>medium</code></td><td>中等推理</td><td>平衡速度和质量</td></tr>
+    <tr><td><code>high</code></td><td>深度推理</td><td>复杂推理、多步规划</td></tr>
+    <tr><td><code>xhigh</code></td><td>极限推理</td><td>仅部分模型家族支持</td></tr>
+  </table>
+
+  <div class="callout callout-warn">
+    <strong>模型差异</strong>
+    不同 provider 对 thinking level 的映射不同。例如 Claude 的 "high" 可能对应不同的 token budget than GPT 的 "high"。使用 <code>ThinkingBudgets</code> 可以精确控制 token 数量。<code>xhigh</code> 仅被部分模型家族支持，使用前应检查模型元数据。
+  </div>
+
+  <p>在 Agent 中设置 thinking level：</p>
+
+  <pre><code>const agent = new Agent({
+  initialState: {
+    thinkingLevel: "high",  <span class="code-annotation">// 默认 "off"</span>
+    thinkingBudgets: {
+      high: 16000,   <span class="code-annotation">// 为 high level 指定 token budget</span>
+      medium: 8000,
+    },
+  },
+});</code></pre>
+
+  <p>通过 <code>prepareNextTurn</code> 可以在运行时动态切换推理深度：</p>
+
+  <pre><code>const agent = new Agent({
+  prepareNextTurn: async (context) =&gt; {
+    <span class="code-annotation">// 如果工具调用失败，切换到更深的推理</span>
+    const hasErrors = context.toolResults.some(r =&gt; r.isError);
+    if (hasErrors) {
+      return { thinkingLevel: "high" };
+    }
+  },
+});</code></pre>
+
+  <!-- ============================================================ -->
+  <h2>9. 练习：创建最小 Agent</h2>
+
+  <div class="exercise">
+    <h3>动手实践</h3>
+    <p>下面是一个完整的、可运行的最小 Agent 示例。它使用一个 faux provider（模拟 LLM），执行一轮包含工具调用的对话。</p>
+  </div>
+
+  <span class="code-label">minimal-agent.ts (完整可运行示例)</span>
+  <pre><code>import { Agent } from "@earendil-works/pi-agent-core";
+import type { AgentEvent, AgentMessage } from "@earendil-works/pi-agent-core";
+
+<span class="code-annotation">// 1. 定义一个简单的工具</span>
+const weatherTool = {
+  name: "get_weather",
+  label: "Get Weather",
+  description: "Get the current weather for a city",
+  parameters: {
+    type: "object",
+    properties: {
+      city: { type: "string", description: "City name" },
+    },
+    required: ["city"],
+  },
+  async execute(_id: string, params: { city: string }) {
+    <span class="code-annotation">// 模拟 API 调用</span>
+    return {
+      content: [{ type: "text", text: `Weather in ${params.city}: 22°C, sunny` }],
+      details: { temp: 22, condition: "sunny" },
+    };
+  },
+};
+
+<span class="code-annotation">// 2. 创建 Agent 实例</span>
+const agent = new Agent({
+  initialState: {
+    systemPrompt: "You are a helpful assistant.",
+    model: {
+      id: "faux-model",
+      name: "Faux Model",
+      api: "openai" as const,
+      provider: "faux",
+      baseUrl: "",
+      reasoning: false,
+      input: ["text"],
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      contextWindow: 4096,
+      maxTokens: 1024,
+    },
+    tools: [weatherTool],  // 教学示例中省略了完整的 AgentTool 类型标注
+  },
+  <span class="code-annotation">// 3. 使用 faux stream function 模拟 LLM 响应</span>
+  streamFn: async (model, context) =&gt; {
+    <span class="code-annotation">// 模拟 LLM 返回一个 tool call</span>
+    return {
+      async *[Symbol.asyncIterator]() {
+        yield {
+          type: "start",
+          partial: {
+            role: "assistant",
+            content: [],
+            stopReason: "toolUse",
+          },
+        };
+        yield {
+          type: "toolcall_start",
+          toolCallId: "call_1",
+          toolName: "get_weather",
+          partial: {
+            role: "assistant",
+            content: [{
+              type: "toolCall",
+              id: "call_1",
+              name: "get_weather",
+              arguments: { city: "Tokyo" },
+            }],
+            stopReason: "toolUse",
+          },
+        };
+        yield {
+          type: "toolcall_end",
+          toolCallId: "call_1",
+          toolName: "get_weather",
+          partial: {
+            role: "assistant",
+            content: [{
+              type: "toolCall",
+              id: "call_1",
+              name: "get_weather",
+              arguments: { city: "Tokyo" },
+            }],
+            stopReason: "toolUse",
+          },
+        };
+      },
+      async result() {
+        return {
+          role: "assistant",
+          content: [{
+            type: "toolCall",
+            id: "call_1",
+            name: "get_weather",
+            arguments: { city: "Tokyo" },
+          }],
+          stopReason: "toolUse",
+        };
+      },
+    }; // 教学示例中省略了完整的 AssistantMessageStream 类型标注
+  },
+});
+
+<span class="code-annotation">// 4. 订阅事件</span>
+agent.subscribe((event: AgentEvent) =&gt; {
+  console.log(`[${event.type}]`);
+});
+
+<span class="code-annotation">// 5. 发送 prompt 并等待完成</span>
+await agent.prompt("What's the weather in Tokyo?");
+await agent.waitForIdle();
+
+<span class="code-annotation">// 6. 查看结果</span>
+console.log("Messages:", agent.state.messages.length);
+<span class="code-annotation">// Output: Messages: 3 (user + assistant + toolResult)</span></code></pre>
+
+  <div class="callout callout-tip">
+    <strong>下一步</strong>
+    尝试修改 faux stream function 让它返回纯文本（没有 tool call），观察 Agent 如何直接结束。然后尝试添加工具执行后的第二轮 LLM 调用。
+  </div>
+
+  <!-- ============================================================ -->
+  <h2>10. 小测验</h2>
+
+  <div class="quiz">
+    <h2>Chapter 4 Quiz</h2>
+
+    <div class="quiz-question">
+      <p>Q1: agentLoop() 函数的返回值是什么？</p>
+      <ul class="quiz-options">
+        <li>A. Promise&lt;AgentMessage[]&gt;</li>
+        <li data-correct="true">B. EventStream&lt;AgentEvent, AgentMessage[]&gt;</li>
+        <li>C. AsyncGenerator&lt;AgentEvent&gt;</li>
+        <li>D. void</li>
+      </ul>
+    </div>
+
+    <div class="quiz-question">
+      <p>Q2: 在 runLoop 中，prepareNextTurn 和 shouldStopAfterTurn 的调用顺序是什么？</p>
+      <ul class="quiz-options">
+        <li>A. shouldStopAfterTurn 先调用，prepareNextTurn 后调用</li>
+        <li data-correct="true">B. prepareNextTurn 先调用，shouldStopAfterTurn 后调用</li>
+        <li>C. 两者并行调用</li>
+        <li>D. 取决于 toolExecution 模式</li>
+      </ul>
+    </div>
+
+    <div class="quiz-question">
+      <p>Q3: 默认的 convertToLlm 如何处理 role 为 "notification" 的自定义消息？</p>
+      <ul class="quiz-options">
+        <li>A. 将其转换为 user 消息</li>
+        <li>B. 抛出类型错误</li>
+        <li data-correct="true">C. 过滤掉（不包含在输出中）</li>
+        <li>D. 原样传递给 LLM</li>
+      </ul>
+    </div>
+
+    <div class="quiz-question">
+      <p>Q4: 当全局 toolExecution 为 "parallel"，但某个工具声明了 executionMode: "sequential" 时，会发生什么？</p>
+      <ul class="quiz-options">
+        <li>A. 该工具仍并行执行，全局设置优先</li>
+        <li data-correct="true">B. 整个批次降级为顺序执行</li>
+        <li>C. 只有该工具顺序执行，其他并行</li>
+        <li>D. 抛出配置冲突错误</li>
+      </ul>
+    </div>
+
+    <div class="quiz-question">
+      <p>Q5: 以下哪个事件在单个 turn 中可能出现多次？</p>
+      <ul class="quiz-options">
+        <li>A. agent_start</li>
+        <li>B. turn_start</li>
+        <li data-correct="true">C. message_update</li>
+        <li>D. agent_end</li>
+      </ul>
+    </div>
+  </div>
+
+  <section class="next-action-panel" aria-labelledby="ch4-next-action">
+    <h2 id="ch4-next-action">Next Action</h2>
+    <p>读完后马上去第 6 章找 `AgentSession` 和 runtime 组装代码，确认谁在创建这个 loop，谁在给它喂工具、系统提示和会话状态。</p>
+  </section>
+
+  <!-- Section navigation -->
+  <div class="section-nav">
+    <a href="03-pi-ai.html" class="nav-prev">← Chapter 3: pi-ai</a>
+    <a href="05-pi-tui.html" class="nav-next">Chapter 5: pi-tui →</a>
+  </div>
+
+</div>
+
+    </main>
+    <script src="../assets/js/app.js"></script>
+</body>
+</html>

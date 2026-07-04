@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JSON Caption Protocol</title>
+  <link rel="stylesheet" href="paper.css">
+</head>
+<body>
+<main data-paper>
+  <section class="hero">
+    <p class="kicker">Prompt protocol / structured condition</p>
+    <h1>JSON Caption Protocol</h1>
+    <p class="abstract">Ideogram 4 的 prompt 设计重点是把画面条件结构化：整体描述、风格、媒介、颜色、背景、对象、文字和可选位置约束被组织成 JSON caption。magic prompt 在 CLI 默认路径中承担 plain text 到 structured caption 的编译器角色。</p>
+  </section>
+
+  <section>
+    <h2>Abstract</h2>
+    <p>本章解释的是这个仓库里真正可执行的 prompt 协议：JSON caption 的字段语义、约束关系，以及为什么 magic prompt 会把自然语言先编译成结构化条件。</p>
+  </section>
+
+  <section>
+    <h2>Claim and Evidence</h2>
+    <div class="claim"><div class="claim-title">Claim</div>
+      <p>The repository treats structured JSON captions as the high-control prompt protocol and includes a verifier for schema, key order, bounding boxes, and color palette constraints.</p>
+      <p><strong>Evidence.</strong> `docs/prompting.md`, `caption_verifier.py`, `magic_prompt.py`, CLI magic-prompt default behavior.</p>
+      <p><strong>Boundary.</strong> Comparisons with other prompting paradigms in this page are lineage context for understanding design tradeoffs, not claims about Ideogram's private training or competitors' internals.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Schema Semantics</h2>
+    <table>
+      <thead><tr><th>Field</th><th>Condition represented</th><th>Why it matters</th></tr></thead>
+      <tbody>
+        <tr><td>`high_level_description`</td><td>Global semantic intent.</td><td>Gives the model a concise whole-image target.</td></tr>
+        <tr><td>`style_description.aesthetics`</td><td>Visual mood and style adjectives.</td><td>Separates style from object content.</td></tr>
+        <tr><td>`lighting`</td><td>Illumination condition.</td><td>Controls scene rendering independent of object list.</td></tr>
+        <tr><td>`photo` / `art_style`</td><td>Photographic or non-photographic rendering mode.</td><td>Enforces mutually exclusive style branch in verifier.</td></tr>
+        <tr><td>`color_palette`</td><td>Global or per-element colors.</td><td>Makes palette control explicit instead of implicit prose.</td></tr>
+        <tr><td>`background`</td><td>Scene environment.</td><td>Separates context from foreground elements.</td></tr>
+        <tr><td>`elements[]`</td><td>Objects or text instances, optional bbox.</td><td>Gives element-level composition and typography targets.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Prompt Paradigm Comparison</h2>
+    <table>
+      <thead><tr><th>Paradigm</th><th>Control form</th><th>Strength</th><th>Tradeoff</th></tr></thead>
+      <tbody>
+        <tr><td>Plain prompt</td><td>Natural-language sentence.</td><td>Low writing overhead.</td><td>Layout, palette, and typography control remain implicit.</td></tr>
+        <tr><td>Prompt + negative prompt</td><td>Positive/negative prose.</td><td>Can suppress unwanted concepts.</td><td>Still weakly structured and often heuristic.</td></tr>
+        <tr><td>External control modules</td><td>Prompt plus extra image/control condition.</td><td>Can provide strong spatial control.</td><td>Control is distributed across tools and assets.</td></tr>
+        <tr><td>Ideogram JSON caption</td><td>Structured fields for style, elements, text, palette, optional bbox.</td><td>Centralizes composition and design controls in one text protocol.</td><td>Higher authoring burden; verifier/magic prompt becomes important.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Magic Prompt as Compiler</h2>
+    <p>In the CLI default path, a plain prompt is not sent directly to the model. It is expanded through a registered magic prompt backend into a minified JSON caption. This makes magic prompt analogous to a compiler from casual intent to structured model condition.</p>
+    <div class="claim warning"><div class="claim-title">Failure condition</div><p>If magic prompt is enabled but no API key is available, CLI exits before model loading. If magic prompt is disabled, the caller must provide a prompt acceptable to the verifier or use warning mode.</p></div>
+  </section>
+
+  <section class="next">
+    <a class="button" href="05-transformer-architecture.html">Transformer</a>
+    <a class="button primary" href="07-training-public-record.html">Next: Training Record</a>
+  </section>
+</main>
+<script src="paper.js" data-root="."></script>
+<script>mountPaperChrome("JSON Caption");</script>
+</body>
+</html>

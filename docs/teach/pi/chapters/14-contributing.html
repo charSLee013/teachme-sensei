@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 14: 贡献指南与开发实践 | Pi Agent Harness</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Sidebar -->
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">&#9776;</button>
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <h2>Pi Agent Harness</h2>
+        <div class="subtitle">Interactive Teaching</div>
+    </div>
+    <div class="sidebar-search">
+        <input type="text" id="searchInput" placeholder="搜索章节..." aria-label="搜索">
+    </div>
+    <div class="sidebar-nav">
+        <ul class="chapter-list">
+            <li><a href="01-what-is-pi.html"><span class="chapter-num">1</span> What is Pi</a></li>
+            <li><a href="02-monorepo.html"><span class="chapter-num">2</span> Monorepo 结构</a></li>
+            <li><a href="03-pi-ai.html"><span class="chapter-num">3</span> pi-ai 包</a></li>
+            <li><a href="04-agent-core.html"><span class="chapter-num">4</span> Agent 运行时</a></li>
+            <li><a href="05-pi-tui.html"><span class="chapter-num">5</span> pi-tui 终端 UI</a></li>
+            <li><a href="06-coding-agent.html"><span class="chapter-num">6</span> 主 CLI 架构</a></li>
+            <li><a href="07-tools.html"><span class="chapter-num">7</span> 工具系统</a></li>
+            <li><a href="08-extensions.html"><span class="chapter-num">8</span> 扩展系统</a></li>
+            <li><a href="09-session-management.html"><span class="chapter-num">9</span> 会话管理</a></li>
+            <li><a href="10-compaction.html"><span class="chapter-num">10</span> 压缩系统</a></li>
+            <li><a href="11-interactive-mode.html"><span class="chapter-num">11</span> 交互模式</a></li>
+            <li><a href="12-sdk.html"><span class="chapter-num">12</span> 编程式 SDK</a></li>
+            <li><a href="13-orchestrator.html"><span class="chapter-num">13</span> 编排器</a></li>
+            <li><a href="14-contributing.html" class="active"><span class="chapter-num">14</span> 贡献指南</a></li>
+        </ul>
+    </div>
+    <div class="sidebar-progress">
+        <div class="progress-label"><span>学习进度</span><span>0 / 14 章节</span></div>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+</nav>
+
+<!-- Search Results Overlay -->
+<div class="search-results" id="searchResults">
+    <div class="results-header">
+        <h3>搜索结果</h3>
+        <button class="results-close" id="searchResultsClose">&times;</button>
+    </div>
+    <div id="searchResultsList"></div>
+</div>
+
+<!-- Main Content -->
+<main class="main-content" data-chapter-id="14-contributing" data-searchable data-title="Chapter 14: 贡献指南与开发实践">
+    <article class="content-wrapper">
+
+        <h1>Chapter 14: 贡献指南与开发实践</h1>
+        <p>本章对齐 <code><a href="https://github.com/earendil-works/pi/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a></code>、<code>README.md</code> 和 <code>AGENTS.md</code>，介绍如何为 Pi Agent Harness 贡献代码。</p>
+
+        <section class="learner-cues" aria-labelledby="ch14-main-line">
+            <div class="cue-grid">
+                <div class="cue-card">
+                    <h2 id="ch14-main-line">Main Line</h2>
+                    <p>这章的核心不是“怎么提交一个 Node 项目 PR”，而是学会遵守 Pi 当前仓库的真实门槛、命令和 contributor gate。</p>
+                </div>
+                <div class="cue-card">
+                    <h2>Remember Now</h2>
+                    <p>最容易犯错的地方有两个：把 `lgtm` 误读成合并票数，以及把泛化的 npm/pnpm 容器和发布经验误套到当前仓库。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <h2 id="philosophy">14.1 Philosophy（核心哲学）</h2>
+        <!-- ================================================================ -->
+        <p><strong>Pi's core is minimal.</strong> 如果一个功能不属于核心，它应该做成 extension。会让核心膨胀的 PR 很可能会被拒绝。</p>
+
+        <p>核心的设计目标是<strong>最小化 + 可扩展性</strong>——让外部通过扩展来影响和操控系统。即使是给 extension 加 hook point，也需要充分讨论，避免引入不可维护的复杂交互。</p>
+
+        <div class="callout callout-info">
+            <div class="callout-title">Extension-First</div>
+            <p>想加新功能？先问自己：能不能做成 <code>.pi/extensions/</code> 下的扩展？多数非核心能力都应该先走扩展路径，而非直接改核心。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="one-rule">14.2 The One Rule（唯一规则）</h2>
+        <!-- ================================================================ -->
+        <p><strong>You must understand your code.</strong> 如果你无法解释你的改动做了什么、它与系统其他部分如何交互，你的 PR 将被关闭。</p>
+
+        <ul>
+            <li>使用 AI 写代码是可以的。</li>
+            <li><strong>提交 AI 生成的 slop 且自己没有理解 —— 不行。</strong></li>
+            <li>如果你用 agent，请从 <code>pi</code> 根目录运行，让它自动读取 <code>AGENTS.md</code>。</li>
+        </ul>
+
+        <h3>项目规则（AGENTS.md 要点）</h3>
+        <ul>
+            <li><strong>代码质量</strong>：不用 <code>any</code>、内联辅助函数、erasable TS syntax（禁 enum/namespace/parameter properties）。</li>
+            <li><strong>命令</strong>：check 不 build（<code>npm run check</code>，不是 <code>npm run build</code>）。</li>
+            <li><strong>测试</strong>：用 <code>./test.sh</code>（不直接调用 vitest，避免 e2e 触发 API key 相关流程）。</li>
+            <li><strong>Git</strong>：只提交自己负责的文件，<strong>永远不要用 <code>git add -A / .</code></strong>。</li>
+            <li><strong>依赖</strong>：直接外部依赖必须锁精确版本，安装时使用 <code>--ignore-scripts</code>。</li>
+        </ul>
+
+        <!-- ================================================================ -->
+        <h2 id="contribution-flow">14.3 Contribution Flow</h2>
+        <!-- ================================================================ -->
+
+        <h3>Contribution Gate（新贡献者门控）</h3>
+        <p><strong>所有来自新 contributor 的 issue 和 PR 默认 auto-close。</strong></strong>——这是一个缓冲机制，让维护者按自己的节奏审查。</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>维护者回复</th>
+                    <th>含义</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>lgtmi</code></td>
+                    <td>你未来的 issue 不再被 auto-close（但不包含 PR）</td>
+                </tr>
+                <tr>
+                    <td><code>lgtm</code></td>
+                    <td>你未来的 issue 和 PR 都不再被 auto-close</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="callout callout-warn">
+            <div class="callout-title">注意</div>
+            <p>周五到周日提交的 issue 不保证会被审查——维护者工作日 triage。如果紧急，去 <a href="https://discord.com/invite/3cU7Bz4UPx">Discord</a> 提问。</p>
+        </div>
+
+        <h3>Issue 质量要求</h3>
+        <ul>
+            <li>必须使用 GitHub issue 模板。</li>
+            <li>简短、具体、值得读。如果一屏放不下，就太长了。</li>
+            <li><strong>用你自己的声音写</strong>——不要用 LLM 生成文本。如果用了后续补一条标注 "AI-generated" 的评论。</li>
+            <li>清晰描述 bug 或请求，解释为什么重要，如果你想自己实现请说明。</li>
+        </ul>
+
+        <h3>Before Submitting a PR</h3>
+        <pre><code class="language-bash">npm run check
+./test.sh</code></pre>
+        <p>两者必须都通过。<strong>不要编辑 <code>CHANGELOG.md</code></strong>——changelog 条目由维护者添加。</p>
+
+        <h3>Blocking（违规封禁）</h3>
+        <p>如果忽略本指南两次，或 spam tracker 用 agent-generated issues，<strong>你的 GitHub 账号会被永久封禁</strong>。发送大量自动化 issues 也一样——no takesie backsies。</p>
+
+        <!-- ================================================================ -->
+        <h2 id="faq">14.4 FAQ</h2>
+        <!-- ================================================================ -->
+        <p><strong>为什么 auto-close？</strong>Pi 收到的 issue 数量超过维护者能实时审查的量。很多不满足质量要求、或是 agent 自动发的。auto-close 让维护者按自己节奏重开符合标准的。</p>
+
+        <p><strong>为什么有些 issue 没回复？</strong>回复也是维护工作。低信号、不清晰、重复、不按指南的 issue 可能没讨论就关闭了——这省出时间给可复现的 bug、深思熟虑的请求。</p>
+
+        <p><strong>为什么不全部用 AI triage？</strong>AI 可以帮助去重、总结、发现缺失信息。但<strong>不信任 AI 做最终维护决策</strong>。打磨过的 AI issue 仍可能错、误导、贵。人类审查是最后一道门。</p>
+
+        <p><strong>这对 contributor 有敌意吗？</strong>不。这是防止维护者 burnout 的护栏。简短、具体、可复现的 issue 欢迎。自动化 slop、敌意、大量低质量报告——不。</p>
+
+        <p><strong>在哪了解路线图？</strong>Earendil 用 RFC 讨论大变更。部分公开：<a href="https://rfc.earendil.com/keyword/pi/">rfc.earendil.com</a>。</p>
+
+        <h3>常用命令</h3>
+        <pre><code class="language-bash"># 安装依赖
+npm install --ignore-scripts
+
+# 构建所有包（需要时）
+npm run build
+
+# 检查（check = biome + tsmoke + shrinkwrap + tsgo --noEmit）
+npm run check
+
+# test.sh（无 API key 的本地测试）
+./test.sh
+
+# 版本递增 + 发布（维护者权限）
+PI_ALLOW_LOCKFILE_CHANGE=1 npm_config_min_release_age=0 npm run release:patch
+PI_ALLOW_LOCKFILE_CHANGE=1 npm_config_min_release_age=0 npm run release:minor</code></pre>
+
+        <h3>Git 规范</h3>
+        <ul>
+            <li>分支命名：<code>feat/</code>、<code>fix/</code>、<code>docs/</code>。</li>
+            <li>PR 目标分支是 <code>main</code>。</li>
+            <li>提交前必须通过 <code>npm run check && ./test.sh</code>。</li>
+        </ul>
+
+        <!-- ================================================================ -->
+        <h2 id="testing">14.5 Testing</h2>
+        <!-- ================================================================ -->
+
+        <h3>test.sh</h3>
+        <p>项目使用统一的测试脚本 <code>test.sh</code>。它不是测试框架本身，而是一层保护壳：先把 <code>auth.json</code> 临时移走，清除 provider 相关环境变量，设置 <code>PI_NO_LOCAL_LLM=1</code>，最后再调用 <code>npm test</code>。这样 <strong>无需真实 API key</strong> 即可跑本地默认测试路径。</p>
+        <pre><code class="language-bash">#!/usr/bin/env bash
+set -e
+
+# 备份 auth.json
+AUTH_FILE="$HOME/.pi/agent/auth.json"
+AUTH_BACKUP="$HOME/.pi/agent/auth.json.bak"
+trap '[[ -f "$AUTH_BACKUP" ]] && mv "$AUTH_BACKUP" "$AUTH_FILE"' EXIT
+
+# 跳过本地 LLM 测试
+export PI_NO_LOCAL_LLM=1
+
+# 清空所有 API key
+unset ANTHROPIC_API_KEY
+unset OPENAI_API_KEY
+unset GEMINI_API_KEY
+# ...（共 30+ 个环境变量）
+
+npm test</code></pre>
+
+        <h3>回归测试</h3>
+        <p>每个 bug fix 必须附带回归测试——一个在修复前会失败、修复后通过的测试用例。回归测试放在 <code>packages/coding-agent/test/suite/regressions/</code> 目录下：</p>
+        <pre><code class="language-typescript">// packages/coding-agent/test/suite/regressions/3302-find-path-glob.test.ts
+import { describe, it, expect } from 'vitest';
+// 真实的测试请参考已有的 regression 文件作为模板
+
+describe('regression: issue #1234', () => {
+    it('should not crash on edge case', async () => {
+        // 使用 test.sh 运行此测试，无需真实 API key
+    });
+});</code></pre>
+        <p><em>注：具体的 AgentSession API 请参考 <code>packages/coding-agent/src/core/agent-session.ts</code>。本示例为占位。</em></p>
+
+        <h3>Faux Provider</h3>
+        <p><span data-term="模拟 LLM 响应的 helper，用于测试">Faux Provider helpers</span>（<code>packages/ai/src/providers/faux.ts</code>）是 Pi 的测试利器——它返回预设的 <code>AssistantMessage</code> 或 <code>toolCall</code> 对象，不需要真实 API key。<code>AGENTS.md</code> 明确规定<strong>非 e2e 测试必须用 faux provider</strong>。</p>
+        <p>请在具体测试中参考 <code>fauxAssistantMessage</code> 和 <code>fauxToolCall</code> 的导出 API。</p>
+
+        <!-- ================================================================ -->
+        <h2 id="release">14.6 Release Process</h2>
+        <!-- ================================================================ -->
+
+        <h3>Lockstep Versioning</h3>
+        <p>monorepo 中所有包使用<strong>统一版本号</strong>。发布时，所有包的版本同步递增：</p>
+        <pre><code class="language-json">// 所有包的 package.json 共享相同版本
+{
+    "name": "pi-agent-core",
+    "version": "1.2.3"
+}
+{
+    "name": "pi-tui",
+    "version": "1.2.3"
+}</code></pre>
+
+        <h3>Smoke Test（本地预检）</h3>
+        <p>发布前的本地预检以仓库规则为准：先构建一个未发布的本地 release，再在仓库外验证 Node 和 Bun 产物是否可启动、可列模型、可进入交互模式。</p>
+        <pre><code class="language-bash">npm run release:local -- --out /tmp/pi-local-release --force
+cd /tmp
+
+/tmp/pi-local-release/node/pi --help
+/tmp/pi-local-release/node/pi --version
+/tmp/pi-local-release/node/pi --list-models
+/tmp/pi-local-release/node/pi -p "Say exactly: ok"
+
+/tmp/pi-local-release/bun/pi --help
+/tmp/pi-local-release/bun/pi --version
+/tmp/pi-local-release/bun/pi --list-models
+/tmp/pi-local-release/bun/pi -p "Say exactly: ok"</code></pre>
+
+        <h3>release:patch / release:minor</h3>
+        <pre><code class="language-bash"># patch: fixes + additions
+PI_ALLOW_LOCKFILE_CHANGE=1 npm_config_min_release_age=0 npm run release:patch
+
+# minor: breaking changes
+PI_ALLOW_LOCKFILE_CHANGE=1 npm_config_min_release_age=0 npm run release:minor</code></pre>
+        <p>发布脚本会统一更新所有包版本、运行 <code>npm run check</code>、提交 release commit、打 tag，并由 CI 继续完成 npm 发布。这里的关键词是 lockstep versioning，而不是手工逐包 version bump。</p>
+
+        <h3>CI Publish</h3>
+        <p>GitHub Actions 在 tag push 时自动发布到 npm registry。只有维护者有发布权限。</p>
+
+        <!-- ================================================================ -->
+        <h2 id="security">14.7 Security</h2>
+        <!-- ================================================================ -->
+        <p>Pi 采用多层安全策略：</p>
+
+        <h3>Supply Chain Hardening</h3>
+        <ul>
+            <li>所有依赖锁版本（<code>package-lock.json</code> 和 <code>npm-shrinkwrap.json</code> 提交到仓库）。</li>
+            <li>CI 与定时工作流会运行 <code>npm audit --omit=dev</code> 和签名检查。</li>
+            <li>根 <code>.npmrc</code> 当前强调的是 <code>save-exact=true</code> 与 <code>min-release-age=2</code>，用于限制依赖漂移和同日新发包风险。</li>
+        </ul>
+
+        <h3>Containerization</h3>
+        <p>Pi <strong>不提供官方 Docker 镜像</strong>——用户需自行容器化以隔离 agent 的文件系统访问。一个典型的生产容器化示例：</p>
+        <pre><code class="language-dockerfile"># 用户自建 Dockerfile（非官方）
+FROM node:20-alpine
+WORKDIR /workspace
+COPY package.json package-lock.json ./
+COPY packages/coding-agent/dist/ ./dist/
+RUN npm ci --ignore-scripts --omit=dev
+USER 1000:1000
+ENTRYPOINT ["node", "dist/cli.js"]</code></pre>
+
+        <h3>No Built-in Permissions</h3>
+        <p>Pi <strong>不</strong>在工具系统内建权限检查——这是有意的设计决策。原因：</p>
+        <ul>
+            <li>权限模型因部署环境而异（CLI vs IDE vs CI）。</li>
+            <li>在核心中硬编码权限会限制灵活性。</li>
+            <li>权限应该由外部层（容器、OS、用户配置）实施。</li>
+        </ul>
+
+        <div class="callout callout-warning">
+            <div class="callout-title">Warning</div>
+            <p>如果你在不受信环境中运行 Pi（例如处理不受信的代码），务必在容器或沙箱中运行，并显式配置 <code>disabledTools</code> 和 <code>allowedPaths</code>。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="changelog">14.8 Changelog Conventions</h2>
+        <!-- ================================================================ -->
+        <p>Changelog 遵循 <a href="https://keepachangelog.com/">Keep a Changelog</a> 格式：</p>
+        <pre><code class="language-markdown">## [Unreleased]
+
+### Added
+- New SDK event `session:end` for graceful shutdown hooks.
+
+### Changed
+- Improved error messages for tool call failures.
+
+### Fixed
+- Fixed #1234: crash on empty system prompt.
+
+### Security
+- Updated `anthropic-sdk` to patch CVE-2024-xxxxx.
+
+## [1.2.3] - 2025-06-15
+...</code></pre>
+
+        <p>分类说明：</p>
+        <ul>
+            <li><strong>Added</strong>：新功能</li>
+            <li><strong>Changed</strong>：现有功能的变更</li>
+            <li><strong>Removed</strong>：已移除或即将移除的功能</li>
+            <li><strong>Fixed</strong>：bug 修复</li>
+            <li><strong>Security</strong>：安全相关</li>
+        </ul>
+
+        <!-- ================================================================ -->
+        <h2 id="exercise">14.9 Exercise</h2>
+        <!-- ================================================================ -->
+        <div class="callout callout-exercise">
+            <div class="callout-title">Exercise</div>
+            <p><strong>Write a Regression Test</strong>：假设你发现了一个 bug——当用户传入的 system prompt 包含特殊字符（null 字节）时，agent 崩溃。</p>
+            <p>请编写一个回归测试：</p>
+            <ol>
+                <li>在 <code>tests/regressions/</code> 下创建测试文件。</li>
+                <li>使用 faux provider。</li>
+                <li>断言传入 null 字节的 system prompt 不会抛异常。</li>
+                <li>断言 agent 仍能正常回复。</li>
+            </ol>
+            <p>提示：参考本章的 faux provider 用法示例。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="quiz">14.10 Quiz</h2>
+        <!-- ================================================================ -->
+        <div class="quiz">
+            <div class="quiz-question">1. 新 contributor 在什么条件下才应提交 PR？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">CI 能跑通就可以直接开 PR</li>
+                <li data-correct="true">先在 issue 上获得维护者的 <code>lgtm</code> 批准</li>
+                <li data-correct="false">先获得两个 maintainer review approval</li>
+                <li data-correct="false">只要拿到 <code>lgtmi</code> 就可以</li>
+            </ul>
+            <div class="quiz-explanation"><code>lgtm</code> 在这里是贡献门控，而不是“合并前需要几个票”。<code>lgtmi</code> 只放开未来 issue，不放开 PR。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">2. faux provider 的主要用途是什么？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">提高 LLM 推理速度</li>
+                <li data-correct="false">缓存 API 响应以节省费用</li>
+                <li data-correct="true">在测试中模拟 LLM 响应，无需真实 API key</li>
+                <li data-correct="false">提供多模型切换能力</li>
+            </ul>
+            <div class="quiz-explanation">Faux Provider 返回预设响应，让测试不依赖外部 API，保证确定性和可重复性。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">3. 为什么 Pi 不在工具系统内建权限检查？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">因为实现起来太复杂</li>
+                <li data-correct="true">权限模型因部署环境而异，应由外部层（容器、OS、配置）实施</li>
+                <li data-correct="false">因为 Pi 不支持文件系统操作</li>
+                <li data-correct="false">因为 TypeScript 的类型系统已经足够安全</li>
+            </ul>
+            <div class="quiz-explanation">Pi 有意将权限检查交给外部层——容器、操作系统或用户配置。这样同一个工具系统可以在 CLI、IDE、CI 等不同环境中灵活使用。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">4. 以下哪个 changelog 分类用于描述"已移除的功能"？</div>
+            <ul class="quiz-options">
+                <li data-correct="true">Removed</li>
+                <li data-correct="false">Fixed</li>
+                <li data-correct="false">Changed</li>
+                <li data-correct="false">Security</li>
+            </ul>
+            <div class="quiz-explanation"><code>Removed</code> 表示功能已被移除。<code>Fixed</code> 是 bug 修复，<code>Changed</code> 是行为变更，<code>Security</code> 是安全相关修复。</div>
+        </div>
+
+        <section class="next-action-panel" aria-labelledby="ch14-next-action">
+            <h2 id="ch14-next-action">Next Action</h2>
+            <p>真正准备贡献时，先回仓库根目录重新读 `AGENTS.md`、跑一次 `npm run check` 和 `./test.sh`，再判断你的改动是否应该进核心还是先做成扩展。</p>
+        </section>
+
+        <!-- Chapter Navigation -->
+        <nav class="chapter-nav">
+            <a href="13-orchestrator.html" class="nav-prev">上一章：编排器</a>
+            <a href="01-what-is-pi.html" class="nav-next">返回第一章</a>
+        </nav>
+
+    </article>
+</main>
+
+<script src="../assets/js/app.js"></script>
+</body>
+</html>

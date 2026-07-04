@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第 2 章：Monorepo 架构 — Pi Agent Harness 教学</title>
+    <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>Pi 教学</h2>
+            <span class="version">v0.80.3</span>
+        </div>
+        <nav class="chapter-list">
+            <a href="01-what-is-pi.html">1. 认识 Pi</a>
+            <a href="02-monorepo.html" class="active">2. Monorepo 架构</a>
+            <a href="03-pi-ai.html">3. pi-ai LLM 层</a>
+            <a href="04-agent-core.html">4. Agent 运行时</a>
+            <a href="05-pi-tui.html">5. 终端 UI 库</a>
+            <a href="06-coding-agent.html">6. 主 CLI 架构</a>
+            <a href="07-tools.html">7. 内置工具系统</a>
+            <a href="08-extensions.html">8. 扩展系统</a>
+            <a href="09-session-management.html">9. 会话管理</a>
+            <a href="10-compaction.html">10. 压缩系统</a>
+            <a href="11-interactive-mode.html">11. 交互模式</a>
+            <a href="12-sdk.html">12. 编程式 SDK</a>
+            <a href="13-orchestrator.html">13. 编排器</a>
+            <a href="14-contributing.html">14. 贡献指南</a>
+        </nav>
+    </aside>
+
+    <main class="content">
+        <header class="chapter-header">
+            <span class="chapter-number">第 2 章</span>
+            <h1>Monorepo 架构 — 5 个包如何协作</h1>
+            <p class="subtitle">理解整体项目结构和包之间的依赖关系</p>
+        </header>
+
+        <section class="learner-cues" aria-labelledby="ch2-main-line">
+            <div class="cue-grid">
+                <div class="cue-card">
+                    <h2 id="ch2-main-line">Main Line</h2>
+                    <p>本章要把“Pi 是一个工具”拆成“Pi 是五个包如何协作”。只有把 workspace 边界和依赖方向看清，后面各章的实现细节才不会漂浮。</p>
+                </div>
+                <div class="cue-card">
+                    <h2>Remember Now</h2>
+                    <p>这套仓库当前用的是 npm workspaces。遇到旧的 pnpm 或 Turbo 心智时，要回到根 `package.json`、`package-lock.json` 和脚本定义重新核对。</p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>2.1 为什么是 Monorepo？</h2>
+            <p>Pi 使用 <strong>npm workspaces</strong> 管理 monorepo。这种架构的优势：</p>
+            <ul>
+                <li><strong>共享类型</strong>：所有包共享 TypeScript 类型定义，避免重复定义</li>
+                <li><strong>协调发布</strong>：所有包共享一个版本号（lockstep versioning），简化跨包兼容性</li>
+                <li><strong>统一 CI</strong>：一个仓库 = 一套 CI/CD 配置</li>
+                <li><strong>原子变更</strong>：跨包修改可以在一个 PR 中完成</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>2.2 5 个包的职责</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>包名</th>
+                        <th>NPM 名称</th>
+                        <th>职责</th>
+                        <th>依赖</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>pi-ai</code></td>
+                        <td>@earendil-works/pi-ai</td>
+                        <td>统一 LLM API 层 — 35 个文本 provider、认证、流式传输</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td><code>pi-agent-core</code></td>
+                        <td>@earendil-works/pi-agent-core</td>
+                        <td>Agent 运行时 — 循环、状态、工具调用</td>
+                        <td>pi-ai</td>
+                    </tr>
+                    <tr>
+                        <td><code>pi-tui</code></td>
+                        <td>@earendil-works/pi-tui</td>
+                        <td>终端 UI 库 — 差分渲染、组件、键绑定</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td><code>pi-coding-agent</code></td>
+                        <td>@earendil-works/pi-coding-agent</td>
+                        <td>主 CLI — 工具、扩展、会话、配置</td>
+                        <td>pi-ai, pi-agent-core, pi-tui</td>
+                    </tr>
+                    <tr>
+                        <td><code>pi-orchestrator</code></td>
+                        <td>@earendil-works/pi-orchestrator</td>
+                        <td>编排器（实验性）— 多代理协调</td>
+                        <td>pi-coding-agent</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>2.3 依赖关系图</h2>
+            <div class="diagram-container">
+                <svg viewBox="0 0 600 350" class="diagram">
+                    <!-- orchestrator -->
+                    <a href="13-orchestrator.html">
+                        <rect x="200" y="20" width="200" height="55" rx="8" fill="#e74c3c" opacity="0.8"/>
+                        <text x="300" y="45" text-anchor="middle" fill="white" font-weight="bold">pi-orchestrator</text>
+                        <text x="300" y="62" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">多代理协调（实验性）</text>
+                    </a>
+
+                    <!-- arrow -->
+                    <line x1="300" y1="75" x2="300" y2="110" stroke="#888" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                    <!-- coding-agent -->
+                    <a href="06-coding-agent.html">
+                        <rect x="180" y="110" width="240" height="55" rx="8" fill="#4a9eff" opacity="0.8"/>
+                        <text x="300" y="135" text-anchor="middle" fill="white" font-weight="bold">pi-coding-agent</text>
+                        <text x="300" y="152" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">主 CLI — 工具、扩展、会话</text>
+                    </a>
+
+                    <!-- arrows to agent-core and tui -->
+                    <line x1="240" y1="165" x2="160" y2="210" stroke="#888" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <line x1="360" y1="165" x2="440" y2="210" stroke="#888" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                    <!-- agent-core -->
+                    <a href="04-agent-core.html">
+                        <rect x="60" y="210" width="200" height="55" rx="8" fill="#27ae60" opacity="0.8"/>
+                        <text x="160" y="235" text-anchor="middle" fill="white" font-weight="bold">pi-agent-core</text>
+                        <text x="160" y="252" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">Agent 运行时</text>
+                    </a>
+
+                    <!-- tui -->
+                    <a href="05-pi-tui.html">
+                        <rect x="340" y="210" width="200" height="55" rx="8" fill="#9b59b6" opacity="0.8"/>
+                        <text x="440" y="235" text-anchor="middle" fill="white" font-weight="bold">pi-tui</text>
+                        <text x="440" y="252" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">终端 UI 库</text>
+                    </a>
+
+                    <!-- arrow from agent-core to ai -->
+                    <line x1="160" y1="265" x2="160" y2="300" stroke="#888" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+                    <!-- ai -->
+                    <a href="03-pi-ai.html">
+                        <rect x="60" y="300" width="200" height="40" rx="8" fill="#e67e22" opacity="0.8"/>
+                        <text x="160" y="325" text-anchor="middle" fill="white" font-weight="bold">pi-ai</text>
+                    </a>
+
+                    <!-- arrow marker -->
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#888"/>
+                        </marker>
+                    </defs>
+                </svg>
+            </div>
+        </section>
+
+        <section>
+            <h2>2.4 npm workspaces 配置</h2>
+            <p>根目录的 <code>package.json</code> 定义了 workspaces：</p>
+            <pre class="language-json collapsible"><code>{
+  "name": "pi-monorepo",
+  "workspaces": [
+    "packages/*",
+    "packages/coding-agent/examples/extensions/with-deps",
+    "packages/coding-agent/examples/extensions/custom-provider-anthropic",
+    "packages/coding-agent/examples/extensions/custom-provider-gitlab-duo",
+    "packages/coding-agent/examples/extensions/sandbox",
+    "packages/coding-agent/examples/extensions/gondolin"
+  ]
+}</code></pre>
+            <p><code>packages/*</code> 自动包含 5 个主要包。额外的 6 个 workspace 是带依赖的示例扩展，它们作为独立的 npm 包来演示扩展的依赖管理机制。</p>
+        </section>
+
+        <section>
+            <h2>2.5 TypeScript 配置</h2>
+            <p>Pi 使用两层 TypeScript 配置：</p>
+
+            <h3>tsconfig.base.json — 共享编译器选项</h3>
+            <pre class="language-json"><code>{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "Node16",
+    "strict": true,
+    "erasableSyntaxOnly": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true
+  }
+}</code></pre>
+
+            <div class="callout tip">
+                <strong>erasableSyntaxOnly</strong>：这是 Pi 的关键约束！它强制使用"可擦除"的 TypeScript 语法 — 编译后不产生额外的 JS 代码。禁止使用 <code>enum</code>、<code>namespace</code>、<code>import =</code>、参数属性等需要 JS emit 的语法。这保证了代码可以在 Node strip-only 模式下运行。
+            </div>
+
+            <h3>tsconfig.json — 路径映射</h3>
+            <pre class="language-json collapsible"><code>{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@earendil-works/pi-ai": ["./packages/ai/src/index.ts"],
+      "@earendil-works/pi-agent-core": ["./packages/agent/src/index.ts"],
+      "@earendil-works/pi-coding-agent": ["./packages/coding-agent/src/index.ts"],
+      "@earendil-works/pi-tui": ["./packages/tui/src/index.ts"],
+      "@earendil-works/pi-orchestrator": ["./packages/orchestrator/src/index.ts"]
+    }
+  }
+}</code></pre>
+            <p>路径映射让所有包在开发时可以直接引用彼此的源码（而不是 dist），实现热更新和类型检查。</p>
+        </section>
+
+        <section>
+            <h2>2.6 构建顺序</h2>
+            <p>Pi 的构建脚本按依赖顺序编译：</p>
+            <pre class="language-bash"><code>"build": "cd packages/tui && npm run build && cd ../ai && npm run build && cd ../agent && npm run build && cd ../coding-agent && npm run build && cd ../orchestrator && npm run build"</code></pre>
+            <p>为什么是这个顺序？因为：</p>
+            <ol>
+                <li><code>tui</code> — 无依赖，最先构建</li>
+                <li><code>ai</code> — 无依赖（仅外部 SDK），第二个构建</li>
+                <li><code>agent</code> — 依赖 <code>ai</code>，第三个构建</li>
+                <li><code>coding-agent</code> — 依赖 <code>ai</code>、<code>agent</code>、<code>tui</code>，第四个构建</li>
+                <li><code>orchestrator</code> — 依赖 <code>coding-agent</code>，最后构建</li>
+            </ol>
+        </section>
+
+        <section>
+            <h2>2.7 锁步版本策略</h2>
+            <p>所有包共享一个版本号（当前 <code>v0.80.3</code>）。发布时：</p>
+            <pre class="language-bash"><code># 升级所有包的 patch 版本
+npm run version:patch
+
+# 升级所有包的 minor 版本
+npm run version:minor</code></pre>
+            <p><code>scripts/sync-versions.js</code> 确保所有 <code>package.json</code> 中的版本号一致。这简化了跨包兼容性管理 — 你永远不需要担心 <code>coding-agent@0.80</code> 和 <code>agent-core@0.79</code> 是否兼容。</p>
+        </section>
+
+        <section>
+            <h2>2.8 开发工具链</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>工具</th>
+                        <th>用途</th>
+                        <th>配置文件</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Biome</strong></td>
+                        <td>Lint + Format（替代 ESLint + Prettier）</td>
+                        <td><code>biome.json</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>tsgo</strong></td>
+                        <td>TypeScript 原生编译器（@typescript/native-preview）</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td><strong>vitest</strong></td>
+                        <td>测试框架</td>
+                        <td><code>vitest.config.ts</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Husky</strong></td>
+                        <td>Git hooks（pre-commit 检查）</td>
+                        <td><code>.husky/</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Bun</strong></td>
+                        <td>编译独立二进制分发版</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td><strong>esbuild</strong></td>
+                        <td>打包扩展和脚本</td>
+                        <td>-</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <pre class="language-bash"><code># 完整检查（lint + format + type check + 依赖检查）
+npm run check
+
+# 运行测试（无 API key 的本地测试）
+./test.sh
+
+# 从源码运行 pi
+./pi-test.sh</code></pre>
+        </section>
+
+        <section class="quiz">
+            <h2>2.9 小测验</h2>
+            <div class="quiz">
+                <div class="quiz-question">
+                    <p><strong>Q1:</strong> 为什么 pi-agent-core 必须在 pi-ai 之后构建？</p>
+                    <div class="quiz-option" data-correct="false">A. pi-ai 依赖 pi-agent-core</div>
+                    <div class="quiz-option" data-correct="true">B. pi-agent-core 依赖 pi-ai 的类型和 API</div>
+                    <div class="quiz-option" data-correct="false">C. 没有特定顺序，这只是惯例</div>
+                    <div class="quiz-option" data-correct="false">D. pi-agent-core 的代码生成器需要 pi-ai</div>
+                    <div class="quiz-explanation">✅ 正确答案：B。pi-agent-core 导入 pi-ai 的类型和函数，所以必须先编译 pi-ai。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q2:</strong> <code>erasableSyntaxOnly</code> 禁止什么？</p>
+                    <div class="quiz-option" data-correct="false">A. 使用 interface</div>
+                    <div class="quiz-option" data-correct="true">B. 使用 enum 和 namespace</div>
+                    <div class="quiz-option" data-correct="false">C. 使用 type 关键字</div>
+                    <div class="quiz-option" data-correct="false">D. 使用泛型</div>
+                    <div class="quiz-explanation">✅ 正确答案：B。<code>erasableSyntaxOnly</code> 禁止需要 JS emit 的语法（如 enum、namespace、import =、参数属性），强制纯类型级别的 TypeScript。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q3:</strong> 锁步版本策略的好处是什么？</p>
+                    <div class="quiz-option" data-correct="false">A. 减少 npm 发布次数</div>
+                    <div class="quiz-option" data-correct="true">B. 简化跨包兼容性管理</div>
+                    <div class="quiz-option" data-correct="false">C. 减小包体积</div>
+                    <div class="quiz-option" data-correct="false">D. 提高构建速度</div>
+                    <div class="quiz-explanation">✅ 正确答案：B。所有包共享一个版本，你永远不需要担心包之间的版本兼容问题。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q4:</strong> 根 <code>package.json</code> 中 <code>include</code> 字段的作用是？</p>
+                    <div class="quiz-option" data-correct="true">A. 指定 TypeScript 类型检查的范围</div>
+                    <div class="quiz-option" data-correct="false">B. 指定 npm 发布时包含的文件</div>
+                    <div class="quiz-option" data-correct="false">C. 指定工作区</div>
+                    <div class="quiz-option" data-correct="false">D. 指定依赖</div>
+                    <div class="quiz-explanation">✅ 正确答案：A。<code>include</code> 指定哪些文件参与 TypeScript 类型检查。</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="callout exercise">
+            <h2>2.10 练习</h2>
+            <ol>
+                <li>克隆仓库后运行 <code>npm install --ignore-scripts</code></li>
+                <li>观察 <code>node_modules/@earendil-works/pi-ai</code> — 是实体文件夹还是 symlink？</li>
+                <li>运行 <code>npm run check</code>，观察完整检查流程</li>
+                <li>查看 <code>packages/ai/package.json</code> 的 version 字段，与其他包对比</li>
+            </ol>
+        </section>
+
+        <section class="next-action-panel" aria-labelledby="ch2-next-action">
+            <h2 id="ch2-next-action">Next Action</h2>
+            <p>打开第 3 章和第 6 章时，持续问自己一件事：当前这段代码属于哪个包，为什么不放到别的包里。这个问题会把 monorepo 结构变成可用判断力。</p>
+        </section>
+
+        <nav class="chapter-nav">
+            <a href="01-what-is-pi.html" class="prev">← 第 1 章</a>
+            <a href="03-pi-ai.html" class="next">第 3 章：pi-ai LLM 层 →</a>
+        </nav>
+    </main>
+
+    <script src="../assets/js/app.js"></script>
+</body>
+</html>

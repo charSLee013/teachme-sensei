@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLI and API Contract</title>
+  <link rel="stylesheet" href="paper.css">
+</head>
+<body>
+<main data-paper>
+  <section class="hero">
+    <p class="kicker">run_inference.py / argument contract</p>
+    <h1>CLI / API Contract</h1>
+    <p class="abstract">本页把 `run_inference.py` 解释为接口契约：每个参数都有默认值、运行影响、结果影响和失败模式。目标是让读者知道改变参数会改变哪一段推理系统。</p>
+  </section>
+
+  <section>
+    <h2>Abstract</h2>
+    <p>本章直接把 `run_inference.py` 拆成接口契约：参数默认值、行为影响、失败模式和相互作用都在表中说明，避免读者把 CLI 误读成简单的 prompt 转发层。</p>
+  </section>
+
+  <section>
+    <h2>Claim and Evidence</h2>
+    <div class="claim"><div class="claim-title">Claim</div>
+      <p>CLI 是完整推理路径的用户入口，但它不只是转发 prompt。它决定设备、量化权重、prompt expansion、安全筛查、采样 preset、seed 和输出位置。</p>
+      <p><strong>Evidence.</strong> `argparse` definitions and control branches in `run_inference.py`.</p>
+      <p><strong>Boundary.</strong> 该页描述 CLI 行为；`Ideogram4Pipeline.__call__` 的内部采样机制在 sampling 章节展开。</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Argument Contract</h2>
+    <table>
+      <thead><tr><th>Argument</th><th>Default</th><th>Effect</th><th>Failure mode / interaction</th></tr></thead>
+      <tbody>
+        <tr><td>`--prompt`</td><td>required</td><td>Input text. With magic prompt on, it is expanded before model inference.</td><td>Missing value makes argparse fail.</td></tr>
+        <tr><td>`--output`</td><td>`output.png`</td><td>File path for saving first generated image.</td><td>Filesystem write errors happen after generation.</td></tr>
+        <tr><td>`--height`</td><td>1024</td><td>Contributes to image token grid and schedule resolution.</td><td>Pipeline requires divisibility by 16.</td></tr>
+        <tr><td>`--width`</td><td>1024</td><td>Contributes to image token grid and aspect ratio for magic prompt.</td><td>Pipeline requires divisibility by 16.</td></tr>
+        <tr><td>`--sampler-preset`</td><td>`V4_QUALITY_48`</td><td>Sets `num_steps`, guidance schedule, `mu`, `std`.</td><td>Choices restricted to `PRESETS` keys.</td></tr>
+        <tr><td>`--seed`</td><td>0</td><td>Seeds latent noise generator for reproducible generation.</td><td>Same seed does not guarantee same output across changed code/hardware/deps.</td></tr>
+        <tr><td>`--device`</td><td>CUDA, else MPS, else CPU</td><td>Device for pipeline components and sampling tensors.</td><td>nf4 path rejects non-CUDA.</td></tr>
+        <tr><td>`--quantization`</td><td>CUDA: nf4; else fp8</td><td>Selects Hugging Face repo and quantized loading path.</td><td>Gated repo access required; incompatible device can fail.</td></tr>
+        <tr><td>`--magic-prompt` / `--no-magic-prompt`</td><td>on</td><td>Controls plain prompt expansion into structured caption.</td><td>If on and no key exists, CLI exits before loading model.</td></tr>
+        <tr><td>`--magic-prompt-model`</td><td>`ideogram-4-v1`</td><td>Selects Ideogram hosted API or OpenRouter Claude implementation.</td><td>Backend requires matching API key and network availability.</td></tr>
+        <tr><td>`--magic-prompt-key`</td><td>`MAGIC_PROMPT_API_KEY` or `IDEOGRAM_API_KEY`</td><td>Authenticates prompt expansion service.</td><td>Required unless `--no-magic-prompt`.</td></tr>
+        <tr><td>`--warn-on-caption-issues`</td><td>false</td><td>Turns caption verifier failures into warnings.</td><td>Can allow out-of-schema prompts to reach model.</td></tr>
+        <tr><td>`--hive-text-key`</td><td>`HIVE_TEXT_MODERATION_KEY`</td><td>Enables prompt moderation before generation.</td><td>Missing key disables prompt screening with warning.</td></tr>
+        <tr><td>`--hive-visual-key`</td><td>`HIVE_VISUAL_MODERATION_KEY`</td><td>Enables generated image moderation before saving.</td><td>Missing key disables output screening with warning.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Operational Sequence</h2>
+    <div class="diagram">parse args
+  -> optional Hive text moderation
+  -> optional magic prompt expansion
+  -> select sampler preset
+  -> load Ideogram4Pipeline from selected quantized repo
+  -> pipe(prompt, height, width, preset params, seed)
+  -> optional Hive visual moderation
+  -> save first PIL image</div>
+    <p>This sequence is an interface contract: a failure before pipeline load avoids downloading weights; a failure after generation may still consume inference resources.</p>
+  </section>
+
+  <section class="next">
+    <a class="button" href="01-model-card.html">Model Card</a>
+    <a class="button primary" href="03-token-packing.html">Next: Token Packing</a>
+  </section>
+</main>
+<script src="paper.js" data-root="."></script>
+<script>mountPaperChrome("CLI Contract");</script>
+</body>
+</html>

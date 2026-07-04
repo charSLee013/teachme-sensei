@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sampling and CFG</title>
+  <link rel="stylesheet" href="paper.css">
+</head>
+<body>
+<main data-paper>
+  <section class="hero">
+    <p class="kicker">Sampler layer / Euler flow matching</p>
+    <h1>Sampling and Classifier-Free Guidance</h1>
+    <p class="abstract">采样循环从随机 latent 开始。每一步同时计算文本条件 velocity 和 image-only baseline velocity，然后用 guidance weight 放大条件方向，再用 Euler update 移动 latent 状态。</p>
+  </section>
+
+  <section>
+    <h2>Abstract</h2>
+    <p>本章把采样写成可追踪的更新规则：先看条件 velocity 和无条件 baseline 如何合成，再看 guidance weight、schedule 和 Euler 更新怎样共同改变 latent 轨迹。</p>
+  </section>
+
+  <section>
+    <h2>Claim and Evidence</h2>
+    <div class="claim"><div class="claim-title">Claim</div>
+      <p>The implementation performs an Euler-style update over scheduled timesteps and combines conditional and unconditional velocity predictions at each step.</p>
+      <p><strong>Evidence.</strong> `Ideogram4Pipeline.__call__`, `LogitNormalSchedule`, `make_step_intervals`, `PRESETS`.</p>
+      <p><strong>Boundary.</strong> The visualization is schematic. It explains update direction and conditioning, not actual high-dimensional latent geometry.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Variables Before Pseudocode</h2>
+    <table>
+      <thead><tr><th>Symbol</th><th>Meaning</th><th>Implementation object</th></tr></thead>
+      <tbody>
+        <tr><td>`z_i`</td><td>Current image latent tokens at step i.</td><td>`z`</td></tr>
+        <tr><td>`t_i`</td><td>Current schedule time.</td><td>`t_val`</td></tr>
+        <tr><td>`s_i`</td><td>Next schedule time.</td><td>`s_val`</td></tr>
+        <tr><td>`v_pos`</td><td>Velocity predicted with text conditioning.</td><td>`pos_v`</td></tr>
+        <tr><td>`v_neg`</td><td>Image-only baseline velocity.</td><td>`neg_v`</td></tr>
+        <tr><td>`gw_i`</td><td>Guidance weight for this step.</td><td>`gw_per_step[i]`</td></tr>
+        <tr><td>`delta_i`</td><td>Step interval.</td><td>`s_val - t_val`</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Step Equation</h2>
+    <div class="claim"><div class="claim-title">Mechanism</div>
+      <p>The code writes guidance as `gw * v_pos + (1 - gw) * v_neg`. For explanation, the equivalent form is more direct:</p>
+      <pre><code>v_guided = v_neg + gw_i * (v_pos - v_neg)
+z_{i-1}  = z_i + v_guided * (s_i - t_i)</code></pre>
+      <p>`v_pos - v_neg` is the condition direction. `gw_i` scales how strongly the text-conditioned direction modifies the image-only baseline.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Interactive Guidance Vector</h2>
+    <p>The slider changes guidance weight. The red arrow is the guided update direction; larger guidance amplifies the condition component relative to the image-only baseline.</p>
+    <div class="controls">
+      <label>Guidance weight <input id="guidance" type="range" min="1" max="9" step="0.1" value="3"></label>
+      <span id="guidanceReadout" class="pill"></span>
+    </div>
+    <canvas id="samplerCanvas" height="360" aria-label="CFG vector visualization"></canvas>
+  </section>
+
+  <section>
+    <h2>Pseudocode After Definitions</h2>
+    <pre><code>for i in reversed(range(num_steps)):
+    t_i = schedule(step_intervals[i + 1])
+    s_i = schedule(step_intervals[i])
+    v_pos = conditional_transformer(text_features, z_i, t_i)
+    v_neg = unconditional_transformer(zeros, z_i, t_i)
+    v_guided = v_neg + gw_i * (v_pos - v_neg)
+    z_{i-1} = z_i + v_guided * (s_i - t_i)</code></pre>
+  </section>
+
+  <section>
+    <h2>Consequences</h2>
+    <ul>
+      <li>Step count changes how many Euler updates are applied.</li>
+      <li>Guidance schedule changes the balance between prompt adherence and baseline image dynamics over time.</li>
+      <li>Resolution affects the logit-normal schedule mean through pixel count.</li>
+      <li>Actual quality tradeoffs require generation experiments; this page explains the mechanism, not benchmark outcomes.</li>
+    </ul>
+  </section>
+
+  <section class="next">
+    <a class="button" href="03-token-packing.html">Token Packing</a>
+    <a class="button primary" href="05-transformer-architecture.html">Next: Transformer Architecture</a>
+  </section>
+</main>
+<script src="paper.js" data-root="."></script>
+<script>
+mountPaperChrome("Sampling / CFG");
+const guidanceInput = document.getElementById("guidance");
+const guidanceReadout = document.getElementById("guidanceReadout");
+const samplerCanvas = document.getElementById("samplerCanvas");
+function updateSampler() {
+  const g = Number(guidanceInput.value);
+  guidanceReadout.textContent = `gw = ${g.toFixed(1)}`;
+  drawSampler(samplerCanvas, g);
+}
+guidanceInput.addEventListener("input", updateSampler);
+window.addEventListener("resize", updateSampler);
+updateSampler();
+</script>
+</body>
+</html>

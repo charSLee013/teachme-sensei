@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teachme Sensei | Teaching Packages</title>
+  <meta name="description" content="Public teaching packages for repo courses and technical report courses, with direct links to course home, structure, evidence, and proof.">
+  <link rel="stylesheet" href="home.css">
+</head>
+<body>
+  <main>
+    <header class="masthead">
+      <div class="stamp">Teachme Sensei / Public Teaching Packages</div>
+      <a class="toplink" href="../">Root Entry</a>
+    </header>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <h1>Courses, not just files.</h1>
+        <p class="lede">This page is the public entry for the teaching packages published under <code>/teach/*/</code>. The point is not to browse a folder tree. The point is to tell apart course types quickly, pick the right reading path, and reach the proof layer when you want to check how rigorous a package is.</p>
+      </div>
+      <aside class="hero-note" aria-label="How to use this site">
+        <h2>Quick Paths</h2>
+        <ol>
+          <li><strong>Start Course</strong>: go straight into the student-facing course home.</li>
+          <li><strong>Structure</strong>: use the course map, reading order, or module index first.</li>
+          <li><strong>Evidence / Proof</strong>: open the source matrix, evidence appendix, or validation logs before committing time.</li>
+        </ol>
+      </aside>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-kicker">Catalog</div>
+          <h2 class="section-title">Two different course objects live here.</h2>
+        </div>
+      </div>
+      <p class="section-copy">These are not two chapters from one curriculum. They serve different reading modes. One teaches a live codebase from the engineer's point of view. The other teaches an inference repository as a technical report with explicit evidence language.</p>
+
+      <div class="courses" aria-label="Course catalog">
+        <article class="course-panel pi">
+          <div class="panel-top">
+            <div class="badges">
+              <span class="badge pi">Repo Course</span>
+              <span class="badge ok">Validated</span>
+            </div>
+          </div>
+
+          <h2 class="course-title">Pi Agent Harness</h2>
+          <p class="course-summary">A contributor-facing repo course for understanding how Pi is assembled, how the runtime path works, and how to distinguish repository fact from teaching reconstruction before changing the codebase.</p>
+
+          <div class="route-tags">
+            <span class="route-tag">14 chapters</span>
+            <span class="route-tag">course map</span>
+            <span class="route-tag">source matrix</span>
+            <span class="route-tag">proof + screenshots</span>
+          </div>
+
+          <div class="facts">
+            <div class="fact">
+              <span class="fact-label">Audience</span>
+              <strong>Engineers and contributors</strong>
+              <p>Readers who need to trace runtime flow, package boundaries, tools, sessions, compaction, and contributor rules.</p>
+            </div>
+            <div class="fact">
+              <span class="fact-label">Format</span>
+              <strong>Repo-course bundle</strong>
+              <p>Course home, course map, chapter sequence, backstage audits, source matrix, and validation artifacts.</p>
+            </div>
+            <div class="fact">
+              <span class="fact-label">Best First Step</span>
+              <strong>Course map or chapter 1</strong>
+              <p>Use the map if you want the architectural throughline first. Use the home page if you want the student path.</p>
+            </div>
+            <div class="fact">
+              <span class="fact-label">Evidence Style</span>
+              <strong>Repo facts with boundaries</strong>
+              <p>Explicit distinction between checked repository facts, reconstruction, audits, and proof logs.</p>
+            </div>
+          </div>
+
+          <div class="cta-row">
+            <a class="button primary pi" href="pi/">Start Course</a>
+            <a class="button" href="pi/course-map.html">Course Map</a>
+            <a class="button" href="pi/artifacts/source-matrix.md">Source Matrix</a>
+            <a class="button" href="pi/proof/static-link-check.md">Proof Log</a>
+          </div>
+
+          <div class="evidence-strip">
+            Public backstage materials:
+            <a href="pi/proof/playwright-results.json">Playwright results</a>,
+            <a href="pi/artifacts/misconception-audits/05-lgtm-is-pr-gate-not-merge-quorum.md">misconception audit</a>,
+            <a href="pi/proof/screenshots/index-desktop.png">screenshots</a>.
+          </div>
+        </article>
+
+        <article class="course-panel ideogram">
+          <div class="panel-top">
+            <div class="badges">
+              <span class="badge ideogram">Technical Report Course</span>
+              <span class="badge ok">Validated</span>
+            </div>
+          </div>
+
+          <h2 class="course-title">Ideogram 4</h2>
+          <p class="course-summary">A report-style teaching package for the Ideogram 4 inference repository, built around model/runtime contract, prompt protocol, sampling, architecture, and the evidence boundaries around public training information.</p>
+
+          <div class="route-tags">
+            <span class="route-tag">report chapters</span>
+            <span class="route-tag">appendix</span>
+            <span class="route-tag">evidence appendix</span>
+            <span class="route-tag">proof + screenshots</span>
+          </div>
+
+          <div class="facts">
+            <div class="fact">
+              <span class="fact-label">Audience</span>
+              <strong>Technical readers and model learners</strong>
+              <p>Readers who want a report-like explanation of the inference stack, not a generic intro to image models.</p>
+            </div>
+            <div class="fact">
+              <span class="fact-label">Format</span>
+              <strong>Interactive technical report</strong>
+              <p>Home abstract, ordered reading path, appendix pages, source matrix, regression notes, and artifact survival proof.</p>
+            </div>
+            <div class="fact">
+              <span class="fact-label">Best First Step</span>
+              <strong>Report home or module index</strong>
+              <p>Start from the report home for the curated path, or open the appendix index when you want system-level navigation.</p>
+            </div>
+            <div class="fact">
+              <span class="fact-label">Evidence Style</span>
+              <strong>Claim / evidence / boundary</strong>
+              <p>Student pages surface evidence language directly, then push denser matrix and proof details into appendices.</p>
+            </div>
+          </div>
+
+          <div class="cta-row">
+            <a class="button primary ideogram" href="ideogram4/">Start Course</a>
+            <a class="button" href="ideogram4/appendix/module-index.html">Module Index</a>
+            <a class="button" href="ideogram4/appendix/evidence.html">Evidence Appendix</a>
+            <a class="button" href="ideogram4/proof/paper-course-playwright-results.json">Proof Log</a>
+          </div>
+
+          <div class="evidence-strip">
+            Public backstage materials:
+            <a href="ideogram4/artifacts/source-matrix.md">source matrix</a>,
+            <a href="ideogram4/review-artifacts/misconception-audits/paper-course-v2.md">misconception audit</a>,
+            <a href="ideogram4/proof/paper-course-screenshots/desktop__paper-course__index.html.png">screenshots</a>.
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-kicker">Comparison</div>
+          <h2 class="section-title">Use the right entry for the right question.</h2>
+        </div>
+      </div>
+
+      <div class="compare" aria-label="Course comparison">
+        <div class="row-label"></div>
+        <div class="head">Pi Agent Harness</div>
+        <div class="head">Ideogram 4</div>
+
+        <div class="row-label">Type</div>
+        <div class="cell">Repo course for a live engineering codebase.</div>
+        <div class="cell">Technical report course for an inference repository.</div>
+
+        <div class="row-label">What you learn</div>
+        <div class="cell">Workspace structure, runtime modes, sessions, tools, compaction, SDK, orchestrator boundary, and contributor workflow.</div>
+        <div class="cell">Model/runtime card, CLI contract, token packing, sampling, architecture, JSON caption protocol, and public training record boundaries.</div>
+
+        <div class="row-label">Best structure view</div>
+        <div class="cell">Course map.</div>
+        <div class="cell">Module index and reading order.</div>
+
+        <div class="row-label">Best evidence view</div>
+        <div class="cell">Source matrix plus proof logs and misconception audits.</div>
+        <div class="cell">Evidence appendix plus source matrix and artifact survival proof.</div>
+      </div>
+    </section>
+
+    <section class="footer-note">
+      <p>The published URL shape stays stable at <code>/teach/pi/</code> and <code>/teach/ideogram4/</code>. On GitHub project Pages, the repository name is prefixed before <code>/teach/...</code>. All links on this page are relative so the same homepage works both locally and after deployment.</p>
+    </section>
+  </main>
+</body>
+</html>

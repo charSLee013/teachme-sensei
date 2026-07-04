@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Model and Runtime Card</title>
+  <link rel="stylesheet" href="paper.css">
+</head>
+<body>
+<main data-paper>
+  <section class="hero">
+    <p class="kicker">Model card / runtime card</p>
+    <h1>Model and Runtime Card</h1>
+    <p class="abstract">本页将 Ideogram 4 推理包描述为可运行模型接口，而不是概念图。字段覆盖模型身份、变体、输入输出、运行时、许可、访问、安全与限制。</p>
+  </section>
+
+  <section>
+    <h2>Abstract</h2>
+    <div class="claim"><div class="claim-title">Claim</div>
+      <p>该仓库提供 Ideogram 4 的本地推理接口：输入为 caption string 和图像尺寸/采样参数，输出为 `PIL.Image`。模型权重通过 Hugging Face gated repositories 获取，CLI 暴露 nf4 和 fp8 两类变体。</p>
+      <p><strong>Evidence.</strong> `run_inference.py` 的 `QUANTIZATION_REPOS`、`Ideogram4PipelineConfig`、README model zoo 和 license files。</p>
+      <p><strong>Boundary.</strong> 未认证环境无法读取 Ideogram HF raw model cards；本页只使用本地源码、README 和可访问官方页面中的信息。</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Model Identity</h2>
+    <table>
+      <tbody>
+        <tr><th>Name</th><td>Ideogram 4</td></tr>
+        <tr><th>Repository package</th><td>`ideogram-4` Python inference package</td></tr>
+        <tr><th>Published parameter count</th><td>9.3B in local README model zoo</td></tr>
+        <tr><th>Primary task</th><td>Text-to-image generation from prompt/caption string</td></tr>
+        <tr><th>Implementation scope</th><td>Inference pipeline, model architecture, quantized loading, prompt handling, safety API calls, documentation</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="runtime">
+    <h2>Variants and Runtime</h2>
+    <table>
+      <thead><tr><th>Variant</th><th>Weights repo</th><th>Loading path</th><th>Runtime constraint</th></tr></thead>
+      <tbody>
+        <tr><td>nf4</td><td>`ideogram-ai/ideogram-4-nf4`</td><td>bitsandbytes `Linear4bit`, prequantized state dict</td><td>CUDA required by implementation.</td></tr>
+        <tr><td>fp8</td><td>`ideogram-ai/ideogram-4-fp8`</td><td>weight-only e4m3 FP8 buffers + per-row scale</td><td>Activations use compute dtype; code path is not limited to FP8 tensor cores.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Inputs and Outputs</h2>
+    <table>
+      <thead><tr><th>Field</th><th>Contract</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td>Prompt</td><td>String; preferably structured JSON caption.</td><td>Provides text condition after Qwen3-VL hidden-state extraction.</td></tr>
+        <tr><td>Height / width</td><td>Must be divisible by 16 in implementation.</td><td>Determines image token grid and schedule resolution adjustment.</td></tr>
+        <tr><td>Sampler parameters</td><td>Steps, guidance schedule, `mu`, `std`.</td><td>Controls denoising trajectory and condition strength.</td></tr>
+        <tr><td>Output</td><td>List of `PIL.Image` objects.</td><td>CLI saves the first image to `--output`.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="safety">
+    <h2>Safety, Access, License</h2>
+    <div class="grid">
+      <div class="claim"><div class="claim-title">Access</div><p>README states model weights are gated on Hugging Face. The course environment observed 401 Unauthorized when fetching raw HF README URLs without credentials.</p></div>
+      <div class="claim"><div class="claim-title">License</div><p>Source code is Apache-2.0. Model weights use the Ideogram Non-Commercial Model Agreement included under `model_licenses/`.</p></div>
+      <div class="claim warning"><div class="claim-title">Safety</div><p>Hive moderation is integrated but key-dependent. Missing keys produce CLI warnings, not blocking moderation.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Known Limits</h2>
+    <ul>
+      <li>Training data, optimizer, compute and duration are not exposed by this inference repository.</li>
+      <li>Real image quality, latency and memory behavior require authenticated weights and hardware-specific measurement.</li>
+      <li>Prompt safety and output safety depend on configured Hive keys or equivalent deployment controls.</li>
+    </ul>
+  </section>
+
+  <section class="next">
+    <a class="button" href="index.html">Back to Abstract</a>
+    <a class="button primary" href="02-cli-api-contract.html">Next: CLI Contract</a>
+  </section>
+</main>
+<script src="paper.js" data-root="."></script>
+<script>mountPaperChrome("Model Card");</script>
+</body>
+</html>

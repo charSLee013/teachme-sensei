@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第 7 章：内置工具系统 — Pi Agent Harness 教学</title>
+    <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>Pi 教学</h2>
+            <span class="version">v0.80.3</span>
+        </div>
+        <nav class="chapter-list">
+            <a href="01-what-is-pi.html">1. 认识 Pi</a>
+            <a href="02-monorepo.html">2. Monorepo 架构</a>
+            <a href="03-pi-ai.html">3. pi-ai LLM 层</a>
+            <a href="04-agent-core.html">4. Agent 运行时</a>
+            <a href="05-pi-tui.html">5. 终端 UI 库</a>
+            <a href="06-coding-agent.html">6. 主 CLI 架构</a>
+            <a href="07-tools.html" class="active">7. 内置工具系统</a>
+            <a href="08-extensions.html">8. 扩展系统</a>
+            <a href="09-session-management.html">9. 会话管理</a>
+            <a href="10-compaction.html">10. 压缩系统</a>
+            <a href="11-interactive-mode.html">11. 交互模式</a>
+            <a href="12-sdk.html">12. 编程式 SDK</a>
+            <a href="13-orchestrator.html">13. 编排器</a>
+            <a href="14-contributing.html">14. 贡献指南</a>
+        </nav>
+    </aside>
+
+    <main class="content">
+        <header class="chapter-header">
+            <span class="chapter-number">第 7 章</span>
+            <h1>内置工具系统 — 7 个工具的设计</h1>
+            <p class="subtitle">理解工具的定义、验证、执行模式</p>
+        </header>
+
+        <section class="learner-cues" aria-labelledby="ch7-main-line">
+            <div class="cue-grid">
+                <div class="cue-card">
+                    <h2 id="ch7-main-line">Main Line</h2>
+                    <p>工具系统的关键不是“能做多少事”，而是怎样把模型可见的 schema、运行时执行函数和文件变更纪律拆开。</p>
+                </div>
+                <div class="cue-card">
+                    <h2>Remember Now</h2>
+                    <p>当前内置工具是 `read`、`bash`、`edit`、`write`、`grep`、`find`、`ls`。Web 搜索和 agent delegation 不属于这组内置表面。</p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>7.1 工具架构总览</h2>
+            <p>Pi 的工具有两个核心概念：</p>
+            <ul>
+                <li><span class="term" data-term="ToolDefinition: 工具定义，发送给 LLM 的 schema">ToolDefinition</span>：描述工具的名称、描述和参数 JSON Schema，发送给 LLM 让它知道如何调用</li>
+                <li><span class="term" data-term="AgentTool: Agent 工具，包含定义 + 执行函数">AgentTool</span>：包含 ToolDefinition + 实际执行函数</li>
+            </ul>
+
+            <div class="diagram-container">
+                <svg viewBox="0 0 600 200" class="diagram">
+                    <!-- LLM -->
+                    <rect x="30" y="60" width="100" height="60" rx="8" fill="#ff6b6b" opacity="0.8"/>
+                    <text x="80" y="85" text-anchor="middle" fill="white" font-weight="bold" font-size="12">LLM</text>
+                    <text x="80" y="105" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">sees schema</text>
+
+                    <!-- ToolDefinition -->
+                    <rect x="180" y="30" width="140" height="40" rx="6" fill="#4a9eff" opacity="0.8"/>
+                    <text x="250" y="55" text-anchor="middle" fill="white" font-size="11">ToolDefinition</text>
+
+                    <!-- Arrow LLM to TD -->
+                    <line x1="130" y1="70" x2="180" y2="55" stroke="#888" stroke-width="1.5" stroke-dasharray="4"/>
+                    <text x="150" y="55" fill="#888" font-size="8">schema</text>
+
+                    <!-- AgentTool -->
+                    <rect x="180" y="100" width="140" height="40" rx="6" fill="#27ae60" opacity="0.8"/>
+                    <text x="250" y="125" text-anchor="middle" fill="white" font-size="11">AgentTool</text>
+
+                    <!-- Arrow TD to AT -->
+                    <line x1="250" y1="70" x2="250" y2="100" stroke="#888" stroke-width="1.5"/>
+                    <text x="258" y="88" fill="#888" font-size="8">wraps</text>
+
+                    <!-- Execute -->
+                    <rect x="380" y="100" width="140" height="40" rx="6" fill="#e67e22" opacity="0.8"/>
+                    <text x="450" y="120" text-anchor="middle" fill="white" font-size="11">execute()</text>
+                    <text x="450" y="133" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">runs the tool</text>
+
+                    <!-- Arrow AT to Execute -->
+                    <line x1="320" y1="120" x2="380" y2="120" stroke="#888" stroke-width="2" marker-end="url(#ar7)"/>
+
+                    <!-- Result -->
+                    <rect x="380" y="30" width="140" height="40" rx="6" fill="#9b59b6" opacity="0.8"/>
+                    <text x="450" y="55" text-anchor="middle" fill="white" font-size="11">ToolResult</text>
+
+                    <!-- Arrow execute to result -->
+                    <line x1="450" y1="100" x2="450" y2="70" stroke="#888" stroke-width="2" marker-end="url(#ar7)"/>
+
+                    <defs>
+                        <marker id="ar7" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                            <polygon points="0 0, 8 3, 0 6" fill="#888"/>
+                        </marker>
+                    </defs>
+                </svg>
+            </div>
+        </section>
+
+        <section>
+            <h2>7.2 工具工厂模式</h2>
+            <pre class="language-ts"><code>// core/tools/index.ts
+export type ToolName = "read" | "bash" | "edit" | "write" | "grep" | "find" | "ls";
+
+export function createTool(toolName: ToolName, cwd: string, options?: ToolsOptions): Tool {
+  switch (toolName) {
+    case "read":   return createReadTool(cwd, options?.read);
+    case "bash":   return createBashTool(cwd, options?.bash);
+    case "edit":   return createEditTool(cwd, options?.edit);
+    case "write":  return createWriteTool(cwd, options?.write);
+    case "grep":   return createGrepTool(cwd, options?.grep);
+    case "find":   return createFindTool(cwd, options?.find);
+    case "ls":     return createLsTool(cwd, options?.ls);
+  }
+}
+
+export function createToolDefinition(toolName: ToolName, cwd: string, options?: ToolsOptions): ToolDef {
+  // 同样的 switch，但返回 definition（给 LLM 的 schema）
+}
+
+// 批量创建
+export function createCodingTools(cwd: string, options?: ToolsOptions): Tool[] {
+  return [createReadTool(cwd), createBashTool(cwd), createEditTool(cwd), createWriteTool(cwd)];
+}
+
+export function createReadOnlyTools(cwd: string, options?: ToolsOptions): Tool[] {
+  return [createReadTool(cwd), createGrepTool(cwd), createFindTool(cwd), createLsTool(cwd)];
+}</code></pre>
+        </section>
+
+        <section>
+            <h2>7.3 逐一介绍 7 个工具</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>工具</th>
+                        <th>用途</th>
+                        <th>关键参数</th>
+                        <th>实现方式</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>bash</code></td>
+                        <td>执行 Shell 命令</td>
+                        <td>command, timeout, description</td>
+                        <td>child_process.spawn</td>
+                    </tr>
+                    <tr>
+                        <td><code>edit</code></td>
+                        <td>文件编辑（diff 格式）</td>
+                        <td>file_path, old_string, new_string, replace_all</td>
+                        <td>字符串匹配 + 替换</td>
+                    </tr>
+                    <tr>
+                        <td><code>read</code></td>
+                        <td>读取文件内容</td>
+                        <td>file_path, offset, limit, file_path (images)</td>
+                        <td>fs.readFile + 截断</td>
+                    </tr>
+                    <tr>
+                        <td><code>write</code></td>
+                        <td>创建/覆盖文件</td>
+                        <td>file_path, content</td>
+                        <td>fs.writeFile</td>
+                    </tr>
+                    <tr>
+                        <td><code>grep</code></td>
+                        <td>内容搜索</td>
+                        <td>pattern, path, glob, output_mode, context</td>
+                        <td>ripgrep (rg) 封装</td>
+                    </tr>
+                    <tr>
+                        <td><code>find</code></td>
+                        <td>文件查找</td>
+                        <td>pattern, path, type, glob</td>
+                        <td>glob 库</td>
+                    </tr>
+                    <tr>
+                        <td><code>ls</code></td>
+                        <td>目录列表</td>
+                        <td>path, ignore</td>
+                        <td>fs.readdir + ignore 库</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>7.4 Edit 工具深度走读</h2>
+            <p>Edit 工具是最复杂的内置工具，它使用<span class="term" data-term="Unified Diff: 统一 diff 格式，经典的文件差异表示法">统一 diff 格式</span>进行精确编辑：</p>
+
+            <h3>TypeBox Schema</h3>
+            <pre class="language-ts"><code>export const EditToolInput = Type.Object({
+  file_path: Type.String({ description: "Absolute path to the file to modify" }),
+  old_string: Type.String({ description: "The exact text to replace" }),
+  new_string: Type.String({ description: "The replacement text" }),
+  replace_all: Type.Boolean({ description: "Replace all occurrences", default: false }),
+});</code></pre>
+
+            <h3>发送给 LLM 的 JSON Schema</h3>
+            <pre class="language-json"><code>{
+  "name": "edit",
+  "description": "Edit a file by replacing exact text...",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "file_path": { "type": "string", "description": "Absolute path to the file" },
+      "old_string": { "type": "string", "description": "The exact text to replace" },
+      "new_string": { "type": "string", "description": "The replacement text" },
+      "replace_all": { "type": "boolean", "default": false }
+    },
+    "required": ["file_path", "old_string", "new_string"]
+  }
+}</code></pre>
+
+            <h3>执行逻辑</h3>
+            <pre class="language-ts"><code>export function createEditTool(cwd: string, options?: EditToolOptions): Tool {
+  return {
+    name: "edit",
+    description: "Edit a file by replacing exact text...",
+    parameters: EditToolInput,
+    label: "Edit",
+    async execute(toolCallId, params, signal) {
+      const filePath = resolvePath(cwd, params.file_path);
+      const content = readFileSync(filePath, "utf-8");
+
+      // 精确匹配 old_string
+      const occurrences = countOccurrences(content, params.old_string);
+      if (occurrences === 0) throw new Error("old_string not found in file");
+      if (occurrences > 1 && !params.replace_all) throw new Error("Multiple matches found");
+
+      // 执行替换
+      const newContent = params.replace_all
+        ? content.replaceAll(params.old_string, params.new_string)
+        : content.replace(params.old_string, params.new_string);
+
+      writeFileSync(filePath, newContent);
+
+      // 生成 diff 返回给 LLM
+      const diff = generateDiffString(content, newContent);
+      return {
+        content: [{ type: "text", text: diff }],
+        details: { filePath, occurrences },
+      };
+    },
+  };
+}</code></pre>
+        </section>
+
+        <section>
+            <h2>7.5 文件变异队列</h2>
+            <p>当多个工具并发执行时，需要保证文件操作的顺序：</p>
+            <pre class="language-ts"><code>// file-mutation-queue.ts
+export function withFileMutationQueue&lt;T&gt;(
+  queueKey: string,
+  fn: () =&gt; Promise&lt;T&gt;
+): Promise&lt;T&gt; {
+  // 同一文件的读写操作串行化
+  // 不同文件的操作可以并行
+  // 保证：read-before-write, write-before-read 的顺序
+}</code></pre>
+
+            <div class="callout warning">
+                <strong>为什么需要队列？</strong>如果 LLM 同时调用 <code>read(fib.ts)</code> 和 <code>write(fib.ts)</code>，没有队列时执行顺序不确定，可能导致读到旧内容或写入被覆盖。
+            </div>
+        </section>
+
+        <section>
+            <h2>7.6 输出截断</h2>
+            <p>工具输出可能非常大（如 <code>grep</code> 返回数千行），需要截断以保护上下文窗口：</p>
+            <pre class="language-ts"><code>// truncate.ts
+export const DEFAULT_MAX_BYTES = 2000 * 1024;  // 2MB
+export const DEFAULT_MAX_LINES = 2000;          // 2000 行
+
+export function truncateHead(text: string, maxLines: number): TruncationResult;
+export function truncateTail(text: string, maxLines: number): TruncationResult;
+export function truncateLine(text: string, maxBytes: number): TruncationResult;
+
+// 返回值包含：截断后的文本 + 是否被截断 + 跳过的行数</code></pre>
+        </section>
+
+        <section>
+            <h2>7.7 路径安全</h2>
+            <pre class="language-ts"><code>// path-utils.ts
+export function resolvePath(cwd: string, inputPath: string): string {
+  // 1. 转换为绝对路径
+  const resolved = path.resolve(cwd, inputPath);
+  // 2. 验证路径在 cwd 内（防止路径穿越）
+  if (!resolved.startsWith(cwd)) {
+    throw new Error("Path traversal detected");
+  }
+  return resolved;
+}
+
+export function normalizePath(filePath: string): string {
+  // 统一路径格式，移除冗余的 ./ 和 ../
+  return path.normalize(filePath);
+}</code></pre>
+        </section>
+
+        <section class="quiz">
+            <h2>7.8 小测验</h2>
+            <div class="quiz">
+                <div class="quiz-question">
+                    <p><strong>Q1:</strong> ToolDefinition 和 AgentTool 的区别是什么？</p>
+                    <div class="quiz-option" data-correct="false">A. 没有区别，是同一个东西</div>
+                    <div class="quiz-option" data-correct="true">B. ToolDefinition 是给 LLM 的 schema，AgentTool 包含定义 + 执行函数</div>
+                    <div class="quiz-option" data-correct="false">C. ToolDefinition 是给 UI 的，AgentTool 是给 LLM 的</div>
+                    <div class="quiz-option" data-correct="false">D. ToolDefinition 是旧版，AgentTool 是新版</div>
+                    <div class="quiz-explanation">✅ 正确答案：B。ToolDefinition（ToolDef）只包含 schema 信息，AgentTool（Tool）额外包含 execute 函数。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q2:</strong> Edit 工具如何保证精确编辑？</p>
+                    <div class="quiz-option" data-correct="false">A. 使用正则表达式</div>
+                    <div class="quiz-option" data-correct="true">B. 使用精确字符串匹配（old_string 必须完全匹配）</div>
+                    <div class="quiz-option" data-correct="false">C. 使用 AST 分析</div>
+                    <div class="quiz-option" data-correct="false">D. 使用 diff 算法</div>
+                    <div class="quiz-explanation">✅ 正确答案：B。Edit 工具使用精确字符串匹配，old_string 必须在文件中完全匹配（除非 replace_all=true）。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q3:</strong> 文件变异队列的作用是什么？</p>
+                    <div class="quiz-option" data-correct="false">A. 限制工具的并发数量</div>
+                    <div class="quiz-option" data-correct="true">B. 保证同一文件的读写操作顺序</div>
+                    <div class="quiz-option" data-correct="false">C. 缓存文件内容</div>
+                    <div class="quiz-option" data-correct="false">D. 记录文件操作日志</div>
+                    <div class="quiz-explanation">✅ 正确答案：B。队列确保同一文件的读写操作按顺序执行，避免竞态条件。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q4:</strong> <code>resolvePath()</code> 函数如何防止路径穿越？</p>
+                    <div class="quiz-option" data-correct="false">A. 禁止绝对路径</div>
+                    <div class="quiz-option" data-correct="true">B. 验证解析后的路径是否在 cwd 内</div>
+                    <div class="quiz-option" data-correct="false">C. 禁止 .. 字符</div>
+                    <div class="quiz-option" data-correct="false">D. 使用 chroot</div>
+                    <div class="quiz-explanation">✅ 正确答案：B。函数解析路径后检查是否以 cwd 开头，防止 <code>../../etc/passwd</code> 等攻击。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q5:</strong> Grep 工具的底层实现是什么？</p>
+                    <div class="quiz-option" data-correct="false">A. JavaScript 正则表达式</div>
+                    <div class="quiz-option" data-correct="true">B. ripgrep (rg) 命令行工具</div>
+                    <div class="quiz-option" data-correct="false">C. Git grep</div>
+                    <div class="quiz-option" data-correct="false">D. ag (Silver Searcher)</div>
+                    <div class="quiz-explanation">✅ 正确答案：B。Pi 的 grep 工具封装了 ripgrep，提供高性能的内容搜索。</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="callout exercise">
+            <h2>7.9 练习</h2>
+            <p>编写一个自定义 <code>note</code> 工具：保存带时间戳的笔记到文件。</p>
+            <pre class="language-ts"><code>// 参考实现框架
+export function createNoteTool(cwd: string): Tool {
+  return {
+    name: "note",
+    description: "Save a timestamped note to a file",
+    parameters: Type.Object({
+      content: Type.String({ description: "The note content" }),
+      file: Type.Optional(Type.String({ description: "Note file path", default: ".pi/notes.md" })),
+    }),
+    label: "Note",
+    async execute(toolCallId, { content, file }) {
+      const filePath = resolvePath(cwd, file ?? ".pi/notes.md");
+      const timestamp = new Date().toISOString();
+      const entry = `[${timestamp}] ${content}\n`;
+      appendFileSync(filePath, entry);
+      return {
+        content: [{ type: "text", text: `Note saved to ${file}` }],
+        details: { filePath, timestamp },
+      };
+    },
+  };
+}</code></pre>
+        </section>
+
+        <section class="next-action-panel" aria-labelledby="ch7-next-action">
+            <h2 id="ch7-next-action">Next Action</h2>
+            <p>接着读第 8 章，看自定义扩展如何把新的 tool definition 和 runtime tool 注入这套系统，再回头比较内置工具工厂的相同点。</p>
+        </section>
+
+        <nav class="chapter-nav">
+            <a href="06-coding-agent.html" class="prev">← 第 6 章</a>
+            <a href="08-extensions.html" class="next">第 8 章：扩展系统 →</a>
+        </nav>
+    </main>
+
+    <script src="../assets/js/app.js"></script>
+</body>
+</html>

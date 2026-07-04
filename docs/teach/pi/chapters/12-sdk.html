@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 12: 编程式 SDK — 把 Pi 当库用 | Pi Agent Harness</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Sidebar -->
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">&#9776;</button>
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <h2>Pi Agent Harness</h2>
+        <div class="subtitle">Interactive Teaching</div>
+    </div>
+    <div class="sidebar-search">
+        <input type="text" id="searchInput" placeholder="搜索章节..." aria-label="搜索">
+    </div>
+    <div class="sidebar-nav">
+        <ul class="chapter-list">
+            <li><a href="01-what-is-pi.html"><span class="chapter-num">1</span> What is Pi</a></li>
+            <li><a href="02-monorepo.html"><span class="chapter-num">2</span> Monorepo 结构</a></li>
+            <li><a href="03-pi-ai.html"><span class="chapter-num">3</span> pi-ai 包</a></li>
+            <li><a href="04-agent-core.html"><span class="chapter-num">4</span> Agent 运行时</a></li>
+            <li><a href="05-pi-tui.html"><span class="chapter-num">5</span> pi-tui 终端 UI</a></li>
+            <li><a href="06-coding-agent.html"><span class="chapter-num">6</span> 主 CLI 架构</a></li>
+            <li><a href="07-tools.html"><span class="chapter-num">7</span> 工具系统</a></li>
+            <li><a href="08-extensions.html"><span class="chapter-num">8</span> 扩展系统</a></li>
+            <li><a href="09-session-management.html"><span class="chapter-num">9</span> 会话管理</a></li>
+            <li><a href="10-compaction.html"><span class="chapter-num">10</span> 压缩系统</a></li>
+            <li><a href="11-interactive-mode.html"><span class="chapter-num">11</span> 交互模式</a></li>
+            <li><a href="12-sdk.html" class="active"><span class="chapter-num">12</span> 编程式 SDK</a></li>
+            <li><a href="13-orchestrator.html"><span class="chapter-num">13</span> 编排器</a></li>
+            <li><a href="14-contributing.html"><span class="chapter-num">14</span> 贡献指南</a></li>
+        </ul>
+    </div>
+    <div class="sidebar-progress">
+        <div class="progress-label"><span>学习进度</span><span>0 / 14 章节</span></div>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+</nav>
+
+<!-- Search Results Overlay -->
+<div class="search-results" id="searchResults">
+    <div class="results-header">
+        <h3>搜索结果</h3>
+        <button class="results-close" id="searchResultsClose">&times;</button>
+    </div>
+    <div id="searchResultsList"></div>
+</div>
+
+<!-- Main Content -->
+<main class="main-content" data-chapter-id="12-sdk" data-searchable data-title="Chapter 12: 编程式 SDK">
+    <article class="content-wrapper">
+
+        <h1>Chapter 12: 编程式 SDK — 把 Pi 当库用</h1>
+        <p>大多数用户通过 CLI 与 Pi 交互，但 Pi 本质上是一个 <span data-term="可被 Node.js 代码 import 使用的库">library</span>。本章介绍如何通过 SDK 把 Pi 嵌入你自己的应用——自定义 UI、自动化脚本、IDE 集成，甚至测试框架。</p>
+
+        <section class="learner-cues" aria-labelledby="ch12-main-line">
+            <div class="cue-grid">
+                <div class="cue-card">
+                    <h2 id="ch12-main-line">Main Line</h2>
+                    <p>SDK 章节要证明的不是“Pi 也能 import”，而是 CLI 背后的关键 runtime 入口本来就可以被别的程序重用。</p>
+                </div>
+                <div class="cue-card">
+                    <h2>Remember Now</h2>
+                    <p>把 Pi 当库用时，最值钱的不是 shell 外壳，而是 read-only tools、runtime 事件流和 rpc/print 这类可组合入口。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================ -->
+        <h2 id="why-sdk">12.1 Why SDK?</h2>
+        <!-- ================================================================ -->
+        <p>CLI 适合人机交互，但当你需要以下能力时，SDK 才是正解：</p>
+        <ul>
+            <li><strong>自定义 UI</strong>：构建 Web 界面、桌面应用或移动端前端，Pi 在后台运行。</li>
+            <li><strong>自动化</strong>：在 CI/CD 流水线中批量处理代码审查、文档生成等任务。</li>
+            <li><strong>IDE 集成</strong>：把 Pi 作为 LSP 后端或 VS Code 扩展的核心引擎。</li>
+            <li><strong>测试</strong>：编写集成测试时，用 SDK 驱动 agent 并断言其行为。</li>
+        </ul>
+
+        <div class="callout callout-info">
+            <div class="callout-title">Info</div>
+            <p>SDK 暴露了 CLI 背后的全部能力。CLI 本身就是 SDK 的一个薄封装——理解 SDK 等于理解了整个系统的编程接口。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="entry-points">12.2 SDK Entry Points</h2>
+        <!-- ================================================================ -->
+        <p>SDK 的入口在 <code>src/index.ts</code>，它重新导出了所有公共 API：</p>
+
+        <pre><code class="language-typescript">// src/index.ts — SDK 公共入口
+export { createAgentSession } from './session';
+export { createAgentSessionRuntime } from './runtime';
+export { createAgentSessionServices } from './services';
+export { createCodingTools, createReadOnlyTools } from './tools';
+export { InteractiveMode, runPrintMode, runRpcMode } from './modes';
+export type { AgentSessionEvent, AgentSessionEventListener } from './agent-session';</code></pre>
+
+        <p>在消费端，你只需：</p>
+        <pre><code class="language-typescript">import {
+    createAgentSession,
+    createCodingTools,
+    InteractiveMode,
+} from 'pi-agent';</code></pre>
+
+        <!-- ================================================================ -->
+        <h2 id="core-api">12.3 Core API</h2>
+        <!-- ================================================================ -->
+
+        <h3>createAgentSession()</h3>
+        <p>创建并配置一个 agent 会话。这是最常用的入口：</p>
+        <pre><code class="language-typescript">const session = await createAgentSession({
+    model: 'claude-sonnet-4-20250514',
+    tools: createCodingTools(),
+    systemPrompt: 'You are a helpful coding assistant.',
+    workspace: '/path/to/project',
+});</code></pre>
+
+        <h3>createAgentSessionRuntime()</h3>
+        <p>创建低层运行时，暴露消息循环和 token 流：</p>
+        <pre><code class="language-typescript">const runtime = await createAgentSessionRuntime({
+    model: 'claude-sonnet-4-20250514',
+    stream: true,
+    maxTurns: 10,
+});
+
+runtime.on('message', (msg) => console.log(msg.role, msg.content));
+runtime.on('token', (tok) => process.stdout.write(tok));</code></pre>
+
+        <h3>createAgentSessionServices()</h3>
+        <p>创建独立的服务实例（memory、tool registry、formatter），便于细粒度控制：</p>
+        <pre><code class="language-typescript">const services = await createAgentSessionServices({
+    memory: { type: 'sliding-window', maxTokens: 4096 },
+    tools: { registry: customRegistry },
+    formatter: { provider: 'anthropic' },
+});</code></pre>
+
+        <div class="callout callout-tip">
+            <div class="callout-title">Tip</div>
+            <p>大多数场景用 <code>createAgentSession()</code> 就够了。只有需要自定义消息循环或替换 formatter 时，才需要直接操作 runtime 或 services。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="tool-factories">12.4 Tool Factories</h2>
+        <!-- ================================================================ -->
+
+        <h3>createCodingTools()</h3>
+        <p>返回完整的编码工具集——文件读写、shell 执行、搜索等：</p>
+        <pre><code class="language-typescript">import { createCodingTools } from 'pi-agent';
+
+const tools = createCodingTools({
+    // 可选：限制可访问的目录
+    allowedPaths: ['/workspace/project'],
+    // 可选：禁用危险工具
+    disabledTools: ['shell_exec'],
+});
+
+console.log(tools.list().map(t => t.name));
+// ['read_file', 'write_file', 'list_dir', 'search', ...]</code></pre>
+
+        <h3>createReadOnlyTools()</h3>
+        <p>只读工具集——适合代码审查、问答等不需要修改文件的操作：</p>
+        <pre><code class="language-typescript">import { createReadOnlyTools } from 'pi-agent';
+
+const tools = createReadOnlyTools(process.cwd());
+
+// 只包含: read, grep, find, ls（4 个只读工具）
+console.log(tools.map(t => t.name));  // ['read', 'grep', 'find', 'ls']</code></pre>
+
+        <div class="callout callout-warning">
+            <div class="callout-title">Warning</div>
+            <p>生产环境务必使用 <code>createReadOnlyTools()</code> 或显式配置 <code>disabledTools</code>。不受限的 <code>shell_exec</code> 是主要的安全风险。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="run-modes">12.5 Run Modes</h2>
+        <!-- ================================================================ -->
+
+        <h3>InteractiveMode</h3>
+        <p>交互式 REPL 模式——与 CLI 行为一致，但可编程控制：</p>
+        <pre><code class="language-typescript">import { InteractiveMode } from 'pi-agent';
+
+const mode = new InteractiveMode({
+    session,
+    prompt: '> ',
+    historyFile: '/tmp/pi-history',
+});
+
+mode.on('line', (input) => console.log('User:', input));
+mode.on('response', (resp) => console.log('Agent:', resp));
+
+await mode.start();
+// 进入交互循环，按 Ctrl+C 退出</code></pre>
+
+        <h3>runPrintMode()</h3>
+        <p>一次性运行，输出结果后退出——适合脚本和管道：</p>
+        <pre><code class="language-typescript">import { runPrintMode } from 'pi-agent';
+
+await runPrintMode({
+    session,
+    input: 'Summarize the changes in src/',
+});
+// 输出到 stdout，执行完自动退出</code></pre>
+
+        <h3>runRpcMode()</h3>
+        <p>JSON-RPC over stdio——让外部程序通过结构化协议与 Pi 通信：</p>
+        <pre><code class="language-typescript">import { runRpcMode } from 'pi-agent';
+
+await runRpcMode({
+    session,
+    transport: 'stdio', // 或 'socket', 'pipe'
+});
+// 通过 stdin/stdout 收发 JSON-RPC 消息</code></pre>
+
+        <!-- ================================================================ -->
+        <h2 id="events">12.6 Event Subscription</h2>
+        <!-- ================================================================ -->
+        <p>SDK 通过 typed event system 暴露运行时事件。事件类型 <code>AgentSessionEvent</code> 是一个 discriminated union（类型 | AgentEvent | 会话特有事件）：</p>
+
+        <pre><code class="language-typescript">import type { AgentSessionEvent, AgentSessionEventListener } from 'pi-agent';
+
+// 订阅事件
+const listener: AgentSessionEventListener = (event) => {
+    switch (event.type) {
+        case 'agent_start':
+        case 'agent_end':
+        case 'turn_start':
+        case 'turn_end':
+        case 'message_start':
+        case 'message_update':
+        case 'message_end':
+        case 'tool_execution_start':
+        case 'tool_execution_end':
+            // ... 对应 AgentEvent 全部事件
+        case 'compaction_start':
+        case 'compaction_end':
+        case 'session_info_changed':
+        case 'thinking_level_changed':
+        case 'auto_retry_start':
+        case 'auto_retry_end':
+            // ... 会话特有事件
+    }
+};
+
+session.subscribe(listener);
+// 或使用类型安全的 helper
+session.on('tool_execution_start', (evt) => {
+    console.error(\`[tool] \${evt.toolName}(\${JSON.stringify(evt.args)})\`);
+});</code></pre>
+
+        <p>所有事件类型精确对应 <code>AgentSessionEvent</code> union——TypeScript 会帮你做 exhaustive check。</p>
+
+        <!-- ================================================================ -->
+        <h2 id="example">12.7 完整示例：最简 Agent</h2>
+        <!-- ================================================================ -->
+        <p>下面是一个约 40 行的完整工作示例——用 SDK 创建一个 agent 并让它回答问题：</p>
+
+        <pre><code class="language-typescript">// minimal-agent.ts
+import {
+    createAgentSession,
+    createReadOnlyTools,
+    runPrintMode,
+} from 'pi-agent';
+
+async function main() {
+    // 1. 创建会话
+    const session = await createAgentSession({
+        model: process.env.PI_MODEL ?? 'claude-sonnet-4-20250514',
+        tools: createReadOnlyTools(process.cwd()),
+        systemPrompt: 'You are a concise coding assistant.',
+    });
+
+    // 2. 订阅事件（可选）
+    session.subscribe((event) => {
+        if (event.type === 'tool_execution_start') {
+            console.error(`[tool] ${event.toolName}(${JSON.stringify(event.args)})`);
+        }
+        if (event.type === 'turn_end') {
+            console.error(`[turn] assistant message complete`);
+        }
+    });
+
+    // 3. 运行
+    await runPrintMode({
+        session,
+        input: process.argv[2] ?? 'What does this project do?',
+    });
+}
+
+main().catch((err) => {
+    console.error('Fatal:', err);
+    process.exit(1);
+});</code></pre>
+
+        <p>运行方式：</p>
+        <pre><code class="language-bash">$ npx tsx minimal-agent.ts "Explain the plugin system"
+You are a concise coding assistant.
+[tool] read_file({"path": "README.md"})
+[tool] list_dir({"path": "src/plugins"})
+[stats] 4827 tokens, 3210ms</code></pre>
+
+        <!-- ================================================================ -->
+        <h2 id="exercise">12.8 Exercise</h2>
+        <!-- ================================================================ -->
+        <div class="callout callout-exercise">
+            <div class="callout-title">Exercise</div>
+            <p><strong>Code Review Script</strong>：编写一个 Node.js 脚本，使用 Pi SDK 对指定目录下的所有 <code>.ts</code> 文件执行代码审查。</p>
+            <ol>
+                <li>使用 <code>createReadOnlyTools()</code> 确保只读。</li>
+                <li>用 <code>search()</code> 找出所有 <code>.ts</code> 文件。</li>
+                <li>对每个文件调用 agent，传入 prompt：<code>"Review this TypeScript file for bugs, style issues, and potential improvements."</code></li>
+                <li>将审查结果写入 <code>review-report.md</code>。</li>
+            </ol>
+            <p>提示：对每个文件，使用 <code>runPrintMode()</code> 传入文件内容作为 prompt。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="quiz">12.9 Quiz</h2>
+        <!-- ================================================================ -->
+        <div class="quiz">
+            <div class="quiz-question">1. <code>createAgentSession()</code> 和 <code>createAgentSessionRuntime()</code> 的主要区别是什么？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">前者是同步的，后者是异步的</li>
+                <li data-correct="true">前者是高层封装，隐藏了消息循环细节；后者暴露运行时，允许自定义消息处理</li>
+                <li data-correct="false">前者只能用于 CLI，后者只能用于 SDK</li>
+                <li data-correct="false">没有区别，只是名字不同</li>
+            </ul>
+            <div class="quiz-explanation"><code>createAgentSession()</code> 是面向大多数用户的便捷 API，内部管理了消息循环。<code>createAgentSessionRuntime()</code> 则把控制权交给调用者，适合需要自定义消息管道的场景。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">2. 在代码审查场景中，应该使用哪个 tool factory？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">createCodingTools()</li>
+                <li data-correct="true">createReadOnlyTools()</li>
+                <li data-correct="false">createShellTools()</li>
+                <li data-correct="false">createNetworkTools()</li>
+            </ul>
+            <div class="quiz-explanation">代码审查是只读操作。<code>createReadOnlyTools()</code> 只暴露读文件、列目录和搜索工具，避免 agent 意外修改文件。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">3. <code>runRpcMode()</code> 使用什么传输方式？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">HTTP REST</li>
+                <li data-correct="false">WebSocket</li>
+                <li data-correct="true">JSON-RPC over stdio（也支持 socket/pipe）</li>
+                <li data-correct="false">gRPC</li>
+            </ul>
+            <div class="quiz-explanation"><code>runRpcMode()</code> 默认使用 stdio 传输 JSON-RPC 消息，可选 socket 或 pipe。这是 IDE 集成和外部程序通信的常用方式。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">4. 以下哪个事件在工具调用<strong>之前</strong>触发？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">tool_execution_end</li>
+                <li data-correct="true">tool_execution_start</li>
+                <li data-correct="false">turn_end</li>
+                <li data-correct="false">agent_end</li>
+            </ul>
+            <div class="quiz-explanation"><code>tool_execution_start</code> 在 agent 决定调用工具时触发（参数已确定）。<code>tool_execution_end</code> 在工具执行完毕后触发。<code>turn_end</code> 在一整轮结束时触发。</div>
+        </div>
+
+        <section class="next-action-panel" aria-labelledby="ch12-next-action">
+            <h2 id="ch12-next-action">Next Action</h2>
+            <p>如果你打算自己嵌入 Pi，回到第 7 章和第 9 章，优先决定你要暴露什么 tool surface，以及会不会把 session 持久化交给现成的 `SessionManager`。</p>
+        </section>
+
+        <!-- Chapter Navigation -->
+        <nav class="chapter-nav">
+            <a href="11-interactive-mode.html" class="nav-prev">上一章：交互模式</a>
+            <a href="13-orchestrator.html" class="nav-next">下一章：编排器</a>
+        </nav>
+
+    </article>
+</main>
+
+<script src="../assets/js/app.js"></script>
+</body>
+</html>

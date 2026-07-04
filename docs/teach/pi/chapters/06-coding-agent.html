@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 6: pi-coding-agent — 主 CLI 架构 | Pi Agent Harness</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Sidebar -->
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">&#9776;</button>
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <h2>Pi Agent Harness</h2>
+        <div class="subtitle">Interactive Teaching</div>
+    </div>
+    <div class="sidebar-search">
+        <input type="text" id="searchInput" placeholder="搜索章节..." aria-label="搜索">
+    </div>
+    <div class="sidebar-nav">
+        <ul class="chapter-list">
+            <li><a href="01-what-is-pi.html"><span class="chapter-num">1</span> What is Pi</a></li>
+            <li><a href="02-monorepo.html"><span class="chapter-num">2</span> Monorepo 结构</a></li>
+            <li><a href="03-pi-ai.html"><span class="chapter-num">3</span> pi-ai 包</a></li>
+            <li><a href="04-agent-core.html"><span class="chapter-num">4</span> Agent 运行时</a></li>
+            <li><a href="05-pi-tui.html"><span class="chapter-num">5</span> pi-tui 终端 UI</a></li>
+            <li><a href="06-coding-agent.html" class="active"><span class="chapter-num">6</span> 主 CLI 架构</a></li>
+            <li><a href="07-tools.html"><span class="chapter-num">7</span> 工具系统</a></li>
+            <li><a href="08-extensions.html"><span class="chapter-num">8</span> 扩展系统</a></li>
+            <li><a href="09-session-management.html"><span class="chapter-num">9</span> 会话管理</a></li>
+            <li><a href="10-compaction.html"><span class="chapter-num">10</span> 压缩系统</a></li>
+            <li><a href="11-interactive-mode.html"><span class="chapter-num">11</span> 交互模式</a></li>
+            <li><a href="12-sdk.html"><span class="chapter-num">12</span> 编程式 SDK</a></li>
+            <li><a href="13-orchestrator.html"><span class="chapter-num">13</span> 编排器</a></li>
+            <li><a href="14-contributing.html"><span class="chapter-num">14</span> 贡献指南</a></li>
+        </ul>
+    </div>
+    <div class="sidebar-progress">
+        <div class="progress-label"><span>学习进度</span><span>0 / 14 章节</span></div>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+</nav>
+
+<!-- Search Results Overlay -->
+<div class="search-results" id="searchResults">
+    <div class="results-header">
+        <h3>搜索结果</h3>
+        <button class="results-close" id="searchResultsClose">&times;</button>
+    </div>
+    <div id="searchResultsList"></div>
+</div>
+
+<!-- Main Content -->
+<main class="main-content" data-chapter-id="06-coding-agent" data-searchable data-title="Chapter 6: pi-coding-agent — 主 CLI 架构">
+    <article class="content-wrapper">
+
+        <h1>Chapter 6: pi-coding-agent — 主 CLI 架构</h1>
+        <p>本章深入 Pi 命令行工具的核心——<code>pi-coding-agent</code> 包。这是用户直接交互的入口，也是整个系统中最复杂的模块。我们将从 CLI 启动流程开始，逐步拆解三种运行模式、核心会话抽象、运行时编排、配置系统、模型解析和认证存储。</p>
+
+        <section class="learner-cues" aria-labelledby="ch6-main-line">
+            <div class="cue-grid">
+                <div class="cue-card">
+                    <h2 id="ch6-main-line">Main Line</h2>
+                    <p>`pi-coding-agent` 是 Pi 的组装层。它不重新发明模型、agent loop 或 TUI，而是把这些子系统按一次真实 CLI 运行的顺序串起来。</p>
+                </div>
+                <div class="cue-card">
+                    <h2>Remember Now</h2>
+                    <p>如果你只想记住一件事，那就是用户看到的 Pi 行为大多发生在这个包里，因为这里决定了模式、会话、设置、工具和运行时如何组合。</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="callout callout-info">
+            <div class="callout-title">Info</div>
+            <p><code>pi-coding-agent</code> 是 Pi 的"外壳"——它负责解析 CLI 参数、加载配置、选择模型、管理会话文件，并把所有组件组装成一个可运行的 agent。理解这个包就理解了 Pi 的用户态行为。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="cli-entry">6.1 CLI 启动流程</h2>
+        <!-- ================================================================ -->
+        <p>当你运行 <code>pi "hello"</code> 时，操作系统执行的是 <code>packages/coding-agent/src/cli.ts</code>。这是整个应用的入口点：</p>
+
+        <pre><code class="language-typescript">// src/cli.ts — CLI 入口
+import { APP_NAME } from "./config.ts";
+import { configureHttpDispatcher } from "./core/http-dispatcher.ts";
+import { main } from "./main.ts";
+
+process.title = APP_NAME;
+process.env.PI_CODING_AGENT = "true";
+process.emitWarning = (() => {}) as typeof process.emitWarning;
+
+// 在 provider SDK 发送请求前配置 undici 全局 dispatcher
+configureHttpDispatcher();
+
+main(process.argv.slice(2));</code></pre>
+
+        <p>这个入口做了四件事：</p>
+        <ol>
+            <li>设置进程标题为 <code>pi</code>（影响 <code>ps</code> 输出）</li>
+            <li>设置环境变量 <code>PI_CODING_AGENT=true</code>（用于检测是否在 agent 内部运行）</li>
+            <li>抑制 Node.js 的 process warning（避免干扰输出）</li>
+            <li>调用 <code>main()</code> 启动应用</li>
+        </ol>
+
+        <p>真正的逻辑在 <code>main.ts</code> 中。它的核心流程如下：</p>
+
+        <pre><code class="language-ts">// 启动流程概览（src/main.ts）
+export async function main(args: string[], options?: MainOptions) {
+    resetTimings();
+
+    // 1. 处理离线模式
+    const offlineMode = args.includes("--offline") || isTruthyEnvFlag(process.env.PI_OFFLINE);
+
+    // 2. 创建 bootstrap settings manager（用于读取 sessionDir）
+    const bootstrapSettingsManager = SettingsManager.create(cwd, agentDir, { projectTrusted: false });
+
+    // 3. 处理 package/config 子命令（pi update, pi config ...）
+    if (await handlePackageCommand(args, ...)) { process.exit(exitCode); }
+    if (await handleConfigCommand(args, ...)) { return; }
+
+    // 4. 解析 CLI 参数
+    const parsed = parseArgs(args);
+
+    // 5. 确定运行模式（interactive / print / rpc）
+    let appMode = resolveAppMode(parsed, process.stdin.isTTY, process.stdout.isTTY);
+
+    // 6. 运行数据迁移
+    const { migratedAuthProviders, deprecationWarnings } = runMigrations(cwd);
+
+    // 7. 创建 SettingsManager
+    const startupSettingsManager = SettingsManager.create(cwd, agentDir);
+
+    // 8. 首次运行设置（主题选择、分析 opt-in）
+    if (appMode === "interactive" && shouldRunFirstTimeSetup()) {
+        await showFirstTimeSetup(startupSettingsManager);
+    }
+
+    // 9. 创建 SessionManager
+    let sessionManager = await createSessionManager(parsed, cwd, sessionDir, startupSettingsManager);
+
+    // 10. 创建 AuthStorage
+    const authStorage = AuthStorage.create();
+
+    // 11. 创建运行时（AgentSessionRuntime）
+    const runtime = await createAgentSessionRuntime(createRuntime, { cwd, agentDir, sessionManager });
+
+    // 12. 根据模式运行
+    if (appMode === "rpc") {
+        await runRpcMode(runtime);
+    } else if (appMode === "interactive") {
+        const interactiveMode = new InteractiveMode(runtime, { ... });
+        await interactiveMode.run();
+    } else {
+        const exitCode = await runPrintMode(runtime, { mode: toPrintOutputMode(appMode), ... });
+    }
+}</code></pre>
+
+        <h3>启动流程图</h3>
+        <pre><code class="language-ts">&lt;svg viewBox="0 0 800 900" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;background:#1a1a2e;border-radius:12px;padding:20px;"&gt;
+  &lt;defs&gt;
+    &lt;marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"&gt;
+      &lt;polygon points="0 0, 10 3.5, 0 7" fill="#6c7086"/&gt;
+    &lt;/marker&gt;
+  &lt;/defs&gt;
+
+  &lt;!-- Start --&gt;
+  &lt;rect x="300" y="20" width="200" height="50" rx="8" fill="#1e2030" stroke="#89b4fa" stroke-width="1.5"/&gt;
+  &lt;text x="400" y="50" text-anchor="middle" fill="#cdd6f4" font-size="14" font-weight="bold"&gt;cli.ts 入口&lt;/text&gt;
+
+  &lt;line x1="400" y1="70" x2="400" y2="100" stroke="#6c7086" stroke-width="1.5" marker-end="url(#arrowhead)"/&gt;
+
+  &lt;!-- main() --&gt;
+  &lt;rect x="280" y="105" width="240" height="50" rx="8" fill="#1e2030" stroke="#89b4fa" stroke-width="1.5"/&gt;
+  &lt;text x="400" y="135" text-anchor="middle" fill="#cdd6f4" font-size="14" font-weight="bold"&gt;main() 启动&lt;/text&gt;
+
+  &lt;line x1="400" y1="155" x2="400" y2="185" stroke="#6c7086" stroke-width="1.5" marker-end="url(#arrowhead)"/&gt;
+
+  &lt;!-- parseArgs --&gt;
+  &lt;rect x="280" y="190" width="240" height="50" rx="8" fill="#1e2030" stroke="#a6e3a1" stroke-width="1.5"/&gt;
+  &lt;text x="400" y="220" text-anchor="middle" fill="#cdd6f4" font-size="14" font-weight="bold"&gt;parseArgs()&lt;/text&gt;
+
+  &lt;line x1="400" y1="240" x2="400" y2="270" stroke="#6c7086" stroke-width="1.5" marker-end="url(#arrowhead)"/&gt;
+
+  &lt;!-- resolveAppMode --&gt;
+  &lt;rect x="260" y="275" width="280" height="50" rx="8" fill="#1e2030" fill="#1e2030" stroke="#f9e2af" stroke-width="1.5"/&gt;
+  &lt;text x="400" y="305" text-anchor="middle" fill="#cdd6f4" font-size="14" font-weight="bold"&gt;resolveAppMode() — 确定运行模式&lt;/text&gt;
+
+  &lt;line x1="400" y1="325" x2="400" y2="355" stroke="#6c7086" stroke-width="1.5" marker-end="url(#arrowhead)"/&gt;
+
+  &lt;!-- Three modes branching --&gt;
+  &lt;rect x="50" y="365" width="200" height="60" rx="8" fill="#1e2030" stroke="#89b4fa" stroke-width="1.5"/&gt;
+  &lt;text x="150" y="390" text-anchor="middle" fill="#89b4fa" font-size="13" font-weight="bold"&gt;Interactive&lt;/text&gt;
+  &lt;text x="150" y="410" text-anchor="middle" fill="#a6adc8" font-size="11"&gt;TTY + 无 -p 标志&lt;/text&gt;
+
+  &lt;rect x="300" y="365" width="200" height="60" rx="8" fill="#1e2030" stroke="#a6e3a1" stroke-width="1.5"/&gt;
+  &lt;text x="400" y="390" text-anchor="middle" fill="#a6e3a1" font-size="13" font-weight="bold"&gt;Print&lt;/text&gt;
+  &lt;text x="400" y="410" text-anchor="middle" fill="#a6adc8" font-size="11"&gt;-p 或非 TTY&lt;/text&gt;
+
+  &lt;rect x="550" y="365" width="200" height="60" rx="8" fill="#1e2030" stroke="#f38ba8" stroke-width="1.5"/&gt;
+  &lt;text x="650" y="390" text-anchor="middle" fill="#f38ba8" font-size="13" font-weight="bold"&gt;RPC&lt;/text&gt;
+  &lt;text x="650" y="410" text-anchor="middle" fill="#a6adc8" font-size="11"&gt;--mode rpc&lt;/text&gt;
+
+  &lt;!-- Arrows from resolveAppMode to modes --&gt;
+  &lt;line x1="340" y1="325" x2="150" y2="365" stroke="#6c7086" stroke-width="1.5" marker-end="url(#arrowhead)"/&gt;
+  &lt;line x1="400" y1="325" x2="400" y2="365" stroke="#6c7086" stroke-width="1.5" marker-end="url(#arrowhead)"/&gt;
+  &lt;line x1="460" y1="325" x2="650" y2="365" stroke="#6c7086" stroke-width="1.5" marker-end="url(#arrowhead)"/&gt;
+
+  &lt;!-- All modes converge to runtime --&gt;
+  &lt;rect x="250" y="480" width="300" height="50" rx="8" fill="#1e2030" stroke="#cba6f7" stroke-width="1.5"/&gt;
+  &lt;text x="400" y="510" text-anchor="middle" fill="#cdd6f4" font-size="14" font-weight="bold"&gt;createAgentSessionRuntime()&lt;/text&gt;
+
+  &lt;line x1="150" y1="425" x2="320" y2="480" stroke="#6c7086" stroke-width="1.5" marker-end="url(#arrowhead)"/&gt;
+  &lt;line x1="400" y1="425" x2="400" y2="480" stroke="#6c7086" stroke-width="1.5" marker-end="url(#arrowhead)"/&gt;
+  &lt;line x1="650" y1="425" x2="480" y2="480" stroke="#6c7086" stroke-width="1.5" marker-end="url(#arrowhead)"/&gt;
+
+  &lt;line x1="400" y1="530" x2="400" y2="560" stroke="#6c7086" stroke-width="1.5" marker-end="url(#arrowhead)"/&gt;
+
+  &lt;!-- SessionManager + AuthStorage --&gt;
+  &lt;rect x="50" y="570" width="220" height="50" rx="8" fill="#1e2030" fill="#1e2030" stroke="#f9e2af" stroke-width="1.5"/&gt;
+  &lt;text x="160" y="600" text-anchor="middle" fill="#cdd6f4" font-size="13" font-weight="bold"&gt;SessionManager&lt;/text&gt;
+
+  &lt;rect x="290" y="570" width="220" height="50" rx="8" fill="#1e2030" stroke="#f9e2af" stroke-width="1.5"/&gt;
+  &lt;text x="400" y="600" text-anchor="middle" fill="#cdd6f4" font-size="13" font-weight="bold"&gt;AuthStorage&lt;/text&gt;
+
+  &lt;rect x="530" y="570" width="220" height="50" rx="8" fill="#1e2030" stroke="#f9e2af" stroke-width="1.5"/&gt;
+  &lt;text x="640" y="600" text-anchor="middle" fill="#cdd6f4" font-size="13" font-weight="bold"&gt;SettingsManager&lt;/text&gt;
+
+  &lt;line x1="400" y1="530" x2="160" y2="570" stroke="#6c7086" stroke-width="1" marker-end="url(#arrowhead)"/&gt;
+  &lt;line x1="400" y1="530" x2="400" y2="570" stroke="#6c7086" stroke-width="1" marker-end="url(#arrowhead)"/&gt;
+  &lt;line x1="400" y1="530" x2="640" y2="570" stroke="#6c7086" stroke-width="1" marker-end="url(#arrowhead)"/&gt;
+
+  &lt;line x1="400" y1="620" x2="400" y2="650" stroke="#6c7086" stroke-width="1.5" marker-end="url(#arrowhead)"/&gt;
+
+  &lt;!-- AgentSession --&gt;
+  &lt;rect x="250" y="660" width="300" height="50" rx="8" fill="#1e2030" stroke="#89b4fa" stroke-width="2"/&gt;
+  &lt;text x="400" y="690" text-anchor="middle" fill="#cdd6f4" font-size="14" font-weight="bold"&gt;AgentSession 创建&lt;/text&gt;
+
+  &lt;line x1="400" y1="710" x2="400" y2="740" stroke="#6c7086" stroke-width="1.5" marker-end="url(#arrowhead)"/&gt;
+
+  &lt;!-- Model Resolution --&gt;
+  &lt;rect x="250" y="750" width="300" height="50" rx="8" fill="#1e2030" stroke="#a6e3a1" stroke-width="1.5"/&gt;
+  &lt;text x="400" y="780" text-anchor="middle" fill="#cdd6f4" font-size="14" font-weight="bold"&gt;ModelRegistry + Model 解析&lt;/text&gt;
+
+  &lt;line x1="400" y1="800" x2="400" y2="830" stroke="#6c7086" stroke-width="1.5" marker-end="url(#arrowhead)"/&gt;
+
+  &lt;!-- Run --&gt;
+  &lt;rect x="250" y="840" width="300" height="50" rx="8" fill="#1e2030" stroke="#a6e3a1" stroke-width="2"/&gt;
+  &lt;text x="400" y="870" text-anchor="middle" fill="#cdd6f4" font-size="14" font-weight="bold"&gt;运行选定模式&lt;/text&gt;
+&lt;/svg&gt;</code></pre>
+
+        <div class="callout callout-tip">
+            <div class="callout-title">Tip</div>
+            <p><code>main()</code> 的设计遵循"先收集依赖，再执行逻辑"的模式。它先创建所有必需的服务（SettingsManager、AuthStorage、ModelRegistry），然后才创建 AgentSessionRuntime，最后根据模式启动对应的 I/O 层。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="run-modes">6.2 三种运行模式</h2>
+        <!-- ================================================================ -->
+        <p>Pi 支持三种运行模式，由 <code>resolveAppMode()</code> 函数决定：</p>
+
+        <pre><code class="language-typescript">// src/main.ts — 模式判断逻辑
+function resolveAppMode(parsed: Args, stdinIsTTY: boolean, stdoutIsTTY: boolean): AppMode {
+    if (parsed.mode === "rpc") {
+        return "rpc";
+    }
+    if (parsed.mode === "json") {
+        return "json";
+    }
+    if (parsed.print || !stdinIsTTY || !stdoutIsTTY) {
+        return "print";
+    }
+    return "interactive";
+}</code></pre>
+
+        <p>模式判断规则：</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>条件</th>
+                    <th>模式</th>
+                    <th>说明</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>--mode rpc</code></td>
+                    <td><code>rpc</code></td>
+                    <td>JSON-RPC over stdio，用于外部程序嵌入</td>
+                </tr>
+                <tr>
+                    <td><code>--mode json</code></td>
+                    <td><code>json</code></td>
+                    <td>JSON 事件流输出到 stdout</td>
+                </tr>
+                <tr>
+                    <td><code>-p</code> 或 stdin/stdout 非 TTY</td>
+                    <td><code>print</code></td>
+                    <td>单次执行，输出结果后退出</td>
+                </tr>
+                <tr>
+                    <td>默认（TTY + 无 -p）</td>
+                    <td><code>interactive</code></td>
+                    <td>交互式 REPL，使用 pi-tui 渲染终端 UI</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Interactive 模式</h3>
+        <p>Interactive 模式是默认模式，当你直接在终端中运行 <code>pi</code> 时进入。它使用 <code>pi-tui</code> 库渲染终端用户界面：</p>
+
+        <pre><code class="language-typescript">// src/modes/interactive/interactive-mode.ts
+export class InteractiveMode {
+    private runtime: AgentSessionRuntime;
+    private tui: TUI;
+    // ...
+
+    async run(): Promise&lt;void&gt; {
+        await this.init();
+        // 启动 TUI 事件循环
+        // 处理用户输入、渲染消息流、显示工具调用结果
+    }
+}</code></pre>
+
+        <p>Interactive 模式的特点：</p>
+        <ul>
+            <li>使用 pi-tui 渲染富文本终端 UI（Markdown 渲染、语法高亮、图片显示）</li>
+            <li>支持多行编辑、历史记录、自动补全</li>
+            <li>支持会话切换（<code>/resume</code>、<code>/fork</code>、<code>/tree</code>）</li>
+            <li>支持模型切换（Ctrl+P）、thinking level 调整</li>
+            <li>支持扩展提供的 UI 组件和命令</li>
+        </ul>
+
+        <h3>Print 模式</h3>
+        <p>Print 模式用于脚本和管道操作——发送一个 prompt，收到输出后退出：</p>
+
+        <pre><code class="language-typescript">// src/modes/print-mode.ts
+export async function runPrintMode(
+    runtimeHost: AgentSessionRuntime,
+    options: PrintModeOptions
+): Promise&lt;number&gt; {
+    const { mode, messages = [], initialMessage, initialImages } = options;
+    let session = runtimeHost.session;
+    // 订阅事件（text 模式只输出最终结果，json 模式输出所有事件）
+    // 发送 initialMessage
+    // 等待 agent 完成
+    // 返回 exit code
+}</code></pre>
+
+        <p>使用示例：</p>
+        <pre><code class="language-bash"># 文本输出
+$ pi -p "总结这个项目的架构"
+
+# JSON 事件流
+$ pi --mode json "列出所有 API 端点" | jq .
+
+# 管道输入
+$ cat error.log | pi -p "分析这个错误日志"</code></pre>
+
+        <h3>RPC 模式</h3>
+        <p>RPC 模式通过 stdio 使用 JSON-RPC 协议与外部程序通信，是 IDE 集成和自动化工具的基础：</p>
+
+        <pre><code class="language-typescript">// src/modes/rpc/rpc-mode.ts
+/**
+ * RPC 模式：无头操作 + JSON stdin/stdout 协议。
+ *
+ * 协议：
+ * - 命令：JSON 对象，含 `type` 字段，可选 `id` 用于关联
+ * - 响应：JSON 对象，含 `type: "response"`, `command`, `success`, 可选 `data`/`error`
+ * - 事件：AgentSessionEvent 对象流
+ * - 扩展 UI：扩展 UI 请求被发出，客户端响应 extension_ui_response
+ */
+export async function runRpcMode(runtimeHost: AgentSessionRuntime): Promise&lt;void&gt; {
+    // 从 stdin 读取 JSON 命令
+    // 执行操作（prompt、abort、switch session 等）
+    // 将结果和事件写入 stdout
+}</code></pre>
+
+        <div class="callout callout-info">
+            <div class="callout-title">Info</div>
+            <p>RPC 模式是 Pi 与外部工具集成的核心。IDE 扩展、CI/CD 流水线、自动化测试框架都可以通过 JSON-RPC 协议驱动 Pi，而无需解析终端输出。</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>特性</th>
+                    <th>Interactive</th>
+                    <th>Print</th>
+                    <th>RPC</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>用户界面</td>
+                    <td>pi-tui 终端 UI</td>
+                    <td>纯文本/JSON stdout</td>
+                    <td>无 UI（JSON-RPC）</td>
+                </tr>
+                <tr>
+                    <td>输入方式</td>
+                    <td>交互式编辑器</td>
+                    <td>CLI 参数或 stdin</td>
+                    <td>JSON 命令</td>
+                </tr>
+                <tr>
+                    <td>输出方式</td>
+                    <td>富文本终端</td>
+                    <td>stdout</td>
+                    <td>JSON 响应/事件</td>
+                </tr>
+                <tr>
+                    <td>生命周期</td>
+                    <td>持续运行直到退出</td>
+                    <td>单次执行后退出</td>
+                    <td>持续运行直到连接关闭</td>
+                </tr>
+                <tr>
+                    <td>典型用户</td>
+                    <td>开发者</td>
+                    <td>脚本/CI</td>
+                    <td>IDE/外部工具</td>
+                </tr>
+                <tr>
+                    <td>核心类/函数</td>
+                    <td><code>InteractiveMode</code></td>
+                    <td><code>runPrintMode()</code></td>
+                    <td><code>runRpcMode()</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ================================================================ -->
+        <h2 id="agent-session">6.3 AgentSession：核心抽象</h2>
+        <!-- ================================================================ -->
+        <p><code>AgentSession</code> 是 <code>pi-coding-agent</code> 中最核心的类——它是所有运行模式共享的会话抽象。它封装了 agent 状态管理、事件订阅、会话持久化、压缩和模型切换。</p>
+
+        <div class="callout callout-info">
+            <div class="callout-title">Info</div>
+            <p><code>AgentSession</code> 本身不处理 I/O。它只管理 agent 状态和事件。三种运行模式各自添加自己的 I/O 层：Interactive 用 pi-tui，Print 用 stdout，RPC 用 JSON-RPC。</p>
+        </div>
+
+        <h3>类结构概览</h3>
+        <pre><code class="language-typescript">// src/core/agent-session.ts
+export class AgentSession {
+    readonly agent: Agent;              // 来自 pi-agent-core 的核心 Agent
+    readonly sessionManager: SessionManager;  // 会话持久化（JSONL 文件）
+    readonly settingsManager: SettingsManager; // 配置管理
+
+    // 事件订阅
+    private _eventListeners: AgentSessionEventListener[] = [];
+    private _unsubscribeAgent?: () =&gt; void;
+
+    // 消息队列
+    private _steeringMessages: string[] = [];   // 转向消息（中断当前）
+    private _followUpMessages: string[] = [];    // 跟进消息（排队等待）
+    private _pendingNextTurnMessages: CustomMessage[] = [];  // 下轮上下文
+
+    // 压缩状态
+    private _compactionAbortController: AbortController | undefined;
+    private _autoCompactionAbortController: AbortController | undefined;
+
+    // 重试状态
+    private _retryAbortController: AbortController | undefined;
+    private _retryAttempt = 0;
+
+    // Bash 执行状态
+    private _bashAbortController: AbortController | undefined;
+
+    // 扩展系统
+    private _extensionRunner!: ExtensionRunner;
+    private _toolRegistry: Map&lt;string, AgentTool&gt; = new Map();
+    private _toolDefinitions: Map&lt;string, ToolDefinitionEntry&gt; = new Map();
+    // ...
+}</code></pre>
+
+        <h3>构造函数</h3>
+        <p>构造函数接收一个 <code>AgentSessionConfig</code> 对象，并立即完成三项关键设置：</p>
+
+        <pre><code class="language-typescript">constructor(config: AgentSessionConfig) {
+    this.agent = config.agent;
+    this.sessionManager = config.sessionManager;
+    this.settingsManager = config.settingsManager;
+    this._scopedModels = config.scopedModels ?? [];
+    this._resourceLoader = config.resourceLoader;
+    this._customTools = config.customTools ?? [];
+    this._cwd = config.cwd;
+    this._modelRegistry = config.modelRegistry;
+    // ...
+
+    // 1. 订阅 agent 事件（内部处理：持久化、扩展、自动压缩、重试）
+    this._unsubscribeAgent = this.agent.subscribe(this._handleAgentEvent);
+    // 2. 安装工具钩子（beforeToolCall / afterToolCall）
+    this._installAgentToolHooks();
+    // 3. 安装 prepareNextTurnWithContext 钩子（刷新 system prompt 和工具）
+    this._installAgentNextTurnRefresh();
+
+    // 4. 构建运行时：创建扩展 runner、注册工具、构建 system prompt
+    this._buildRuntime({
+        activeToolNames: this._initialActiveToolNames,
+        includeAllExtensionTools: true,
+    });
+}</code></pre>
+
+        <h3>事件订阅机制</h3>
+        <p><code>AgentSession</code> 的事件系统连接了底层 Agent 和上层 UI：</p>
+
+        <pre><code class="language-typescript">// 订阅事件——返回取消订阅函数
+subscribe(listener: AgentSessionEventListener): () =&gt; void {
+    this._eventListeners.push(listener);
+    return () =&gt; {
+        const index = this._eventListeners.indexOf(listener);
+        if (index !== -1) {
+            this._eventListeners.splice(index, 1);
+        }
+    };
+}
+
+// 内部事件处理器——持久化 + 扩展 + 通知监听器
+private _handleAgentEvent = async (event: AgentEvent): Promise&lt;void&gt; {
+    // 1. 从队列中移除已交付的消息
+    if (event.type === "message_start" &amp;&amp; event.message.role === "user") {
+        // 从 steering/followUp 队列中移除
+    }
+
+    // 2. 通知扩展
+    await this._emitExtensionEvent(event);
+
+    // 3. 通知所有监听器
+    this._emit(event);
+
+    // 4. 持久化消息到 session 文件
+    if (event.type === "message_end") {
+        if (event.message.role === "user" || event.message.role === "assistant" || event.message.role === "toolResult") {
+            this.sessionManager.appendMessage(event.message);
+        }
+        // 跟踪 assistant 消息用于自动压缩
+        if (event.message.role === "assistant") {
+            this._lastAssistantMessage = event.message;
+        }
+    }
+};</code></pre>
+
+        <h3>prompt() 方法</h3>
+        <p><code>prompt()</code> 是发送用户消息的核心方法。它处理了命令拦截、模板扩展、流式排队、模型验证和压缩检查：</p>
+
+        <pre><code class="language-typescript" class="collapsible">async prompt(text: string, options?: PromptOptions): Promise&lt;void&gt; {
+    const expandPromptTemplates = options?.expandPromptTemplates ?? true;
+
+    // 1. 处理扩展命令（如 /session, /tree, /help）
+    if (expandPromptTemplates &amp;&amp; text.startsWith("/")) {
+        const handled = await this._tryExecuteExtensionCommand(text);
+        if (handled) return;
+    }
+
+    // 2. 触发 input 事件（扩展可以拦截或转换输入）
+    if (this._extensionRunner.hasHandlers("input")) {
+        const inputResult = await this._extensionRunner.emitInput(currentText, ...);
+        if (inputResult.action === "handled") return;
+        if (inputResult.action === "transform") { currentText = inputResult.text; }
+    }
+
+    // 3. 展开技能命令和 prompt 模板
+    let expandedText = currentText;
+    if (expandPromptTemplates) {
+        expandedText = this._expandSkillCommand(expandedText);
+        expandedText = expandPromptTemplate(expandedText, [...this.promptTemplates]);
+    }
+
+    // 4. 如果正在流式响应，排队消息
+    if (this.isStreaming) {
+        if (!options?.streamingBehavior) throw new Error("需要指定 streamingBehavior");
+        if (options.streamingBehavior === "followUp") {
+            await this._queueFollowUp(expandedText, currentImages);
+        } else {
+            await this._queueSteer(expandedText, currentImages);
+        }
+        return;
+    }
+
+    // 5. 验证模型和 API key
+    if (!this.model) throw new Error(formatNoModelSelectedMessage());
+    if (!this._modelRegistry.hasConfiguredAuth(this.model)) { throw ... }
+
+    // 6. 检查是否需要压缩
+    const lastAssistant = this._findLastAssistantMessage();
+    if (lastAssistant) { await this._checkCompaction(lastAssistant, false); }
+
+    // 7. 构建消息数组
+    messages = [];
+    messages.push({ role: "user", content: [...], timestamp: Date.now() });
+    // 注入 nextTurn 消息
+    for (const msg of this._pendingNextTurnMessages) { messages.push(msg); }
+
+    // 8. 触发 before_agent_start 扩展事件
+    const result = await this._extensionRunner.emitBeforeAgentStart(...);
+
+    // 9. 运行 agent
+    await this._runAgentPrompt(messages);
+}</code></pre>
+
+        <h3>steer() 和 followUp()</h3>
+        <p>当 agent 正在流式响应时，用户发送的新消息需要排队。Pi 支持两种排队策略：</p>
+
+        <pre><code class="language-typescript">// steer——中断当前响应，立即处理新消息
+async steer(text: string, images?: ImageContent[]): Promise&lt;void&gt; {
+    let expandedText = this._expandSkillCommand(text);
+    expandedText = expandPromptTemplate(expandedText, [...this.promptTemplates]);
+    await this._queueSteer(expandedText, images);
+}
+
+// followUp——等待当前响应完成后处理
+async followUp(text: string, images?: ImageContent[]): Promise&lt;void&gt; {
+    let expandedText = this._expandSkillCommand(text);
+    expandedText = expandPromptTemplate(expandedText, [...this.promptTemplates]);
+    await this._queueFollowUp(expandedText, images);
+}
+
+private async _queueSteer(text: string, images?: ImageContent[]): Promise&lt;void&gt; {
+    this._steeringMessages.push(text);
+    this._emitQueueUpdate();
+    this.agent.steer({ role: "user", content: [...], timestamp: Date.now() });
+}
+
+private async _queueFollowUp(text: string, images?: ImageContent[]): Promise&lt;void&gt; {
+    this._followUpMessages.push(text);
+    this._emitQueueUpdate();
+    this.agent.followUp({ role: "user", content: [...], timestamp: Date.now() });
+}</code></pre>
+
+        <div class="callout callout-tip">
+            <div class="callout-title">Tip</div>
+            <p>steer 和 followUp 的区别在于响应优先级。steer 会中断 agent 当前的工具调用链（类似"插嘴"），followUp 则等 agent 完成当前轮次后再处理（类似"排队"）。用户可以通过设置 <code>steeringMode</code> 和 <code>followUpMode</code> 控制一次处理多少消息。</p>
+        </div>
+
+        <h3>模型管理</h3>
+        <p><code>AgentSession</code> 管理模型的设置和切换：</p>
+
+        <pre><code class="language-typescript">// 设置模型（验证 auth 已配置）
+async setModel(model: Model&lt;any&gt;): Promise&lt;void&gt; {
+    if (!this._modelRegistry.hasConfiguredAuth(model)) {
+        throw new Error(`No API key for ${model.provider}/${model.id}`);
+    }
+    const previousModel = this.model;
+    this.agent.state.model = model;
+    this.sessionManager.appendModelChange(model.provider, model.id);
+    this.settingsManager.setDefaultModelAndProvider(model.provider, model.id);
+    this.setThinkingLevel(thinkingLevel);
+    await this._emitModelSelect(nextModel, previousModel, "set");
+}
+
+// 循环切换模型（Ctrl+P）
+async cycleModel(direction: "forward" | "backward" = "forward"): Promise&lt;ModelCycleResult | undefined&gt; {
+    if (this._scopedModels.length &gt; 0) {
+        return this._cycleScopedModel(direction);  // 在 --models 列表中循环
+    }
+    return this._cycleAvailableModel(direction);  // 在所有可用模型中循环
+}
+
+// 设置 thinking level（自动 clamp 到模型能力范围）
+setThinkingLevel(level: ThinkingLevel): void {
+    const availableLevels = this.getAvailableThinkingLevels();
+    const effectiveLevel = availableLevels.includes(level) ? level : this._clampThinkingLevel(level, availableLevels);
+    this.agent.state.thinkingLevel = effectiveLevel;
+    if (isChanging) {
+        this.sessionManager.appendThinkingLevelChange(effectiveLevel);
+        this.settingsManager.setDefaultThinkingLevel(effectiveLevel);
+        this._emit({ type: "thinking_level_changed", level: effectiveLevel });
+    }
+}</code></pre>
+
+        <h3>Compaction（压缩）</h3>
+        <p>当会话上下文接近模型窗口限制时，<code>AgentSession</code> 自动触发压缩——将历史消息总结为摘要，释放 token 空间：</p>
+
+        <pre><code class="language-typescript" class="collapsible">// 手动压缩
+async compact(customInstructions?: string): Promise&lt;CompactionResult&gt; {
+    this._disconnectFromAgent();       // 暂停事件处理
+    await this.abort();                // 中止当前操作
+    this._compactionAbortController = new AbortController();
+    this._emit({ type: "compaction_start", reason: "manual" });
+
+    try {
+        // 1. 准备压缩数据
+        const pathEntries = this.sessionManager.getBranch();
+        const preparation = prepareCompaction(pathEntries, settings);
+
+        // 2. 让扩展有机会提供自定义压缩
+        if (this._extensionRunner.hasHandlers("session_before_compact")) {
+            // 扩展可以取消或提供自定义压缩结果
+        }
+
+        // 3. 生成摘要
+        const result = await compact(preparation, this.model, apiKey, headers, ...);
+
+        // 4. 保存压缩结果到 session
+        this.sessionManager.appendCompaction(summary, firstKeptEntryId, tokensBefore, details);
+
+        // 5. 更新 agent 消息列表
+        this.agent.state.messages = sessionContext.messages;
+
+        return compactionResult;
+    } finally {
+        this._compactionAbortController = undefined;
+        this._reconnectToAgent();      // 恢复事件处理
+    }
+}</code></pre>
+
+        <p>自动压缩在每次 agent 响应完成后检查两种情况：</p>
+        <ul>
+            <li><strong>Overflow</strong>：LLM 返回上下文溢出错误 → 压缩并自动重试</li>
+            <li><strong>Threshold</strong>：上下文超过阈值 → 压缩，不重试（用户继续）</li>
+        </ul>
+
+        <h3>dispose() 方法</h3>
+        <p>当会话被替换或关闭时，<code>dispose()</code> 清理所有资源：</p>
+
+        <pre><code class="language-typescript">dispose(): void {
+    try {
+        this.abortRetry();
+        this.abortCompaction();
+        this.abortBranchSummary();
+        this.abortBash();
+        this.agent.abort();
+    } catch {
+        // dispose 必须成功，即使 abort 钩子抛出异常
+    }
+
+    // 使扩展上下文失效（防止扩展使用过时引用）
+    this._extensionRunner.invalidate("This extension ctx is stale after session replacement...");
+
+    this._disconnectFromAgent();
+    this._eventListeners = [];
+    cleanupSessionResources(this.sessionId);
+}</code></pre>
+
+        <!-- ================================================================ -->
+        <h2 id="runtime">6.4 AgentSessionRuntime：运行时编排</h2>
+        <!-- ================================================================ -->
+        <p><code>AgentSessionRuntime</code> 拥有当前的 <code>AgentSession</code> 和其 cwd-bound 服务。它负责会话替换时的生命周期管理——销毁旧运行时，创建新运行时，通知相关方。</p>
+
+        <pre><code class="language-typescript">// src/core/agent-session-runtime.ts
+export class AgentSessionRuntime {
+    private _session: AgentSession;
+    private _services: AgentSessionServices;
+    private readonly createRuntime: CreateAgentSessionRuntimeFactory;
+    private _diagnostics: AgentSessionRuntimeDiagnostic[];
+    private _modelFallbackMessage?: string;
+
+    // 会话替换回调
+    private rebindSession?: (session: AgentSession) =&gt; Promise&lt;void&gt;;
+    private beforeSessionInvalidate?: () =&gt; void;
+
+    get session(): AgentSession { return this._session; }
+    get services(): AgentSessionServices { return this._services; }
+    get cwd(): string { return this._services.cwd; }
+}</code></pre>
+
+        <h3>会话切换</h3>
+        <p><code>AgentSessionRuntime</code> 的会话切换方法是理解 Pi 多会话管理的关键：</p>
+
+        <pre><code class="language-typescript" class="collapsible">// 切换到另一个会话（resume）
+async switchSession(sessionPath: string, options?: {
+    cwdOverride?: string;
+    withSession?: (ctx: ReplacedSessionContext) =&gt; Promise&lt;void&gt;;
+}): Promise&lt;{ cancelled: boolean }&gt; {
+    // 1. 触发 session_before_switch 事件（扩展可以取消）
+    const beforeResult = await this.emitBeforeSwitch("resume", sessionPath);
+    if (beforeResult.cancelled) return { cancelled: true };
+
+    // 2. 打开目标 session
+    const sessionManager = SessionManager.open(sessionPath, undefined, options?.cwdOverride);
+    assertSessionCwdExists(sessionManager, this.cwd);
+
+    // 3. 销毁当前运行时
+    await this.teardownCurrent("resume", sessionManager.getSessionFile());
+
+    // 4. 创建新运行时
+    this.apply(await this.createRuntime({
+        cwd: sessionManager.getCwd(),
+        agentDir: this.services.agentDir,
+        sessionManager,
+        sessionStartEvent: { type: "session_start", reason: "resume", previousSessionFile },
+    }));
+
+    // 5. 通知 rebind 和 withSession
+    await this.finishSessionReplacement(options?.withSession);
+    return { cancelled: false };
+}
+
+// 创建新会话
+async newSession(options?: {
+    parentSession?: string;
+    setup?: (sessionManager: SessionManager) =&gt; Promise&lt;void&gt;;
+}): Promise&lt;{ cancelled: boolean }&gt; {
+    const beforeResult = await this.emitBeforeSwitch("new");
+    if (beforeResult.cancelled) return { cancelled: true };
+
+    const sessionManager = this.session.sessionManager.isPersisted()
+        ? SessionManager.create(this.cwd, sessionDir)
+        : SessionManager.inMemory(this.cwd);
+
+    await this.teardownCurrent("new", sessionManager.getSessionFile());
+    this.apply(await this.createRuntime({ ... }));
+    await this.finishSessionReplacement(options?.withSession);
+    return { cancelled: false };
+}
+
+// 分叉会话
+async fork(entryId: string, options?: { position?: "before" | "at" }): Promise&lt;{ cancelled: boolean }&gt; {
+    const beforeResult = await this.emitBeforeFork(entryId, { position });
+    if (beforeResult.cancelled) return { cancelled: true };
+
+    // 创建分支 session
+    const sessionManager = SessionManager.open(currentSessionFile, sessionDir);
+    const forkedSessionPath = sessionManager.createBranchedSession(targetLeafId);
+
+    await this.teardownCurrent("fork", sessionManager.getSessionFile());
+    this.apply(await this.createRuntime({ ... }));
+    await this.finishSessionReplacement(options?.withSession);
+    return { cancelled: false };
+}
+
+// 内部：销毁当前运行时
+private async teardownCurrent(reason: SessionShutdownEvent["reason"], targetSessionFile?: string): Promise&lt;void&gt; {
+    await emitSessionShutdownEvent(this.session.extensionRunner, {
+        type: "session_shutdown", reason, targetSessionFile,
+    });
+    this.beforeSessionInvalidate?.();  // UI 拆卸
+    this.session.dispose();
+}</code></pre>
+
+        <div class="callout callout-warning">
+            <div class="callout-title">Warning</div>
+            <p>会话替换是一个原子操作——要么完全成功，要么完全失败。如果新运行时创建失败，旧会话已经被销毁，错误会传播给调用者处理。调用者负责用户可见的错误处理。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="config-system">6.5 配置系统</h2>
+        <!-- ================================================================ -->
+        <p>Pi 的配置系统基于 <code>.pi/</code> 目录和 <code>SettingsManager</code> 类，支持全局和项目级两层配置。</p>
+
+        <h3>.pi/ 目录结构</h3>
+        <p>配置目录由 <code>config.ts</code> 中的函数定义：</p>
+
+        <pre><code class="language-typescript">// src/config.ts — 配置路径定义
+export const CONFIG_DIR_NAME = pkg.piConfig?.configDir || ".pi";
+export const ENV_AGENT_DIR = `${APP_NAME.toUpperCase()}_CODING_AGENT_DIR`;
+
+// Agent 配置目录：~/.pi/agent/
+export function getAgentDir(): string {
+    const envDir = process.env[ENV_AGENT_DIR];
+    if (envDir) return expandTildePath(envDir);
+    return join(homedir(), CONFIG_DIR_NAME, "agent");
+}
+
+// 各配置文件路径
+export function getModelsPath(): string { return join(getAgentDir(), "models.json"); }
+export function getAuthPath(): string { return join(getAgentDir(), "auth.json"); }
+export function getSettingsPath(): string { return join(getAgentDir(), "settings.json"); }
+export function getSessionsDir(): string { return join(getAgentDir(), "sessions"); }
+export function getToolsDir(): string { return join(getAgentDir(), "tools"); }
+export function getBinDir(): string { return join(getAgentDir(), "bin"); }
+export function getPromptsDir(): string { return join(getAgentDir(), "prompts"); }
+export function getCustomThemesDir(): string { return join(getAgentDir(), "themes"); }</code></pre>
+
+        <p>完整的 <code>.pi/</code> 目录结构：</p>
+        <pre><code class="language-bash">~/.pi/
+├── agent/
+│   ├── auth.json          # API keys 和 OAuth tokens
+│   ├── settings.json      # 全局设置
+│   ├── models.json        # 自定义模型定义
+│   ├── sessions/          # 会话 JSONL 文件
+│   │   ├── project__path__session-id.jsonl
+│   │   └── ...
+│   ├── tools/             # 自定义工具
+│   ├── prompts/           # Prompt 模板
+│   ├── themes/            # 自定义主题
+│   └── bin/                # 托管二进制文件（fd, rg）
+└── project/
+    └── .pi/
+        ├── settings.json    # 项目级设置
+        └── agents/          # 项目上下文文件（AGENTS.md 等）
+```
+
+        <h3>SettingsManager</h3>
+        <p><code>SettingsManager</code> 管理配置的加载、合并和持久化。它支持两层配置：</p>
+        <ul>
+            <li><strong>全局配置</strong>：<code>~/.pi/agent/settings.json</code>——跨项目共享</li>
+            <li><strong>项目配置</strong>：<code>.pi/settings.json</code>——当前项目专用</li>
+        </ul>
+
+        <pre><code class="language-typescript">// src/core/settings-manager.ts
+export class SettingsManager {
+    private storage: SettingsStorage;
+    private globalSettings: Settings;
+    private projectSettings: Settings;
+    private settings: Settings;  // 合并后的结果
+    private projectTrusted: boolean;
+
+    // 创建从文件加载的 SettingsManager
+    static create(cwd: string, agentDir: string, options?: SettingsManagerCreateOptions): SettingsManager;
+
+    // 创建内存中的 SettingsManager（无文件 I/O）
+    static inMemory(settings?: Partial&lt;Settings&gt;, options?: SettingsManagerCreateOptions): SettingsManager;
+
+    // 获取合并后的设置（project 覆盖 global）
+    getGlobalSettings(): Settings { return this.globalSettings; }
+    getProjectSettings(): Settings { return this.projectSettings; }
+}
+
+// 深度合并：project 优先，嵌套对象递归合并
+function deepMergeSettings(base: Settings, overrides: Settings): Settings {
+    const result: Settings = { ...base };
+    for (const key of Object.keys(overrides)) {
+        // 嵌套对象递归合并，其他类型直接覆盖
+        if (typeof overrideValue === "object" && !Array.isArray(overrideValue)) {
+            result[key] = { ...baseValue, ...overrideValue };
+        } else {
+            result[key] = overrideValue;
+        }
+    }
+    return result;
+}</code></pre>
+
+        <p>Settings 接口定义了所有可配置项：</p>
+
+        <pre><code class="language-typescript" class="collapsible">export interface Settings {
+    defaultProvider?: string;
+    defaultModel?: string;
+    defaultThinkingLevel?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+    transport?: TransportSetting;
+    steeringMode?: "all" | "one-at-a-time";
+    followUpMode?: "all" | "one-at-a-time";
+    theme?: string;
+    compaction?: CompactionSettings;
+    branchSummary?: BranchSummarySettings;
+    retry?: RetrySettings;
+    hideThinkingBlock?: boolean;
+    shellPath?: string;
+    shellCommandPrefix?: string;
+    defaultProjectTrust?: "ask" | "always" | "never";
+    packages?: PackageSource[];
+    extensions?: string[];
+    skills?: string[];
+    prompts?: string[];
+    themes?: string[];
+    enabledModels?: string[];
+    terminal?: TerminalSettings;
+    images?: ImageSettings;
+    thinkingBudgets?: ThinkingBudgetsSettings;
+    httpProxy?: string;
+    httpIdleTimeoutMs?: number;
+    // ...
+}</code></pre>
+
+        <div class="callout callout-tip">
+            <div class="callout-title">Tip</div>
+            <p>设置文件使用 <code>proper-lockfile</code> 进行文件锁定，防止多个 pi 实例同时写入导致数据损坏。写入通过队列串行化，确保一致性。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="model-resolution">6.6 模型解析</h2>
+        <!-- ================================================================ -->
+        <p>Pi 的模型系统由 <code>ModelRegistry</code> 和 <code>model-resolver.ts</code> 共同管理。</p>
+
+        <h3>ModelRegistry</h3>
+        <p><code>ModelRegistry</code> 管理内置和自定义模型，提供 API key 解析：</p>
+
+        <pre><code class="language-typescript">// src/core/model-registry.ts
+export class ModelRegistry {
+    private models: Model&lt;Api&gt;[] = [];
+    private providerRequestConfigs: Map&lt;string, ProviderRequestConfig&gt; = new Map();
+    private modelRequestHeaders: Map&lt;string, Record&lt;string, string&gt;&gt; = new Map();
+    private registeredProviders: Map&lt;string, ProviderConfigInput&gt; = new Map();
+    readonly authStorage: AuthStorage;
+    private modelsJsonPath: string | undefined;
+
+    // 创建 registry（从 models.json 加载自定义模型）
+    static create(authStorage: AuthStorage, modelsJsonPath?: string): ModelRegistry;
+
+    // 获取所有可用模型（已配置 auth 的）
+    async getAvailable(): Promise&lt;Model&lt;Api&gt;[]&gt;;
+
+    // 查找模型（精确匹配）
+    find(provider: string, modelId: string): Model&lt;Api&gt; | undefined;
+
+    // 获取 API key 和 headers
+    async getApiKeyAndHeaders(model: Model&lt;Api&gt;): Promise&lt;ResolvedRequestAuth&gt;;
+
+    // 检查是否已配置 auth
+    hasConfiguredAuth(model: Model&lt;Api&gt;): boolean;
+
+    // 注册自定义 provider
+    registerProvider(name: string, config: ProviderConfigInput): void;
+}</code></pre>
+
+        <h3>默认模型</h3>
+        <p>每个 provider 都有一个默认模型，定义在 <code>model-resolver.ts</code> 中：</p>
+
+        <pre><code class="language-typescript">// src/core/model-resolver.ts
+export const defaultModelPerProvider: Record&lt;KnownProvider, string&gt; = {
+    "amazon-bedrock": "us.anthropic.claude-opus-4-6-v1",
+    anthropic: "claude-opus-4-8",
+    openai: "gpt-5.5",
+    "azure-openai-responses": "gpt-5.4",
+    deepseek: "deepseek-v4-pro",
+    google: "gemini-3.1-pro-preview",
+    "google-vertex": "gemini-3.1-pro-preview",
+    xai: "grok-4.20-0309-reasoning",
+    mistral: "devstral-medium-latest",
+    minimax: "MiniMax-M2.7",
+    // ... 更多 provider
+};</code></pre>
+
+        <h3>模型作用域解析</h3>
+        <p><code>resolveModelScope()</code> 解析 <code>--models</code> 标志中的模型模式（支持 glob）：</p>
+
+        <pre><code class="language-typescript" class="collapsible">export async function resolveModelScope(
+    patterns: string[],
+    modelRegistry: ModelRegistry
+): Promise&lt;ScopedModel[]&gt; {
+    const availableModels = await modelRegistry.getAvailable();
+    const scopedModels: ScopedModel[] = [];
+
+    for (const pattern of patterns) {
+        // 检查是否包含 glob 字符
+        if (pattern.includes("*") || pattern.includes("?")) {
+            // 提取可选的 thinking level 后缀（如 "provider/*:high"）
+            const colonIdx = pattern.lastIndexOf(":");
+            let thinkingLevel: ThinkingLevel | undefined;
+            if (colonIdx !== -1) {
+                thinkingLevel = isValidThinkingLevel(suffix) ? suffix : undefined;
+            }
+
+            // 匹配 "provider/modelId" 或 "modelId"
+            const matchingModels = availableModels.filter((m) =&gt; {
+                const fullId = `${m.provider}/${m.id}`;
+                return minimatch(fullId, globPattern, { nocase: true })
+                    || minimatch(m.id, globPattern, { nocase: true });
+            });
+            // ...
+        } else {
+            // 精确匹配
+            const model = findExactModelReferenceMatch(pattern, availableModels);
+            // ...
+        }
+    }
+    return scopedModels;
+}</code></pre>
+
+        <h3>CLI 模型解析</h3>
+        <p><code>resolveCliModel()</code> 处理 <code>--provider</code> + <code>--model</code> 参数：</p>
+
+        <pre><code class="language-typescript">// src/core/model-resolver.ts
+export function resolveCliModel(options: {
+    cliProvider?: string;
+    cliModel?: string;
+    cliThinking?: ThinkingLevel;
+    modelRegistry: ModelRegistry;
+}): {
+    model?: Model&lt;Api&gt;;
+    thinkingLevel?: ThinkingLevel;
+    warning?: string;
+    error?: string;
+} {
+    const { cliProvider, cliModel, modelRegistry } = options;
+
+    if (cliProvider &amp;&amp; !cliModel) {
+        // 只有 provider，使用默认模型
+        const defaultId = defaultModelPerProvider[cliProvider as KnownProvider];
+        if (defaultId) {
+            model = modelRegistry.find(cliProvider, defaultId);
+        }
+    }
+
+    if (cliModel?.includes("/")) {
+        // 完整引用：provider/modelId
+        model = findExactModelReferenceMatch(cliModel, availableModels);
+    } else if (cliModel) {
+        // 模糊匹配
+        model = findBestMatchWithFallback(cliModel, availableModels, cliProvider);
+    }
+
+    return { model, thinkingLevel, warning, error };
+}</code></pre>
+
+        <!-- ================================================================ -->
+        <h2 id="auth-storage">6.7 认证存储</h2>
+        <!-- ================================================================ -->
+        <p><code>AuthStorage</code> 管理 API keys 和 OAuth tokens 的加载、保存和刷新。它使用文件锁定防止多个 pi 实例同时刷新 token。</p>
+
+        <pre><code class="language-typescript">// src/core/auth-storage.ts
+export class AuthStorage {
+    private data: AuthStorageData = {};
+    private runtimeOverrides: Map&lt;string, string&gt; = new Map();
+    private storage: AuthStorageBackend;
+
+    // 创建（从 ~/.pi/agent/auth.json 加载）
+    static create(authPath?: string): AuthStorage;
+
+    // 创建内存中实例（测试用）
+    static inMemory(data?: AuthStorageData): AuthStorage;
+
+    // 设置运行时 API key（不持久化，用于 --api-key 标志）
+    setRuntimeApiKey(provider: string, apiKey: string): void;
+
+    // 获取 API key（按优先级：runtime &gt; stored &gt; environment &gt; fallback）
+    async getApiKey(provider: string, options?: GetApiKeyOptions): Promise&lt;string | undefined&gt;;
+
+    // 获取认证状态
+    async getStatus(provider: string): Promise&lt;AuthStatus&gt;;
+
+    // 保存 credential
+    setCredential(provider: string, credential: AuthCredential): void;
+
+    // 重新加载（从磁盘）
+    reload(): void;
+}</code></pre>
+
+        <h3>存储后端</h3>
+        <p><code>AuthStorage</code> 支持两种存储后端：</p>
+
+        <pre><code class="language-typescript">// 文件后端（生产环境使用）
+export class FileAuthStorageBackend implements AuthStorageBackend {
+    private authPath: string;
+
+    constructor(authPath: string = join(getAgentDir(), "auth.json")) {
+        this.authPath = normalizePath(authPath);
+    }
+
+    withLock&lt;T&gt;(fn: (current: string | undefined) =&gt; LockResult&lt;T&gt;): T {
+        this.ensureParentDir();
+        this.ensureFileExists();
+        let release = this.acquireLockSyncWithRetry(this.authPath);
+        const current = readFileSync(this.authPath, "utf-8");
+        const { result, next } = fn(current);
+        if (next !== undefined) {
+            writeFileSync(this.authPath, next, { mode: 0o600 });
+            chmodSync(this.authPath, 0o600);
+        }
+        release();
+        return result;
+    }
+
+    async withLockAsync&lt;T&gt;(fn: (current: string | undefined) =&gt; Promise&lt;LockResult&lt;T&gt;&gt;): Promise&lt;T&gt; {
+        // 异步版本，带重试和过期检测
+        release = await lockfile.lock(this.authPath, {
+            retries: { retries: 10, factor: 2, minTimeout: 100, maxTimeout: 10000 },
+            stale: 30000,
+            onCompromised: (err) =&gt; { lockCompromised = true; },
+        });
+        // ...
+    }
+}
+
+// 内存后端（测试用）
+export class InMemoryAuthStorageBackend implements AuthStorageBackend {
+    private value: string | undefined;
+    withLock&lt;T&gt;(fn: (current: string | undefined) =&gt; LockResult&lt;T&gt;): T {
+        const { result, next } = fn(this.value);
+        if (next !== undefined) this.value = next;
+        return result;
+    }
+}</code></pre>
+
+        <h3>Credential 类型</h3>
+        <pre><code class="language-typescript">export type ApiKeyCredential = {
+    type: "api_key";
+    key: string;
+    env?: Record&lt;string, string&gt;;
+};
+
+export type OAuthCredential = {
+    type: "oauth";
+} &amp; OAuthCredentials;
+
+export type AuthCredential = ApiKeyCredential | OAuthCredential;
+
+export type AuthStatus = {
+    configured: boolean;
+    source?: "stored" | "runtime" | "environment" | "fallback" | "models_json_key" | "models_json_command";
+    label?: string;
+};</code></pre>
+
+        <div class="callout callout-info">
+            <div class="callout-title">Info</div>
+            <p>API key 的查找优先级是：(1) 运行时覆盖（<code>--api-key</code>），(2) auth.json 中存储的 key，(3) 环境变量（<code>ANTHROPIC_API_KEY</code> 等），(4) <code>models.json</code> 中定义的 key，(5) <code>models.json</code> 中定义的命令输出。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="system-prompt">6.8 System Prompt 生成</h2>
+        <!-- ================================================================ -->
+        <p><code>system-prompt.ts</code> 负责构建发送给 LLM 的系统提示。它组合了工具描述、指导原则、项目上下文、技能列表和当前日期。</p>
+
+        <pre><code class="language-typescript" class="collapsible">// src/core/system-prompt.ts
+export interface BuildSystemPromptOptions {
+    customPrompt?: string;           // 自定义 prompt（替换默认）
+    selectedTools?: string[];        // 工具列表
+    toolSnippets?: Record&lt;string, string&gt;;  // 工具一行摘要
+    promptGuidelines?: string[];     // 额外指导原则
+    appendSystemPrompt?: string;     // 追加到末尾
+    cwd: string;                     // 工作目录
+    contextFiles?: Array&lt;{ path: string; content: string }&gt;;  // 项目上下文
+    skills?: Skill[];                // 技能列表
+}
+
+export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
+    const { customPrompt, selectedTools, toolSnippets, promptGuidelines, appendSystemPrompt, cwd, contextFiles, skills } = options;
+
+    const date = `${year}-${month}-${day}`;
+    const promptCwd = resolvedCwd.replace(/\\/g, "/");
+    const appendSection = appendSystemPrompt ? `\n\n${appendSystemPrompt}` : "";
+
+    if (customPrompt) {
+        // 自定义 prompt：追加项目上下文、技能、日期和 cwd
+        let prompt = customPrompt + appendSection;
+        if (contextFiles.length &gt; 0) {
+            prompt += "\n\n&lt;project_context&gt;\n";
+            for (const { path, content } of contextFiles) {
+                prompt += `&lt;project_instructions path="${path}"&gt;\n${content}\n&lt;/project_instructions&gt;\n`;
+            }
+            prompt += "&lt;/project_context&gt;\n";
+        }
+        prompt += formatSkillsForPrompt(skills);
+        prompt += `\nCurrent date: ${date}`;
+        prompt += `\nCurrent working directory: ${promptCwd}`;
+        return prompt;
+    }
+
+    // 默认 prompt
+    const tools = selectedTools || ["read", "bash", "edit", "write"];
+    const visibleTools = tools.filter(name =&gt; !!toolSnippets?.[name]);
+    const toolsList = visibleTools.map(name =&gt; `- ${name}: ${toolSnippets![name]}`).join("\n");
+
+    // 根据可用工具动态生成指导原则
+    const hasBash = tools.includes("bash");
+    const hasGrep = tools.includes("grep");
+    // ...
+    addGuideline("Be concise in your responses");
+    addGuideline("Show file paths clearly when working with files");
+
+    let prompt = `You are an expert coding assistant operating inside pi, a coding agent harness. You help users by reading files, executing commands, editing code, and writing new files.
+
+Available tools:
+${toolsList}
+
+Guidelines:
+${guidelines}
+
+Pi documentation (read only when the user asks about pi itself):
+- Main documentation: ${readmePath}
+- Additional docs: ${docsPath}
+- Examples: ${examplesPath}`;
+
+    // 追加项目上下文、技能、日期和 cwd
+    if (contextFiles.length &gt; 0) { /* ... */ }
+    if (skills.length &gt; 0) { prompt += formatSkillsForPrompt(skills); }
+    prompt += `\nCurrent date: ${date}`;
+    prompt += `\nCurrent working directory: ${promptCwd}`;
+
+    return prompt;
+}</code></pre>
+
+        <div class="callout callout-tip">
+            <div class="callout-title">Tip</div>
+            <p>系统提示的构建是"增量式"的——先构建基础模板，然后根据可用工具追加指导原则，最后追加项目上下文和技能。扩展可以通过 <code>appendSystemPrompt</code> 选项注入额外内容。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="session-manager">6.9 SessionManager：会话持久化</h2>
+        <!-- ================================================================ -->
+        <p><code>SessionManager</code> 管理会话的 JSONL 文件——每个会话是一个 JSONL 文件，每行是一个 session entry（消息、压缩、模型变更等）。</p>
+
+        <pre><code class="language-typescript">// src/core/session-manager.ts
+export const CURRENT_SESSION_VERSION = 3;
+
+export class SessionManager {
+    // 创建新会话
+    static create(cwd: string, sessionDir?: string, options?: NewSessionOptions): SessionManager;
+
+    // 打开已有会话
+    static open(path: string, sessionDir?: string, cwdOverride?: string): SessionManager;
+
+    // 继续最近的会话
+    static continueRecent(cwd: string, sessionDir?: string): SessionManager;
+
+    // 内存中会话（--no-session）
+    static inMemory(cwd: string, options?: NewSessionOptions): SessionManager;
+
+    // 列出会话
+    static async list(cwd: string, sessionDir?: string): Promise&lt;SessionEntrySummary[]&gt;;
+    static async listAll(sessionDir?: string): Promise&lt;SessionEntrySummary[]&gt;;
+
+    // 分叉会话
+    createBranchedSession(entryId: string): string | undefined;
+
+    // 追加消息
+    appendMessage(message: AgentMessage): void;
+    appendCompaction(summary: string, firstKeptEntryId: string, tokensBefore: number, ...): void;
+    appendModelChange(provider: string, modelId: string): void;
+    appendThinkingLevelChange(level: string): void;
+
+    // 构建会话上下文（用于发送给 LLM）
+    buildSessionContext(): SessionContext;
+
+    getSessionFile(): string | undefined;
+    getSessionId(): string;
+    getCwd(): string;
+    getBranch(): SessionEntry[];
+    isPersisted(): boolean;
+}</code></pre>
+
+        <h3>Session Entry 类型</h3>
+        <pre><code class="language-typescript">export interface SessionEntryBase {
+    type: string;
+    id: string;
+    parentId: string | null;
+    timestamp: string;
+}
+
+export interface SessionMessageEntry extends SessionEntryBase {
+    type: "message";
+    message: AgentMessage;
+}
+
+export interface CompactionEntry&lt;T = unknown&gt; extends SessionEntryBase {
+    type: "compaction";
+    summary: string;
+    firstKeptEntryId: string;
+    tokensBefore: number;
+    details?: T;
+    fromHook?: boolean;
+}
+
+export interface ModelChangeEntry extends SessionEntryBase {
+    type: "model_change";
+    provider: string;
+    modelId: string;
+}
+
+export interface ThinkingLevelChangeEntry extends SessionEntryBase {
+    type: "thinking_level_change";
+    thinkingLevel: string;
+}</code></pre>
+
+        <!-- ================================================================ -->
+        <h2 id="exercise">6.10 Exercise</h2>
+        <!-- ================================================================ -->
+        <div class="callout callout-exercise">
+            <div class="callout-title">Exercise</div>
+            <p><strong>运行 Pi Print 模式并检查会话文件</strong>：</p>
+            <ol>
+                <li>在终端中运行 <code>pi -p "Hello, what is 2+2?"</code>，观察输出。</li>
+                <li>运行 <code>pi -p --no-session "Test without session"</code>，确认不创建会话文件。</li>
+                <li>找到最近创建的会话文件：<code>ls -lt ~/.pi/agent/sessions/ | head -5</code></li>
+                <li>查看会话文件内容：<code>head -3 ~/.pi/agent/sessions/&lt;latest&gt;.jsonl | jq .</code></li>
+                <li>思考：session entry 的 <code>parentId</code> 字段如何构成树形结构？</li>
+            </ol>
+            <p>提示：会话文件是 JSONL 格式，每行是一个 JSON 对象。可以用 <code>jq</code> 工具逐行解析。</p>
+        </div>
+
+        <!-- ================================================================ -->
+        <h2 id="quiz">6.11 Quiz</h2>
+        <!-- ================================================================ -->
+        <div class="quiz">
+            <div class="quiz-question">1. <code>resolveAppMode()</code> 在什么情况下返回 "print" 模式？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">当用户输入了空消息时</li>
+                <li data-correct="true">当使用了 <code>-p</code> 标志、或 stdin/stdout 不是 TTY 时</li>
+                <li data-correct="false">当使用了 <code>--mode print</code> 标志时</li>
+                <li data-correct="false">当没有可用模型时</li>
+            </ul>
+            <div class="quiz-explanation"><code>resolveAppMode()</code> 的判断逻辑：<code>parsed.print || !stdinIsTTY || !stdoutIsTTY</code> → "print"。<code>--mode</code> 标志只接受 <code>text</code>、<code>json</code>、<code>rpc</code> 三个值，没有 <code>print</code>。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">2. <code>AgentSession.prompt()</code> 方法在发送消息前不会做以下哪项检查？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">检查是否已选择模型</li>
+                <li data-correct="false">检查 API key 是否可用</li>
+                <li data-correct="true">检查消息长度是否超过 token 限制</li>
+                <li data-correct="false">检查是否需要压缩上下文</li>
+            </ul>
+            <div class="quiz-explanation"><code>prompt()</code> 会检查模型选择、API key 和压缩需求，但不会预先检查消息长度——这是 LLM 调用后通过 overflow 错误处理的。如果上下文溢出，会自动触发压缩并重试。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">3. <code>AgentSessionRuntime.switchSession()</code> 的正确执行顺序是什么？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">创建新运行时 → 销毁旧运行时 → 触发事件</li>
+                <li data-correct="true">触发 before_switch 事件 → 销毁旧运行时 → 创建新运行时 → 通知 rebind</li>
+                <li data-correct="false">销毁旧运行时 → 触发事件 → 创建新运行时</li>
+                <li data-correct="false">创建新运行时 → 触发事件 → 销毁旧运行时</li>
+            </ul>
+            <div class="quiz-explanation">正确的顺序是：(1) 触发 <code>session_before_switch</code> 事件（扩展可以取消），(2) 销毁旧运行时（<code>teardownCurrent</code>），(3) 创建新运行时（<code>createRuntime</code>），(4) 通知 rebind 和 withSession 回调。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">4. <code>AuthStorage</code> 中 API key 的查找优先级（从高到低）是什么？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">environment → stored → runtime → fallback</li>
+                <li data-correct="true">runtime → stored → environment → fallback</li>
+                <li data-correct="false">stored → runtime → environment → fallback</li>
+                <li data-correct="false">runtime → environment → stored → fallback</li>
+            </ul>
+            <div class="quiz-explanation">优先级是：(1) 运行时覆盖（<code>setRuntimeApiKey</code> / <code>--api-key</code>），(2) auth.json 中存储的 key，(3) 环境变量，(4) <code>models.json</code> 中定义的命令输出（fallback）。</div>
+        </div>
+
+        <div class="quiz">
+            <div class="quiz-question">5. 以下关于 <code>SettingsManager</code> 的说法哪个是正确的？</div>
+            <ul class="quiz-options">
+                <li data-correct="false">项目设置完全覆盖全局设置</li>
+                <li data-correct="true">项目设置和全局设置深度合并，项目设置优先</li>
+                <li data-correct="false">全局设置总是优先于项目设置</li>
+                <li data-correct="false">项目设置和全局设置互不影响，各自独立生效</li>
+            </ul>
+            <div class="quiz-explanation"><code>deepMergeSettings()</code> 实现了深度合并：对于嵌套对象（如 <code>compaction</code>、<code>retry</code>），两层设置递归合并；对于其他类型，项目设置直接覆盖全局设置。</div>
+        </div>
+
+        <section class="next-action-panel" aria-labelledby="ch6-next-action">
+            <h2 id="ch6-next-action">Next Action</h2>
+            <p>继续读第 7 章和第 9 章，把本章看到的 runtime 组装点分别映射到工具系统和会话系统，确认 `AgentSession` 到底在协调哪些资源。</p>
+        </section>
+
+        <!-- Chapter Navigation -->
+        <nav class="chapter-nav">
+            <a href="05-pi-tui.html" class="nav-prev">上一章：pi-tui 终端 UI</a>
+            <a href="07-tools.html" class="nav-next">下一章：工具系统</a>
+        </nav>
+
+    </article>
+</main>
+
+<script src="../assets/js/app.js"></script>
+</body>
+</html>

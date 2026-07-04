@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第 5 章：pi-tui — 终端 UI 库 — Pi Agent Harness 教学</title>
+    <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>Pi 教学</h2>
+            <span class="version">v0.80.3</span>
+        </div>
+        <nav class="chapter-list">
+            <a href="01-what-is-pi.html">1. 认识 Pi</a>
+            <a href="02-monorepo.html">2. Monorepo 架构</a>
+            <a href="03-pi-ai.html">3. pi-ai LLM 层</a>
+            <a href="04-agent-core.html">4. Agent 运行时</a>
+            <a href="05-pi-tui.html" class="active">5. 终端 UI 库</a>
+            <a href="06-coding-agent.html">6. 主 CLI 架构</a>
+            <a href="07-tools.html">7. 内置工具系统</a>
+            <a href="08-extensions.html">8. 扩展系统</a>
+            <a href="09-session-management.html">9. 会话管理</a>
+            <a href="10-compaction.html">10. 压缩系统</a>
+            <a href="11-interactive-mode.html">11. 交互模式</a>
+            <a href="12-sdk.html">12. 编程式 SDK</a>
+            <a href="13-orchestrator.html">13. 编排器</a>
+            <a href="14-contributing.html">14. 贡献指南</a>
+        </nav>
+    </aside>
+
+    <main class="content">
+        <header class="chapter-header">
+            <span class="chapter-number">第 5 章</span>
+            <h1>pi-tui — 终端 UI 库</h1>
+            <p class="subtitle">理解差分渲染和组件系统</p>
+        </header>
+
+        <section class="learner-cues" aria-labelledby="ch5-main-line">
+            <div class="cue-grid">
+                <div class="cue-card">
+                    <h2 id="ch5-main-line">Main Line</h2>
+                    <p>pi-tui 不是装饰层，而是 Pi 交互模式能否流畅工作的基础设施。它要在终端里承担高频流式渲染、键盘输入和图像降级这些浏览器通常代劳的事情。</p>
+                </div>
+                <div class="cue-card">
+                    <h2>Remember Now</h2>
+                    <p>这套 TUI 的核心抽象很小：组件渲染成字符串数组，再由差分渲染器负责高效更新屏幕。</p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>5.1 为什么自建 TUI？</h2>
+            <p>Node.js 生态已有多个 TUI 库（blessed、ink、blessed-contrib），但 Pi 选择自建，原因：</p>
+            <ul>
+                <li><strong>差分渲染</strong>：Pi 的 TUI 每秒更新数十次（流式 token），全屏重绘会导致闪烁和性能问题</li>
+                <li><strong>终端图像</strong>：需要在终端显示截图、图表，需要精确控制 Kitty/iTerm2 协议</li>
+                <li><strong>键绑定</strong>：需要支持 Kitty 键盘协议（key release、repeat 检测）</li>
+                <li><strong>集成度</strong>：与 Agent 事件系统深度集成，自定义渲染器</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>5.2 核心概念：Component 接口</h2>
+            <pre class="language-ts"><code>export interface Component {
+  /** 渲染组件为字符串数组（每行一个字符串） */
+  render(width: number): string[];
+
+  /** 可选：处理键盘输入（仅当组件有焦点时） */
+  handleInput?(data: string): void;
+
+  /** 是否接收 key release 事件（Kitty 协议） */
+  handleRelease?(): void;
+}</code></pre>
+            <p>这是一个极其简洁的设计。所有 UI 元素都实现这个接口：文本、编辑器、选择列表、Markdown 渲染器，甚至图像。</p>
+
+            <h3>组件组合</h3>
+            <pre class="language-ts"><code>export class Container implements Component {
+  children: Component[] = [];
+  layout: "vertical" | "horizontal" = "vertical";
+
+  render(width: number): string[] {
+    // 根据布局方向，组合子组件的渲染结果
+    const childLines = this.children.map(c => c.render(width));
+    return this.layout === "vertical"
+      ? childLines.flat()
+      : mergeHorizontal(childLines, width);
+  }
+}</code></pre>
+        </section>
+
+        <section>
+            <h2>5.3 差分渲染原理</h2>
+            <p>Pi 的 TUI 使用<span class="term" data-term="Differential Rendering: 差分渲染，只重绘变化的行">差分渲染</span>来高效更新终端：</p>
+
+            <div class="diagram-container">
+                <svg viewBox="0 0 600 250" class="diagram">
+                    <!-- Full redraw -->
+                    <rect x="20" y="20" width="250" height="200" rx="8" fill="#333" stroke="#e74c3c"/>
+                    <text x="145" y="45" text-anchor="middle" fill="#e74c3c" font-weight="bold">全屏重绘（传统）</text>
+
+                    <rect x="40" y="60" width="210" height="25" rx="3" fill="#555"/>
+                    <text x="50" y="77" fill="#aaa" font-size="10">Line 1: Hello World</text>
+                    <rect x="40" y="90" width="210" height="25" rx="3" fill="#555"/>
+                    <text x="50" y="107" fill="#aaa" font-size="10">Line 2: Thinking...</text>
+                    <rect x="40" y="120" width="210" height="25" rx="3" fill="#e74c3c" opacity="0.5"/>
+                    <text x="50" y="137" fill="#fff" font-size="10">Line 3: Token ← CHANGED</text>
+                    <rect x="40" y="150" width="210" height="25" rx="3" fill="#555"/>
+                    <text x="50" y="167" fill="#aaa" font-size="10">Line 4: Status: OK</text>
+                    <rect x="40" y="180" width="210" height="25" rx="3" fill="#555"/>
+                    <text x="50" y="197" fill="#aaa" font-size="10">Line 5: ───────────</text>
+
+                    <text x="145" y="235" text-anchor="middle" fill="#e74c3c" font-size="10">重绘所有 5 行（慢）</text>
+
+                    <!-- Differential -->
+                    <rect x="330" y="20" width="250" height="200" rx="8" fill="#333" stroke="#27ae60"/>
+                    <text x="455" y="45" text-anchor="middle" fill="#27ae60" font-weight="bold">差分渲染（Pi）</text>
+
+                    <rect x="350" y="60" width="210" height="25" rx="3" fill="#444"/>
+                    <text x="360" y="77" fill="#666" font-size="10">Line 1: Hello World</text>
+                    <rect x="350" y="90" width="210" height="25" rx="3" fill="#444"/>
+                    <text x="360" y="107" fill="#666" font-size="10">Line 2: Thinking...</text>
+                    <rect x="350" y="120" width="210" height="25" rx="3" fill="#27ae60" opacity="0.6"/>
+                    <text x="360" y="137" fill="#fff" font-size="10">Line 3: Token ← UPDATED</text>
+                    <rect x="350" y="150" width="210" height="25" rx="3" fill="#444"/>
+                    <text x="360" y="167" fill="#666" font-size="10">Line 4: Status: OK</text>
+                    <rect x="350" y="180" width="210" height="25" rx="3" fill="#444"/>
+                    <text x="360" y="197" fill="#666" font-size="10">Line 5: ───────────</text>
+
+                    <text x="455" y="235" text-anchor="middle" fill="#27ae60" font-size="10">只更新变化的 1 行（快）</text>
+
+                    <!-- Arrow -->
+                    <path d="M 280 120 L 320 120" stroke="#888" stroke-width="2" marker-end="url(#ar)"/>
+                    <text x="300" y="110" text-anchor="middle" fill="#888" font-size="9">compare</text>
+
+                    <defs>
+                        <marker id="ar" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                            <polygon points="0 0, 8 3, 0 6" fill="#888"/>
+                        </marker>
+                    </defs>
+                </svg>
+            </div>
+
+            <div class="callout tip">
+                <strong>实现原理</strong>：TUI 维护上一帧的渲染结果。每帧渲染时，逐行比较新旧内容，只对变化的行发送 ANSI escape code 定位光标 + 覆盖写入。
+            </div>
+        </section>
+
+        <section>
+            <h2>5.4 组件系统</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>组件</th>
+                        <th>用途</th>
+                        <th>关键特性</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>Editor</code></td>
+                        <td>多行文本编辑</td>
+                        <td>kill-ring、undo-stack、word navigation、自动缩进</td>
+                    </tr>
+                    <tr>
+                        <td><code>Input</code></td>
+                        <td>单行输入</td>
+                        <td>历史记录、自动补全</td>
+                    </tr>
+                    <tr>
+                        <td><code>SelectList</code></td>
+                        <td>选择列表</td>
+                        <td>fuzzy filter、键盘导航、多选</td>
+                    </tr>
+                    <tr>
+                        <td><code>SettingsList</code></td>
+                        <td>设置项列表</td>
+                        <td>键值对显示、可编辑</td>
+                    </tr>
+                    <tr>
+                        <td><code>Markdown</code></td>
+                        <td>Markdown 渲染</td>
+                        <td>语法高亮、表格、列表</td>
+                    </tr>
+                    <tr>
+                        <td><code>Image</code></td>
+                        <td>终端图像</td>
+                        <td>Kitty/iTerm2 协议、fallback</td>
+                    </tr>
+                    <tr>
+                        <td><code>Loader</code></td>
+                        <td>加载动画</td>
+                        <td>可取消、自定义帧</td>
+                    </tr>
+                    <tr>
+                        <td><code>Text</code></td>
+                        <td>纯文本</td>
+                        <td>样式、颜色、截断</td>
+                    </tr>
+                    <tr>
+                        <td><code>Box</code></td>
+                        <td>容器</td>
+                        <td>边框、内边距、布局</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>5.5 键系统</h2>
+            <p>Pi 的键系统支持<span class="term" data-term="Kitty Keyboard Protocol: Kitty 终端的增强键盘协议">Kitty 键盘协议</span>，提供比普通终端更丰富的键信息：</p>
+            <pre class="language-ts"><code>// keys.ts
+export function parseKey(data: string): Key | undefined {
+  // 解析 ANSI escape sequences
+  // 支持 Kitty 协议：key release、repeat 检测
+  // 返回统一的 Key 结构
+}
+
+export function matchesKey(key: Key, pattern: string): boolean {
+  // 匹配键绑定模式，如 "ctrl+s", "shift+tab", "escape"
+}
+
+export function isKeyRelease(data: string): boolean {
+  // Kitty 协议可以区分 key press 和 key release
+  // 用于检测用户何时松开某个键
+}</code></pre>
+
+            <h3>键绑定系统</h3>
+            <pre class="language-ts"><code>// keybindings.ts
+export interface Keybinding {
+  key: string;        // 如 "ctrl+s", "escape"
+  action: string;     // 动作标识
+  when?: string;      // 条件（如 "editorFocus"）
+}
+
+export class KeybindingsManager {
+  getKeybindings(): Keybindings;
+  setKeybindings(kb: Keybindings): void;
+  resolveConflicts(): KeybindingConflict[];
+}</code></pre>
+        </section>
+
+        <section>
+            <h2>5.6 图像支持</h2>
+            <p>Pi 支持在终端中显示图像，使用两种协议：</p>
+            <ul>
+                <li><strong>Kitty 图形协议</strong>：最强大的终端图像协议，支持动画、z-index、删除</li>
+                <li><strong>iTerm2 内联图像</strong>：base64 编码，兼容性更广</li>
+            </ul>
+            <pre class="language-ts"><code>// terminal-image.ts
+export function detectCapabilities(): TerminalCapabilities {
+  // 检测终端支持的图像协议
+}
+
+export function encodeKitty(imageData: Buffer, imageId: number): string {
+  // 生成 Kitty graphics protocol escape sequence
+}
+
+export function encodeITerm2(imageData: Buffer, width: number): string {
+  // 生成 iTerm2 inline image escape sequence
+}</code></pre>
+        </section>
+
+        <section>
+            <h2>5.7 自动补全</h2>
+            <pre class="language-ts"><code>// autocomplete.ts
+export interface AutocompleteProvider {
+  getSuggestions(input: string, position: number): AutocompleteSuggestions;
+}
+
+// fuzzy.ts — 模糊匹配算法
+export function fuzzyMatch(pattern: string, text: string): FuzzyMatch | null;
+export function fuzzyFilter&lt;T&gt;(pattern: string, items: T[], getText: (item: T) => string): T[];</code></pre>
+            <p>Pi 使用 fuzzy matching 算法，让用户可以用不连续的字符匹配目标（如 "gc" 匹配 "git-commit"）。</p>
+        </section>
+
+        <section class="quiz">
+            <h2>5.8 小测验</h2>
+            <div class="quiz">
+                <div class="quiz-question">
+                    <p><strong>Q1:</strong> 差分渲染相比全屏重绘的主要优势是？</p>
+                    <div class="quiz-option" data-correct="false">A. 更简单的代码</div>
+                    <div class="quiz-option" data-correct="true">B. 避免闪烁、提高性能</div>
+                    <div class="quiz-option" data-correct="false">C. 支持更多颜色</div>
+                    <div class="quiz-option" data-correct="false">D. 更好的跨平台兼容性</div>
+                    <div class="quiz-explanation">✅ 正确答案：B。差分渲染只更新变化的行，避免了全屏清除-重绘的闪烁问题，同时减少了 I/O 操作。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q2:</strong> Component 接口的核心方法是什么？</p>
+                    <div class="quiz-option" data-correct="false">A. mount() / unmount()</div>
+                    <div class="quiz-option" data-correct="true">B. render(width) → string[]</div>
+                    <div class="quiz-option" data-correct="false">C. draw(ctx)</div>
+                    <div class="quiz-option" data-correct="false">D. update(props)</div>
+                    <div class="quiz-explanation">✅ 正确答案：B。所有组件实现 <code>render(width)</code> 方法，返回字符串数组（每行一个字符串）。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q3:</strong> Kitty 键盘协议相比普通终端协议的优势是？</p>
+                    <div class="quiz-option" data-correct="false">A. 支持更多颜色</div>
+                    <div class="quiz-option" data-correct="false">B. 支持中文输入</div>
+                    <div class="quiz-option" data-correct="true">C. 可以区分 key press 和 key release</div>
+                    <div class="quiz-option" data-correct="false">D. 支持更长的键名</div>
+                    <div class="quiz-explanation">✅ 正确答案：C。Kitty 协议可以区分按键按下和松开，以及检测 key repeat。</div>
+                </div>
+
+                <div class="quiz-question">
+                    <p><strong>Q4:</strong> Pi 如何在不支持图像的终端上显示图像？</p>
+                    <div class="quiz-option" data-correct="false">A. 自动跳过图像显示</div>
+                    <div class="quiz-option" data-correct="true">B. 使用 fallback（如文件路径或占位符）</div>
+                    <div class="quiz-option" data-correct="false">C. 转换为 ASCII art</div>
+                    <div class="quiz-option" data-correct="false">D. 不支持</div>
+                    <div class="quiz-explanation">✅ 正确答案：B。<code>terminal-image.ts</code> 的 <code>imageFallback()</code> 函数提供降级方案。</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="callout exercise">
+            <h2>5.9 练习</h2>
+            <ol>
+                <li>阅读 <code>packages/tui/src/tui.ts</code> 的 <code>render()</code> 方法</li>
+                <li>实现一个简单的 <code>ClockComponent</code>，每秒显示当前时间</li>
+                <li>在 <code>keys.ts</code> 中查找如何检测 <code>Ctrl+Shift+A</code> 组合键</li>
+            </ol>
+        </section>
+
+        <section class="next-action-panel" aria-labelledby="ch5-next-action">
+            <h2 id="ch5-next-action">Next Action</h2>
+            <p>跳到第 11 章，把这里的底层渲染抽象和交互模式中的具体 UI 组件对应起来，确认 TUI 库和业务层各自承担什么。</p>
+        </section>
+
+        <nav class="chapter-nav">
+            <a href="04-agent-core.html" class="prev">← 第 4 章</a>
+            <a href="06-coding-agent.html" class="next">第 6 章：主 CLI 架构 →</a>
+        </nav>
+    </main>
+
+    <script src="../assets/js/app.js"></script>
+</body>
+</html>
