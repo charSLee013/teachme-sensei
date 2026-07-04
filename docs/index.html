@@ -3,32 +3,62 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="1; url=teach/">
-  <title>Teachme Sensei</title>
-  <meta name="description" content="Public teaching package previews for repo courses and technical report courses.">
+  <title>Teachme Sensei | 教学包目录</title>
+  <meta name="description" content="Teachme Sensei 教学包公开预览，默认中文并提供英文入口。">
   <link rel="stylesheet" href="teach/home.css">
 </head>
-<body>
+<body data-lang="zh">
   <main>
     <header class="masthead">
-      <div class="stamp">Teachme Sensei / Root Entry</div>
-      <a class="toplink" href="teach/">Open catalog</a>
+      <div class="stamp">Teachme Sensei / 教学包目录</div>
+      <div class="mast-actions">
+        <div class="language-toggle" aria-label="Language">
+          <button type="button" data-set-lang="zh">中文</button>
+          <button type="button" data-set-lang="en">EN</button>
+        </div>
+        <a class="toplink" href="teach/">
+          <span class="lang-zh">进入完整目录</span>
+          <span class="lang-en">Open catalog</span>
+        </a>
+      </div>
     </header>
 
     <section class="hero">
       <div class="hero-copy">
-        <h1 class="page-title">A public shelf for teaching packages.</h1>
-        <p class="lede">This root page forwards into the course catalog under <code>/teach/</code>. If the redirect does not run, use the direct course links below. The published structure is designed for GitHub Pages, not for a custom app runtime.</p>
+        <h1 class="page-title">
+          <span class="lang-zh">公开可读的课程目录。</span>
+          <span class="lang-en">A public catalog for course packages.</span>
+        </h1>
+        <p class="lede lang-zh">这里汇总当前发布的教学包。每个教学包都有独立入口、课程结构和校验资料，适合直接通过 GitHub Pages 打开阅读。</p>
+        <p class="lede lang-en">This page collects the published teaching packages. Each course has its own entry point, structure view, and validation references for direct GitHub Pages reading.</p>
       </div>
       <aside class="hero-note">
-        <h2>Open Directly</h2>
+        <h2>
+          <span class="lang-zh">快速入口</span>
+          <span class="lang-en">Quick Links</span>
+        </h2>
         <ol>
-          <li><a class="plain-link" href="teach/">Catalog index</a></li>
-          <li><a class="plain-link" href="teach/pi/">Pi Agent Harness repo course</a></li>
-          <li><a class="plain-link" href="teach/ideogram4/">Ideogram 4 technical report course</a></li>
+          <li><a class="plain-link" href="teach/">Teachme Sensei catalog</a></li>
+          <li><a class="plain-link" href="teach/pi/">Pi Agent Harness</a></li>
+          <li><a class="plain-link" href="teach/ideogram4/">Ideogram 4</a></li>
         </ol>
       </aside>
     </section>
   </main>
+  <script>
+    (() => {
+      const saved = localStorage.getItem("teachme-lang");
+      const initial = saved || "zh";
+      const setLang = (lang) => {
+        document.body.dataset.lang = lang;
+        document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+        localStorage.setItem("teachme-lang", lang);
+      };
+      document.querySelectorAll("[data-set-lang]").forEach((button) => {
+        button.addEventListener("click", () => setLang(button.dataset.setLang));
+      });
+      setLang(initial);
+    })();
+  </script>
 </body>
 </html>

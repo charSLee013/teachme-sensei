@@ -50,6 +50,15 @@ code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, m
 }
 
 .sidebar img { width: 158px; display: block; margin-bottom: 14px; }
+.course-mark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  margin-bottom: 14px;
+  color: var(--ink);
+  font: 700 18px/1.1 ui-sans-serif, system-ui, sans-serif;
+  text-decoration: none;
+}
 .kicker { font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 
 .nav { display: grid; gap: 4px; margin-top: 26px; }

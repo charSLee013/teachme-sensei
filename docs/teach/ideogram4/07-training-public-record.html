@@ -3,67 +3,67 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Training Public Record</title>
+  <title>训练方式与公开信息分层</title>
   <link rel="stylesheet" href="paper.css">
 </head>
 <body>
 <main data-paper>
   <section class="hero">
-    <p class="kicker">Training information / public record layering</p>
+    <p class="kicker">训练信息 / 公开资料分层</p>
     <h1>训练方式与公开信息分层</h1>
     <p class="abstract">训练方式相关信息应进行明确分层。公开资料中已有可确认的高层声明；本仓库专注于推理部署，训练相关的具体细节（如数据配方、优化器、训练时长、计算资源）应以官方公开文档或声明为准。本节仅整合当前可证据化的公开内容，并标出无法由本仓库确认的部分。</p>
   </section>
 
   <section>
-    <h2>Abstract</h2>
-    <p>本章只讲公开记录能支撑到哪里：哪些是发布方声明，哪些是源码能证明的推理行为，哪些是课程重建，哪些仍然必须保持 unknown。</p>
+    <h2>概览</h2>
+    <p>本章只讲公开记录能支撑到哪里：哪些是发布方声明，哪些是源码能证明的推理行为，哪些是课程重建，哪些仍然属于尚未公开确认的信息。</p>
   </section>
 
   <section>
-    <h2>Claim and Evidence</h2>
-    <div class="claim"><div class="claim-title">Claim</div><p>Training information for this repository should be read as layered public record: public release claims, source-supported inference behavior, course reconstruction, and unknown implementation details.</p><p><strong>Evidence.</strong> README, prompting documentation, safety documentation, and local inference source.</p><p><strong>Boundary.</strong> Dataset composition, optimizer, compute, duration, and detailed post-training methods are not confirmed by this checkout.</p></div>
+    <h2>结论与依据</h2>
+    <div class="claim"><div class="claim-title">要记住的结论</div><p>这门课把训练相关信息分成四层阅读：公开发布信息、源码可支持的推理行为、课程重构解释、以及公开资料不足以确认的细节。</p><p><strong>依据。</strong> README、prompting 文档、safety 文档和本地推理源码。</p><p><strong>学习边界。</strong> 数据集构成、optimizer、compute、训练时长和详细 post-training 方法无法由当前 checkout 确认。</p></div>
   </section>
 
   <section>
-    <h2>Layered Record</h2>
+    <h2>分层阅读</h2>
     <table>
-      <thead><tr><th>Layer</th><th>Content</th><th>Status</th></tr></thead>
+      <thead><tr><th>层级</th><th>内容</th><th>状态</th></tr></thead>
       <tbody>
-        <tr><td>Public release claims</td><td>README describes Ideogram 4 as a foundation/open-weight text-to-image model and states it is trained from scratch rather than a fine-tune.</td><td>Public/local documentation claim.</td></tr>
-        <tr><td>Prompt training interface</td><td>Prompting docs state the model was trained on structured JSON captions and recommends matching that schema.</td><td>Public/local documentation claim supported by verifier implementation.</td></tr>
-        <tr><td>Inference-supported behavior</td><td>Released code implements Qwen3-VL conditioning, single-stream DiT velocity prediction, logit-normal schedule, and Euler sampling.</td><td>Source fact about inference behavior.</td></tr>
-        <tr><td>Course reconstruction</td><td>Flow-matching training can be explained as learning a velocity field between noisy and clean latents conditioned on text features.</td><td>Teaching reconstruction, not official recipe.</td></tr>
-        <tr><td>Unknown details</td><td>Dataset mixture, filtering specifics, optimizer, batch size, compute, duration, post-training method details.</td><td>Not confirmed by this repository or accessible sources used here.</td></tr>
+        <tr><td>公开发布信息</td><td>README 把 Ideogram 4 描述为 foundation/open-weight text-to-image model，并说明它是从头训练而不是 fine-tune。</td><td>公开/本地文档声明。</td></tr>
+        <tr><td>Prompt 训练接口</td><td>Prompting 文档说明模型使用 structured JSON captions 训练，并建议按该 schema 编写 prompt。</td><td>公开/本地文档声明，且 verifier 实现支持这一使用方式。</td></tr>
+        <tr><td>源码能支持的推理行为</td><td>公开代码实现 Qwen3-VL conditioning、single-stream DiT velocity prediction、logit-normal schedule 和 Euler sampling。</td><td>关于推理行为的源码事实。</td></tr>
+        <tr><td>课程重构解释</td><td>为了理解推理，可以把 flow-matching 训练解释为：在文本条件下学习 noisy latent 到 clean latent 的 velocity field。</td><td>教学重构，不等同于官方训练 recipe。</td></tr>
+        <tr><td>尚未公开确认的细节</td><td>Dataset mixture、filtering specifics、optimizer、batch size、compute、duration、post-training method details。</td><td>当前仓库和本课程使用的可访问来源无法确认。</td></tr>
       </tbody>
     </table>
   </section>
 
   <section>
-    <h2>Course Reconstruction for Inference Understanding</h2>
-    <div class="diagram">public/source facts:
-  inference model predicts velocity
-  sampler integrates velocity
-  prompt condition is structured caption -> Qwen features
+    <h2>为了理解推理而做的课程重构</h2>
+    <div class="diagram">公开/源码事实:
+  推理模型预测 velocity
+  sampler 积分 velocity
+  prompt condition 是 structured caption -> Qwen features
 
-course reconstruction:
+课程重构:
   clean image -> VAE latent z0
   noise sample -> noisy latent zt
   text condition -> Qwen features
   model learns velocity target for flow from noise to image latent</div>
-    <div class="claim boundary"><div class="claim-title">Boundary</div><p>This reconstruction supports the meaning of velocity and timestep during inference. It does not specify Ideogram's private loss implementation, data pipeline, or optimizer configuration.</p></div>
+    <div class="claim boundary"><div class="claim-title">学习边界</div><p>这个重构用于理解推理阶段 velocity 和 timestep 的含义，不说明 Ideogram 未公开的 loss 实现、data pipeline 或 optimizer 配置。</p></div>
   </section>
 
   <section>
-    <h2>Positive Scope Statement</h2>
-    <p>The public repository is sufficient to study the released inference interface, architecture contract, prompt protocol, quantized loading, and sampler behavior. Training-system details should be treated as public-record questions and updated only when primary sources disclose them.</p>
+    <h2>本课程会明确覆盖什么</h2>
+    <p>当前公开仓库足以学习已发布的推理接口、架构契约、prompt protocol、量化加载和 sampler 行为。训练系统细节应作为公开资料问题处理，只有当 primary sources 披露后才更新课程表述。</p>
   </section>
 
   <section class="next">
     <a class="button" href="06-json-caption-protocol.html">JSON Caption</a>
-    <a class="button primary" href="appendix/evidence.html">Evidence Appendix</a>
+    <a class="button primary" href="appendix/evidence.html">依据说明</a>
   </section>
 </main>
 <script src="paper.js" data-root="."></script>
-<script>mountPaperChrome("Training Record");</script>
+<script>mountPaperChrome("公开训练信息");</script>
 </body>
 </html>

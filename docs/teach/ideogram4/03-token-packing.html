@@ -3,33 +3,33 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Token Packing Mechanism</title>
+  <title>Token Packing 机制</title>
   <link rel="stylesheet" href="paper.css">
 </head>
 <body>
 <main data-paper>
   <section class="hero">
-    <p class="kicker">Representation layer / sequence construction</p>
-    <h1>Token Packing Mechanism</h1>
+    <p class="kicker">表示层 / 序列构造</p>
+    <h1>Token Packing 机制</h1>
     <p class="abstract">Ideogram 4 的推理输入不是单一文本向量。Pipeline 构造一个 packed sequence：左侧是 Qwen3-VL 文本 token 对应的 hidden features，右侧是 image latent tokens。并行的 position、segment 和 indicator 轨道定义了每个 token 在 Transformer 中的角色。</p>
   </section>
 
   <section>
-    <h2>Abstract</h2>
+    <h2>概览</h2>
     <p>本章围绕 packed sequence 解释推理输入的真实结构：文本特征、图像 latent token、位置轨道、段轨道和 indicator 轨道如何共同决定 Transformer 看到的序列。</p>
   </section>
 
   <section>
-    <h2>Claim and Evidence</h2>
-    <div class="claim"><div class="claim-title">Claim</div>
-      <p>`_build_inputs` constructs a packed sequence with text token slots followed by image latent token slots. It also constructs `position_ids`, `segment_ids`, and `indicator` tensors used by the Transformer.</p>
-      <p><strong>Evidence.</strong> `pipeline_ideogram4.py::_tokenize`, `_build_inputs`, `_encode_text`; constants `LLM_TOKEN_INDICATOR`, `OUTPUT_IMAGE_INDICATOR`, `IMAGE_POSITION_OFFSET`.</p>
-      <p><strong>Boundary.</strong> This describes inference tensor construction. It does not assert how training batches were built internally.</p>
+    <h2>结论与依据</h2>
+    <div class="claim"><div class="claim-title">要记住的结论</div>
+      <p>`_build_inputs` 会构造一个 packed sequence：前半段是 text token slots，后半段是 image latent token slots。同时它还构造 Transformer 使用的 `position_ids`、`segment_ids` 和 `indicator` tensors。</p>
+      <p><strong>依据。</strong> `pipeline_ideogram4.py::_tokenize`, `_build_inputs`, `_encode_text`; constants `LLM_TOKEN_INDICATOR`, `OUTPUT_IMAGE_INDICATOR`, `IMAGE_POSITION_OFFSET`.</p>
+      <p><strong>学习边界。</strong> 本页解释推理阶段的 tensor 构造，不推断训练 batch 的内部构造方式。</p>
     </div>
   </section>
 
   <section>
-    <h2>Definitions</h2>
+    <h2>先定义对象</h2>
     <table>
       <thead><tr><th>Object</th><th>Shape / value</th><th>Role</th></tr></thead>
       <tbody>
@@ -43,8 +43,8 @@
   </section>
 
   <section>
-    <h2>Interactive 2D Sequence Lanes</h2>
-    <p>The lanes below show how a single prompt becomes parallel token metadata. Change the text length and latent grid to see sequence length and image token budget change.</p>
+    <h2>交互式 2D 序列通道</h2>
+    <p>下面的通道图展示一个 prompt 如何变成并行 token metadata。拖动 text length 和 latent grid，可以看到 sequence length 与 image token budget 如何变化。</p>
     <div class="controls">
       <label>Text tokens <input id="textTokens" type="range" min="4" max="40" value="14"></label>
       <label>Image grid <input id="gridSize" type="range" min="4" max="18" value="8"></label>
@@ -52,38 +52,38 @@
     </div>
     <canvas id="packingCanvas" height="380" aria-label="Token packing lanes"></canvas>
     <details open>
-      <summary>Text fallback</summary>
-      <p>The sequence is ordered as text tokens first and image tokens second. Text positions are `[pos, pos, pos]`. Image positions are `[0, h, w] + 65536`. The indicator track marks text positions with `LLM_TOKEN_INDICATOR` and image positions with `OUTPUT_IMAGE_INDICATOR`.</p>
+      <summary>文字说明</summary>
+      <p>序列顺序是 text tokens 在前，image tokens 在后。Text positions 是 `[pos, pos, pos]`，image positions 是 `[0, h, w] + 65536`。Indicator 轨道用 `LLM_TOKEN_INDICATOR` 标记文本位置，用 `OUTPUT_IMAGE_INDICATOR` 标记图像位置。</p>
     </details>
   </section>
 
   <section>
-    <h2>3D Lattice Interpretation</h2>
-    <p>The 3D view is intentionally schematic: it maps sequence roles into a spatial metaphor. Text tokens form a raised rail; image tokens form an H x W plane. Rotate the lattice to separate sequence role, grid geometry, and token metadata.</p>
+    <h2>3D 网格理解</h2>
+    <p>3D 视图是示意图：它把序列角色映射成空间隐喻。Text tokens 是抬高的轨道，image tokens 是 H x W 平面。旋转 lattice 可以区分 sequence role、grid geometry 和 token metadata。</p>
     <div class="controls">
       <label>Lattice angle <input id="latticeAngle" type="range" min="-45" max="45" value="18"></label>
       <span id="latticeReadout" class="pill"></span>
     </div>
     <canvas id="latticeCanvas" height="420" aria-label="3D schematic token lattice"></canvas>
     <details open>
-      <summary>3D fallback</summary>
-      <p>The raised blue rail represents text positions carrying Qwen-derived features. The red plane represents image latent tokens with grid coordinates. This is a schematic projection for explanation; it is not a literal embedding space or learned geometry.</p>
+      <summary>3D 文字说明</summary>
+      <p>抬高的蓝色轨道表示携带 Qwen-derived features 的文本位置；红色平面表示带 grid coordinates 的 image latent tokens。这只是解释用的示意投影，不是 literal embedding space 或 learned geometry。</p>
     </details>
   </section>
 
   <section>
-    <h2>Mechanism Consequences</h2>
+    <h2>机制后果</h2>
     <ul>
-      <li>Increasing resolution increases image token count quadratically.</li>
-      <li>Longer prompts increase text sequence length but do not change image grid size.</li>
-      <li>Text/image role is not inferred from position alone; `indicator` explicitly controls masking and embeddings.</li>
-      <li>Padding remains separated by segment ids so it does not become part of the real sample sequence.</li>
+      <li>提高分辨率会让 image token count 按平方级增长。</li>
+      <li>更长的 prompt 会增加 text sequence length，但不会改变 image grid size。</li>
+      <li>Text/image role 不是只靠 position 推断；`indicator` 明确参与 masking 和 embeddings。</li>
+      <li>Padding 通过 segment ids 保持隔离，不会混入真实 sample sequence。</li>
     </ul>
   </section>
 
   <section class="next">
-    <a class="button" href="02-cli-api-contract.html">CLI Contract</a>
-    <a class="button primary" href="04-sampling-cfg.html">Next: Sampling / CFG</a>
+    <a class="button" href="02-cli-api-contract.html">CLI 契约</a>
+    <a class="button primary" href="04-sampling-cfg.html">下一章：采样 / CFG</a>
   </section>
 </main>
 <script src="paper.js" data-root="."></script>

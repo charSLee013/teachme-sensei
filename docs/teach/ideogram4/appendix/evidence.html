@@ -3,48 +3,48 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Evidence Appendix</title>
+  <title>Ideogram 4 依据说明</title>
   <link rel="stylesheet" href="../paper.css">
 </head>
 <body>
 <main data-paper>
   <section class="hero">
-    <p class="kicker">Appendix / evidence boundaries</p>
-    <h1>证据附录</h1>
-    <p class="abstract">本附录把学生页的核心主张归入证据层。详细后台矩阵已迁移到 `paper-course/artifacts/source-matrix.md`，但学生不需要读后台文件才能理解每个结论的证据边界。</p>
+    <p class="kicker">Appendix / evidence guide</p>
+    <h1>依据说明</h1>
+    <p class="abstract">本页说明课程中的关键结论来自哪里，以及哪些内容只能作为公开资料范围内的解释。详细依据矩阵位于 artifacts/source-matrix.md；普通读者不需要先读矩阵，也能理解每个结论的依据边界。</p>
   </section>
 
   <section>
-    <h2>Core Claims</h2>
+    <h2>核心结论</h2>
     <table>
-      <thead><tr><th>Claim</th><th>Evidence type</th><th>Boundary</th></tr></thead>
+      <thead><tr><th>结论</th><th>依据类型</th><th>边界</th></tr></thead>
       <tbody>
-        <tr><td>The repository is an inference toolkit for Ideogram 4.</td><td>Source fact + local documentation.</td><td>Does not include private training system.</td></tr>
-        <tr><td>The pipeline packs text features and image latent tokens into a shared sequence.</td><td>Source fact from `pipeline_ideogram4.py`.</td><td>Explains inference layout, not training data composition.</td></tr>
-        <tr><td>The model core is a 34-layer single-stream Transformer velocity predictor.</td><td>Source fact from `modeling_ideogram4.py` and local docs.</td><td>Architecture names follow repo source/docs.</td></tr>
-        <tr><td>Sampling combines conditional and image-only unconditional velocity predictions.</td><td>Source fact from pipeline sampling loop.</td><td>Quality implications require generation experiments not performed here.</td></tr>
-        <tr><td>Structured JSON captions are the expected high-control prompt protocol.</td><td>Local prompting docs and verifier implementation.</td><td>Comparisons with other prompting paradigms are lineage context.</td></tr>
-        <tr><td>Training details beyond public high-level claims remain unknown in this repository.</td><td>Source absence + public docs boundary.</td><td>Unknown means not confirmed here, not necessarily nonexistent.</td></tr>
+        <tr><td>该仓库是 Ideogram 4 的推理工具包。</td><td>源码事实 + 本地文档。</td><td>不覆盖私有训练系统。</td></tr>
+        <tr><td>pipeline 会把文本特征和图像 latent token 打包进共享序列。</td><td>来自 `pipeline_ideogram4.py` 的源码事实。</td><td>解释推理布局，不解释训练数据组成。</td></tr>
+        <tr><td>模型核心是 34 层单流 Transformer velocity predictor。</td><td>来自 `modeling_ideogram4.py` 和本地文档的源码事实。</td><td>架构名称以仓库源码和文档为准。</td></tr>
+        <tr><td>采样会组合文本条件 velocity 和 image-only baseline velocity。</td><td>来自 pipeline sampling loop 的源码事实。</td><td>质量影响需要另行实验，不在本课程中声称。</td></tr>
+        <tr><td>结构化 JSON caption 是高控制提示词协议。</td><td>本地 prompting 文档和 verifier 实现。</td><td>与其他提示词范式的比较仅用于背景定位。</td></tr>
+        <tr><td>公开资料没有给出完整训练细节。</td><td>源码缺失 + 公开资料边界。</td><td>未公开不等于不存在，只表示当前材料无法确认。</td></tr>
       </tbody>
     </table>
   </section>
 
   <section>
-    <h2>Evidence Language Standard</h2>
+    <h2>表述标准</h2>
     <div class="grid">
-      <div class="claim"><div class="claim-title">Use</div><p>“The implementation defines…” for source facts.</p></div>
-      <div class="claim"><div class="claim-title">Use</div><p>“Public materials state…” for release claims.</p></div>
-      <div class="claim boundary"><div class="claim-title">Use</div><p>“This report reconstructs…” for teaching explanations.</p></div>
-      <div class="claim warning"><div class="claim-title">Avoid</div><p>Speculating about training data, compute, optimizer, or private methods.</p></div>
+      <div class="claim"><div class="claim-title">源码事实</div><p>使用“实现中定义了……”来描述可由源码直接确认的内容。</p></div>
+      <div class="claim"><div class="claim-title">公开声明</div><p>使用“公开资料说明……”来描述发布方文档中的声明。</p></div>
+      <div class="claim boundary"><div class="claim-title">教学解释</div><p>使用“为了理解机制，可以这样组织……”来描述课程重建。</p></div>
+      <div class="claim warning"><div class="claim-title">避免</div><p>不要猜测训练数据、训练算力、优化器或私有方法。</p></div>
     </div>
   </section>
 
   <section class="next">
-    <a class="button" href="module-index.html">Module Index</a>
-    <a class="button primary" href="../01-model-card.html">Model Card</a>
+    <a class="button" href="module-index.html">模块索引</a>
+    <a class="button primary" href="../01-model-card.html">模型与运行时</a>
   </section>
 </main>
 <script src="../paper.js" data-root=".."></script>
-<script>mountPaperChrome("Evidence");</script>
+<script>mountPaperChrome("依据说明");</script>
 </body>
 </html>

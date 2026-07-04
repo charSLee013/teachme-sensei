@@ -71,6 +71,13 @@ main {
   border-bottom: 1px solid var(--line);
 }
 
+.mast-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .stamp {
   display: inline-flex;
   align-items: center;
@@ -92,6 +99,39 @@ main {
   font-size: 0.88rem;
   color: var(--muted);
   text-decoration: none;
+}
+
+.language-toggle {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(44px, 1fr));
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 252, 247, 0.72);
+}
+
+.language-toggle button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+body[data-lang="zh"] .language-toggle [data-set-lang="zh"],
+body[data-lang="en"] .language-toggle [data-set-lang="en"] {
+  background: var(--ink);
+  color: var(--paper-strong);
+}
+
+body[data-lang="zh"] .lang-en,
+body[data-lang="en"] .lang-zh {
+  display: none !important;
 }
 
 .toplink:hover,

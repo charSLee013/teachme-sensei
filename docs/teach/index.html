@@ -3,28 +3,49 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Teachme Sensei | Teaching Packages</title>
-  <meta name="description" content="Public teaching packages for repo courses and technical report courses, with direct links to course home, structure, evidence, and proof.">
+  <title>Teachme Sensei | 教学包目录</title>
+  <meta name="description" content="Teachme Sensei public teaching package catalog with Chinese and English views.">
   <link rel="stylesheet" href="home.css">
 </head>
-<body>
+<body data-lang="zh">
   <main>
     <header class="masthead">
-      <div class="stamp">Teachme Sensei / Public Teaching Packages</div>
-      <a class="toplink" href="../">Root Entry</a>
+      <div class="stamp">Teachme Sensei / 课程目录</div>
+      <div class="mast-actions">
+        <div class="language-toggle" aria-label="Language">
+          <button type="button" data-set-lang="zh">中文</button>
+          <button type="button" data-set-lang="en">EN</button>
+        </div>
+        <a class="toplink" href="../">
+          <span class="lang-zh">返回首页</span>
+          <span class="lang-en">Root entry</span>
+        </a>
+      </div>
     </header>
 
     <section class="hero">
       <div class="hero-copy">
-        <h1>Courses, not just files.</h1>
-        <p class="lede">This page is the public entry for the teaching packages published under <code>/teach/*/</code>. The point is not to browse a folder tree. The point is to tell apart course types quickly, pick the right reading path, and reach the proof layer when you want to check how rigorous a package is.</p>
+        <h1>
+          <span class="lang-zh">先选课程，再进入材料。</span>
+          <span class="lang-en">Choose the course before opening the files.</span>
+        </h1>
+        <p class="lede lang-zh">这个目录用于区分不同教学包的用途、读者和学习路线。你可以直接开始课程，也可以先看结构图、依据资料和校验记录。</p>
+        <p class="lede lang-en">This catalog separates the teaching packages by purpose, audience, and reading path. Start a course directly, or inspect its structure, evidence references, and validation records first.</p>
       </div>
       <aside class="hero-note" aria-label="How to use this site">
-        <h2>Quick Paths</h2>
-        <ol>
-          <li><strong>Start Course</strong>: go straight into the student-facing course home.</li>
-          <li><strong>Structure</strong>: use the course map, reading order, or module index first.</li>
-          <li><strong>Evidence / Proof</strong>: open the source matrix, evidence appendix, or validation logs before committing time.</li>
+        <h2>
+          <span class="lang-zh">推荐读法</span>
+          <span class="lang-en">Reading Path</span>
+        </h2>
+        <ol class="lang-zh">
+          <li><strong>开始课程</strong>：进入面向学习者的课程首页。</li>
+          <li><strong>查看结构</strong>：先读课程地图、模块索引或章节顺序。</li>
+          <li><strong>核对依据</strong>：需要严谨性时，再看依据说明、依据矩阵和校验记录。</li>
+        </ol>
+        <ol class="lang-en">
+          <li><strong>Start course</strong>: open the learner-facing course home.</li>
+          <li><strong>Inspect structure</strong>: read the course map, module index, or chapter order.</li>
+          <li><strong>Check evidence</strong>: use evidence references, source matrix, and validation logs when rigor matters.</li>
         </ol>
       </aside>
     </section>
@@ -32,122 +53,111 @@
     <section class="section">
       <div class="section-header">
         <div>
-          <div class="section-kicker">Catalog</div>
-          <h2 class="section-title">Two different course objects live here.</h2>
+          <div class="section-kicker">
+            <span class="lang-zh">课程</span>
+            <span class="lang-en">Catalog</span>
+          </div>
+          <h2 class="section-title">
+            <span class="lang-zh">这里有两类不同的学习对象。</span>
+            <span class="lang-en">Two different learning objects live here.</span>
+          </h2>
         </div>
       </div>
-      <p class="section-copy">These are not two chapters from one curriculum. They serve different reading modes. One teaches a live codebase from the engineer's point of view. The other teaches an inference repository as a technical report with explicit evidence language.</p>
+      <p class="section-copy lang-zh">Pi 是面向工程贡献者的代码仓库课程；Ideogram 4 是面向技术读者的推理系统课程。两者不是同一门课的两个章节，而是服务不同学习任务的独立教学包。</p>
+      <p class="section-copy lang-en">Pi is a repo course for engineering contributors. Ideogram 4 is a technical course for understanding an inference system. They are separate course packages, not two chapters of one curriculum.</p>
 
       <div class="courses" aria-label="Course catalog">
         <article class="course-panel pi">
           <div class="panel-top">
             <div class="badges">
               <span class="badge pi">Repo Course</span>
-              <span class="badge ok">Validated</span>
+              <span class="badge ok">
+                <span class="lang-zh">已校验</span>
+                <span class="lang-en">Validated</span>
+              </span>
             </div>
           </div>
 
           <h2 class="course-title">Pi Agent Harness</h2>
-          <p class="course-summary">A contributor-facing repo course for understanding how Pi is assembled, how the runtime path works, and how to distinguish repository fact from teaching reconstruction before changing the codebase.</p>
+          <p class="course-summary lang-zh">面向工程师和贡献者的代码仓库课程，解释 Pi 的包结构、运行路径、工具系统、会话管理、上下文压缩和贡献流程。</p>
+          <p class="course-summary lang-en">A contributor-facing repo course covering Pi's package structure, runtime path, tool system, session model, compaction, and contribution workflow.</p>
 
           <div class="route-tags">
             <span class="route-tag">14 chapters</span>
             <span class="route-tag">course map</span>
             <span class="route-tag">source matrix</span>
-            <span class="route-tag">proof + screenshots</span>
+            <span class="route-tag">validation</span>
           </div>
 
           <div class="facts">
             <div class="fact">
               <span class="fact-label">Audience</span>
-              <strong>Engineers and contributors</strong>
-              <p>Readers who need to trace runtime flow, package boundaries, tools, sessions, compaction, and contributor rules.</p>
-            </div>
-            <div class="fact">
-              <span class="fact-label">Format</span>
-              <strong>Repo-course bundle</strong>
-              <p>Course home, course map, chapter sequence, backstage audits, source matrix, and validation artifacts.</p>
+              <strong class="lang-zh">工程师与贡献者</strong>
+              <strong class="lang-en">Engineers and contributors</strong>
+              <p class="lang-zh">适合需要理解运行链路、包边界、工具、会话和贡献规则的读者。</p>
+              <p class="lang-en">For readers who need runtime flow, package boundaries, tools, sessions, and contribution rules.</p>
             </div>
             <div class="fact">
               <span class="fact-label">Best First Step</span>
-              <strong>Course map or chapter 1</strong>
-              <p>Use the map if you want the architectural throughline first. Use the home page if you want the student path.</p>
-            </div>
-            <div class="fact">
-              <span class="fact-label">Evidence Style</span>
-              <strong>Repo facts with boundaries</strong>
-              <p>Explicit distinction between checked repository facts, reconstruction, audits, and proof logs.</p>
+              <strong class="lang-zh">课程地图或第 1 章</strong>
+              <strong class="lang-en">Course map or chapter 1</strong>
+              <p class="lang-zh">想先建立架构主线就读课程地图；想按学习路径推进就从首页开始。</p>
+              <p class="lang-en">Use the map for the architectural line, or start at the home page for the learner path.</p>
             </div>
           </div>
 
           <div class="cta-row">
-            <a class="button primary pi" href="pi/">Start Course</a>
-            <a class="button" href="pi/course-map.html">Course Map</a>
-            <a class="button" href="pi/artifacts/source-matrix.md">Source Matrix</a>
-            <a class="button" href="pi/proof/static-link-check.md">Proof Log</a>
-          </div>
-
-          <div class="evidence-strip">
-            Public backstage materials:
-            <a href="pi/proof/playwright-results.json">Playwright results</a>,
-            <a href="pi/artifacts/misconception-audits/05-lgtm-is-pr-gate-not-merge-quorum.md">misconception audit</a>,
-            <a href="pi/proof/screenshots/index-desktop.png">screenshots</a>.
+            <a class="button primary pi" href="pi/"><span class="lang-zh">开始课程</span><span class="lang-en">Start Course</span></a>
+            <a class="button" href="pi/course-map.html"><span class="lang-zh">课程地图</span><span class="lang-en">Course Map</span></a>
+            <a class="button" href="pi/artifacts/source-matrix.md"><span class="lang-zh">依据矩阵</span><span class="lang-en">Source Matrix</span></a>
+            <a class="button" href="pi/proof/static-link-check.md"><span class="lang-zh">校验记录</span><span class="lang-en">Proof Log</span></a>
           </div>
         </article>
 
         <article class="course-panel ideogram">
           <div class="panel-top">
             <div class="badges">
-              <span class="badge ideogram">Technical Report Course</span>
-              <span class="badge ok">Validated</span>
+              <span class="badge ideogram">Technical Course</span>
+              <span class="badge ok">
+                <span class="lang-zh">已校验</span>
+                <span class="lang-en">Validated</span>
+              </span>
             </div>
           </div>
 
           <h2 class="course-title">Ideogram 4</h2>
-          <p class="course-summary">A report-style teaching package for the Ideogram 4 inference repository, built around model/runtime contract, prompt protocol, sampling, architecture, and the evidence boundaries around public training information.</p>
+          <p class="course-summary lang-zh">面向技术读者的推理系统课程，围绕模型接口、运行时约束、提示词协议、采样机制、架构结构和公开资料可支撑的训练信息展开。</p>
+          <p class="course-summary lang-en">A technical course for the Ideogram 4 inference repository, covering model/runtime contract, prompt protocol, sampling, architecture, and public evidence around training information.</p>
 
           <div class="route-tags">
-            <span class="route-tag">report chapters</span>
-            <span class="route-tag">appendix</span>
-            <span class="route-tag">evidence appendix</span>
-            <span class="route-tag">proof + screenshots</span>
+            <span class="route-tag">技术课程</span>
+            <span class="route-tag">模块索引</span>
+            <span class="route-tag">依据说明</span>
+            <span class="route-tag">校验记录</span>
           </div>
 
           <div class="facts">
             <div class="fact">
               <span class="fact-label">Audience</span>
-              <strong>Technical readers and model learners</strong>
-              <p>Readers who want a report-like explanation of the inference stack, not a generic intro to image models.</p>
-            </div>
-            <div class="fact">
-              <span class="fact-label">Format</span>
-              <strong>Interactive technical report</strong>
-              <p>Home abstract, ordered reading path, appendix pages, source matrix, regression notes, and artifact survival proof.</p>
+              <strong class="lang-zh">模型学习者与技术读者</strong>
+              <strong class="lang-en">Model learners and technical readers</strong>
+              <p class="lang-zh">适合想理解推理栈和公开资料边界，而不是泛泛学习图像模型的读者。</p>
+              <p class="lang-en">For readers who want the inference stack and public-evidence boundaries, not a generic image-model intro.</p>
             </div>
             <div class="fact">
               <span class="fact-label">Best First Step</span>
-              <strong>Report home or module index</strong>
-              <p>Start from the report home for the curated path, or open the appendix index when you want system-level navigation.</p>
-            </div>
-            <div class="fact">
-              <span class="fact-label">Evidence Style</span>
-              <strong>Claim / evidence / boundary</strong>
-              <p>Student pages surface evidence language directly, then push denser matrix and proof details into appendices.</p>
+              <strong class="lang-zh">课程首页或模块索引</strong>
+              <strong class="lang-en">Course home or module index</strong>
+              <p class="lang-zh">想按顺序学习就从首页开始；想快速定位主题就打开模块索引。</p>
+              <p class="lang-en">Start at the home page for the curated path, or use the module index to jump by topic.</p>
             </div>
           </div>
 
           <div class="cta-row">
-            <a class="button primary ideogram" href="ideogram4/">Start Course</a>
-            <a class="button" href="ideogram4/appendix/module-index.html">Module Index</a>
-            <a class="button" href="ideogram4/appendix/evidence.html">Evidence Appendix</a>
-            <a class="button" href="ideogram4/proof/paper-course-playwright-results.json">Proof Log</a>
-          </div>
-
-          <div class="evidence-strip">
-            Public backstage materials:
-            <a href="ideogram4/artifacts/source-matrix.md">source matrix</a>,
-            <a href="ideogram4/review-artifacts/misconception-audits/paper-course-v2.md">misconception audit</a>,
-            <a href="ideogram4/proof/paper-course-screenshots/desktop__paper-course__index.html.png">screenshots</a>.
+            <a class="button primary ideogram" href="ideogram4/"><span class="lang-zh">开始课程</span><span class="lang-en">Start Course</span></a>
+            <a class="button" href="ideogram4/appendix/module-index.html"><span class="lang-zh">模块索引</span><span class="lang-en">Module Index</span></a>
+            <a class="button" href="ideogram4/appendix/evidence.html"><span class="lang-zh">依据说明</span><span class="lang-en">Evidence Appendix</span></a>
+            <a class="button" href="ideogram4/proof/paper-course-playwright-results.json"><span class="lang-zh">校验记录</span><span class="lang-en">Proof Log</span></a>
           </div>
         </article>
       </div>
@@ -156,8 +166,14 @@
     <section class="section">
       <div class="section-header">
         <div>
-          <div class="section-kicker">Comparison</div>
-          <h2 class="section-title">Use the right entry for the right question.</h2>
+          <div class="section-kicker">
+            <span class="lang-zh">对比</span>
+            <span class="lang-en">Comparison</span>
+          </div>
+          <h2 class="section-title">
+            <span class="lang-zh">按问题选择入口。</span>
+            <span class="lang-en">Pick the entry by question.</span>
+          </h2>
         </div>
       </div>
 
@@ -166,27 +182,39 @@
         <div class="head">Pi Agent Harness</div>
         <div class="head">Ideogram 4</div>
 
-        <div class="row-label">Type</div>
-        <div class="cell">Repo course for a live engineering codebase.</div>
-        <div class="cell">Technical report course for an inference repository.</div>
+        <div class="row-label"><span class="lang-zh">类型</span><span class="lang-en">Type</span></div>
+        <div class="cell"><span class="lang-zh">面向真实工程仓库的 repo course。</span><span class="lang-en">Repo course for a live engineering codebase.</span></div>
+        <div class="cell"><span class="lang-zh">面向推理仓库的技术课程。</span><span class="lang-en">Technical course for an inference repository.</span></div>
 
-        <div class="row-label">What you learn</div>
-        <div class="cell">Workspace structure, runtime modes, sessions, tools, compaction, SDK, orchestrator boundary, and contributor workflow.</div>
-        <div class="cell">Model/runtime card, CLI contract, token packing, sampling, architecture, JSON caption protocol, and public training record boundaries.</div>
+        <div class="row-label"><span class="lang-zh">学习内容</span><span class="lang-en">What you learn</span></div>
+        <div class="cell"><span class="lang-zh">工作区结构、运行模式、会话、工具、上下文压缩、SDK 与贡献流程。</span><span class="lang-en">Workspace structure, runtime modes, sessions, tools, compaction, SDK, and contribution workflow.</span></div>
+        <div class="cell"><span class="lang-zh">模型接口、CLI 契约、token packing、采样、架构、JSON caption protocol 与公开训练信息边界。</span><span class="lang-en">Model contract, CLI contract, token packing, sampling, architecture, JSON caption protocol, and public training-information boundaries.</span></div>
 
-        <div class="row-label">Best structure view</div>
-        <div class="cell">Course map.</div>
-        <div class="cell">Module index and reading order.</div>
-
-        <div class="row-label">Best evidence view</div>
-        <div class="cell">Source matrix plus proof logs and misconception audits.</div>
-        <div class="cell">Evidence appendix plus source matrix and artifact survival proof.</div>
+        <div class="row-label"><span class="lang-zh">结构入口</span><span class="lang-en">Structure view</span></div>
+        <div class="cell"><span class="lang-zh">课程地图。</span><span class="lang-en">Course map.</span></div>
+        <div class="cell"><span class="lang-zh">模块索引与阅读顺序。</span><span class="lang-en">Module index and reading order.</span></div>
       </div>
     </section>
 
     <section class="footer-note">
-      <p>The published URL shape stays stable at <code>/teach/pi/</code> and <code>/teach/ideogram4/</code>. On GitHub project Pages, the repository name is prefixed before <code>/teach/...</code>. All links on this page are relative so the same homepage works both locally and after deployment.</p>
+      <p class="lang-zh">发布路径保持为 <code>/teach/pi/</code> 和 <code>/teach/ideogram4/</code>。本页使用相对链接，适合本地预览，也适合 GitHub Pages 项目路径。</p>
+      <p class="lang-en">The published URL shape stays stable at <code>/teach/pi/</code> and <code>/teach/ideogram4/</code>. Relative links keep the page working locally and on GitHub project Pages.</p>
     </section>
   </main>
+  <script>
+    (() => {
+      const saved = localStorage.getItem("teachme-lang");
+      const initial = saved || "zh";
+      const setLang = (lang) => {
+        document.body.dataset.lang = lang;
+        document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+        localStorage.setItem("teachme-lang", lang);
+      };
+      document.querySelectorAll("[data-set-lang]").forEach((button) => {
+        button.addEventListener("click", () => setLang(button.dataset.setLang));
+      });
+      setLang(initial);
+    })();
+  </script>
 </body>
 </html>

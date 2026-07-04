@@ -3,87 +3,87 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Model and Runtime Card</title>
+  <title>模型与运行时</title>
   <link rel="stylesheet" href="paper.css">
 </head>
 <body>
 <main data-paper>
   <section class="hero">
-    <p class="kicker">Model card / runtime card</p>
-    <h1>Model and Runtime Card</h1>
+    <p class="kicker">模型接口 / 运行时约束</p>
+    <h1>模型与运行时</h1>
     <p class="abstract">本页将 Ideogram 4 推理包描述为可运行模型接口，而不是概念图。字段覆盖模型身份、变体、输入输出、运行时、许可、访问、安全与限制。</p>
   </section>
 
   <section>
-    <h2>Abstract</h2>
-    <div class="claim"><div class="claim-title">Claim</div>
+    <h2>概览</h2>
+    <div class="claim"><div class="claim-title">要记住的结论</div>
       <p>该仓库提供 Ideogram 4 的本地推理接口：输入为 caption string 和图像尺寸/采样参数，输出为 `PIL.Image`。模型权重通过 Hugging Face gated repositories 获取，CLI 暴露 nf4 和 fp8 两类变体。</p>
-      <p><strong>Evidence.</strong> `run_inference.py` 的 `QUANTIZATION_REPOS`、`Ideogram4PipelineConfig`、README model zoo 和 license files。</p>
-      <p><strong>Boundary.</strong> 未认证环境无法读取 Ideogram HF raw model cards；本页只使用本地源码、README 和可访问官方页面中的信息。</p>
+      <p><strong>依据。</strong> `run_inference.py` 的 `QUANTIZATION_REPOS`、`Ideogram4PipelineConfig`、README model zoo 和 license files。</p>
+      <p><strong>学习边界。</strong> 未认证环境无法读取 Ideogram HF raw model cards；本页只使用本地源码、README 和可访问官方页面中的信息。</p>
     </div>
   </section>
 
   <section>
-    <h2>Model Identity</h2>
+    <h2>模型身份</h2>
     <table>
       <tbody>
-        <tr><th>Name</th><td>Ideogram 4</td></tr>
-        <tr><th>Repository package</th><td>`ideogram-4` Python inference package</td></tr>
-        <tr><th>Published parameter count</th><td>9.3B in local README model zoo</td></tr>
-        <tr><th>Primary task</th><td>Text-to-image generation from prompt/caption string</td></tr>
-        <tr><th>Implementation scope</th><td>Inference pipeline, model architecture, quantized loading, prompt handling, safety API calls, documentation</td></tr>
+        <tr><th>名称</th><td>Ideogram 4</td></tr>
+        <tr><th>仓库包</th><td>`ideogram-4` Python 推理包</td></tr>
+        <tr><th>公开参数量</th><td>本地 README model zoo 中标注为 9.3B</td></tr>
+        <tr><th>主要任务</th><td>从 prompt/caption string 生成图像</td></tr>
+        <tr><th>实现范围</th><td>推理 pipeline、模型架构、量化加载、prompt 处理、安全 API 调用和文档</td></tr>
       </tbody>
     </table>
   </section>
 
   <section id="runtime">
-    <h2>Variants and Runtime</h2>
+    <h2>变体与运行时</h2>
     <table>
-      <thead><tr><th>Variant</th><th>Weights repo</th><th>Loading path</th><th>Runtime constraint</th></tr></thead>
+      <thead><tr><th>变体</th><th>权重仓库</th><th>加载路径</th><th>运行时约束</th></tr></thead>
       <tbody>
-        <tr><td>nf4</td><td>`ideogram-ai/ideogram-4-nf4`</td><td>bitsandbytes `Linear4bit`, prequantized state dict</td><td>CUDA required by implementation.</td></tr>
-        <tr><td>fp8</td><td>`ideogram-ai/ideogram-4-fp8`</td><td>weight-only e4m3 FP8 buffers + per-row scale</td><td>Activations use compute dtype; code path is not limited to FP8 tensor cores.</td></tr>
+        <tr><td>nf4</td><td>`ideogram-ai/ideogram-4-nf4`</td><td>bitsandbytes `Linear4bit` 和预量化 state dict</td><td>当前实现要求 CUDA。</td></tr>
+        <tr><td>fp8</td><td>`ideogram-ai/ideogram-4-fp8`</td><td>weight-only e4m3 FP8 buffers + per-row scale</td><td>Activation 使用 compute dtype；代码路径不只服务 FP8 tensor cores。</td></tr>
       </tbody>
     </table>
   </section>
 
   <section>
-    <h2>Inputs and Outputs</h2>
+    <h2>输入与输出</h2>
     <table>
-      <thead><tr><th>Field</th><th>Contract</th><th>Effect</th></tr></thead>
+      <thead><tr><th>字段</th><th>契约</th><th>影响</th></tr></thead>
       <tbody>
-        <tr><td>Prompt</td><td>String; preferably structured JSON caption.</td><td>Provides text condition after Qwen3-VL hidden-state extraction.</td></tr>
-        <tr><td>Height / width</td><td>Must be divisible by 16 in implementation.</td><td>Determines image token grid and schedule resolution adjustment.</td></tr>
-        <tr><td>Sampler parameters</td><td>Steps, guidance schedule, `mu`, `std`.</td><td>Controls denoising trajectory and condition strength.</td></tr>
-        <tr><td>Output</td><td>List of `PIL.Image` objects.</td><td>CLI saves the first image to `--output`.</td></tr>
+        <tr><td>Prompt</td><td>String；推荐使用结构化 JSON caption。</td><td>经 Qwen3-VL hidden-state extraction 后提供文本条件。</td></tr>
+        <tr><td>Height / width</td><td>实现要求能被 16 整除。</td><td>决定 image token grid 和 schedule resolution 调整。</td></tr>
+        <tr><td>Sampler parameters</td><td>Steps、guidance schedule、`mu`、`std`。</td><td>控制 denoising trajectory 和条件强度。</td></tr>
+        <tr><td>Output</td><td>`PIL.Image` 对象列表。</td><td>CLI 会把第一张图保存到 `--output`。</td></tr>
       </tbody>
     </table>
   </section>
 
   <section id="safety">
-    <h2>Safety, Access, License</h2>
+    <h2>安全、访问与许可</h2>
     <div class="grid">
-      <div class="claim"><div class="claim-title">Access</div><p>README states model weights are gated on Hugging Face. The course environment observed 401 Unauthorized when fetching raw HF README URLs without credentials.</p></div>
-      <div class="claim"><div class="claim-title">License</div><p>Source code is Apache-2.0. Model weights use the Ideogram Non-Commercial Model Agreement included under `model_licenses/`.</p></div>
-      <div class="claim warning"><div class="claim-title">Safety</div><p>Hive moderation is integrated but key-dependent. Missing keys produce CLI warnings, not blocking moderation.</p></div>
+      <div class="claim"><div class="claim-title">访问</div><p>README 说明模型权重位于 Hugging Face gated repositories；未配置凭据时无法直接读取 raw HF README。</p></div>
+      <div class="claim"><div class="claim-title">许可</div><p>源码许可证是 Apache-2.0；模型权重使用 `model_licenses/` 下的 Ideogram Non-Commercial Model Agreement。</p></div>
+      <div class="claim warning"><div class="claim-title">安全</div><p>Hive moderation 已接入，但依赖 API key；缺少 key 时 CLI 给出 warning，而不是完成阻断式审核。</p></div>
     </div>
   </section>
 
   <section>
-    <h2>Known Limits</h2>
+    <h2>已知边界</h2>
     <ul>
-      <li>Training data, optimizer, compute and duration are not exposed by this inference repository.</li>
-      <li>Real image quality, latency and memory behavior require authenticated weights and hardware-specific measurement.</li>
-      <li>Prompt safety and output safety depend on configured Hive keys or equivalent deployment controls.</li>
+      <li>训练数据、optimizer、compute 和训练时长没有在该推理仓库中公开。</li>
+      <li>真实图像质量、延迟和显存表现需要有权限的权重与具体硬件测量。</li>
+      <li>Prompt safety 和 output safety 依赖已配置的 Hive keys 或等价部署控制。</li>
     </ul>
   </section>
 
   <section class="next">
-    <a class="button" href="index.html">Back to Abstract</a>
-    <a class="button primary" href="02-cli-api-contract.html">Next: CLI Contract</a>
+    <a class="button" href="index.html">返回课程主线</a>
+    <a class="button primary" href="02-cli-api-contract.html">下一章：CLI 契约</a>
   </section>
 </main>
 <script src="paper.js" data-root="."></script>
-<script>mountPaperChrome("Model Card");</script>
+<script>mountPaperChrome("模型与运行时");</script>
 </body>
 </html>

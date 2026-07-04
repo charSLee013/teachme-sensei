@@ -3,16 +3,16 @@ const paperCourseRoot = document.currentScript?.dataset.root || ".";
 function mountPaperChrome(active) {
   const root = paperCourseRoot;
   const nav = [
-    ["index.html", "Abstract"],
-    ["01-model-card.html", "Model Card"],
-    ["02-cli-api-contract.html", "CLI Contract"],
+    ["index.html", "课程主线"],
+    ["01-model-card.html", "模型与运行时"],
+    ["02-cli-api-contract.html", "CLI 契约"],
     ["03-token-packing.html", "Token Packing"],
-    ["04-sampling-cfg.html", "Sampling / CFG"],
+    ["04-sampling-cfg.html", "采样 / CFG"],
     ["05-transformer-architecture.html", "Transformer"],
     ["06-json-caption-protocol.html", "JSON Caption"],
-    ["07-training-public-record.html", "Training Record"],
-    ["appendix/module-index.html", "Module Index"],
-    ["appendix/evidence.html", "Evidence"]
+    ["07-training-public-record.html", "公开训练信息"],
+    ["appendix/module-index.html", "模块索引"],
+    ["appendix/evidence.html", "依据说明"]
   ];
   const links = nav.map(([href, label]) => {
     const current = label === active ? ' aria-current="page"' : "";
@@ -21,8 +21,8 @@ function mountPaperChrome(active) {
   document.body.insertAdjacentHTML("afterbegin", `
     <div class="layout">
       <aside class="sidebar">
-        <a href="${root}/index.html"><img src="${root}/../assets/ideogram_logo.svg" alt="Ideogram"></a>
-        <div class="kicker">Technical report course v2</div>
+        <a class="course-mark" href="${root}/index.html">Ideogram 4</a>
+        <div class="kicker">Ideogram 4 推理系统课程</div>
         <nav class="nav">${links}</nav>
       </aside>
       <main id="paper-main"></main>

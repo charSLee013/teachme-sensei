@@ -3,53 +3,53 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ideogram 4 Technical Report Course</title>
+  <title>Ideogram 4 推理系统课程</title>
   <link rel="stylesheet" href="paper.css">
 </head>
 <body>
 <main data-paper>
   <section class="hero">
-    <p class="kicker">Ideogram 4 inference toolkit / interactive technical report</p>
-    <h1>Ideogram 4 推理系统技术报告</h1>
-    <p class="abstract">本报告将该仓库界定为 Ideogram 4 的推理工具包：它集成模型结构、权重加载、采样逻辑、提示词处理、安全过滤和说明文档，面向本地推理与部署集成场景。本报告基于本地源码、项目文档和可访问官方资料，对其模型接口、运行时约束、条件生成机制和公开训练信息进行分层说明。</p>
+    <p class="kicker">Ideogram 4 推理工具包 / 技术课程</p>
+    <h1>Ideogram 4 推理系统课程</h1>
+    <p class="abstract">这门课程讲解 Ideogram 4 推理仓库的核心结构：模型接口、权重加载、采样逻辑、提示词处理、安全过滤和本地部署约束。课程以源码、项目文档和可访问官方资料为依据，帮助读者理解哪些结论来自代码，哪些来自公开资料，哪些只是用于理解机制的教学重建。</p>
   </section>
 
   <section>
-    <h2>Abstract</h2>
+    <h2>课程主线</h2>
     <div class="claim">
-      <div class="claim-title">Claim</div>
-      <p>该仓库公开的是 Ideogram 4 的推理侧系统：CLI 入口、pipeline 编排、Qwen3-VL 条件编码、单流 Transformer velocity predictor、Euler flow-matching sampler、VAE decode、量化权重加载、prompt protocol 和可选安全过滤。</p>
-      <p><strong>Evidence.</strong> 本地 `run_inference.py`、`src/ideogram4/*`、`docs/*` 和 README。权重访问边界由 README 和未认证 Hugging Face raw fetch 的 401 响应共同支持。</p>
-      <p><strong>Boundary.</strong> 训练数据、optimizer、训练时长、训练 compute、post-training 细节不由本仓库源码公开；本报告仅按公开资料、源码事实、教学重建和 unknown 层处理训练内容。</p>
+      <div class="claim-title">要记住的结论</div>
+      <p>读完后，读者应能说明 Ideogram 4 本地推理从 CLI 参数进入 pipeline，再经过 Qwen3-VL 条件编码、单流 Transformer velocity prediction、Euler flow-matching sampling、VAE decode 和可选安全过滤的完整路径。</p>
+      <p><strong>依据。</strong> 课程主要依据 `run_inference.py`、`src/ideogram4/*`、`docs/*` 和 README；权重访问方式以项目说明和 Hugging Face gated repository 行为为边界。</p>
+      <p><strong>学习边界。</strong> 课程会区分源码事实、公开声明、机制解释和未公开信息。训练数据、优化器、训练时长、训练算力和 post-training 细节没有在当前公开材料中给出，因此不会被当作事实讲解。</p>
     </div>
   </section>
 
   <section>
-    <h2>Contributions of This Course</h2>
+    <h2>这门课提供什么</h2>
     <div class="grid">
-      <div class="card"><span class="pill">F1</span><h3>论文式结构</h3><p>每章使用 abstract、claim、evidence、mechanism、boundary，而不是普通教程叙事。</p></div>
-      <div class="card"><span class="pill">F2/F10</span><h3>契约化说明</h3><p>CLI 参数解释为 API contract；权重与运行时解释为 model/runtime card。</p></div>
-      <div class="card"><span class="pill">F4/F5/F6</span><h3>机制可视化</h3><p>token packing 和 sampling/CFG 使用交互可视化，并配备变量表和文本 fallback。</p></div>
-      <div class="card"><span class="pill">F8/F9/F11</span><h3>深层技术章节</h3><p>模型架构、JSON caption protocol、训练公开信息按证据层深入展开。</p></div>
+      <div class="card"><span class="pill">路径</span><h3>清晰阅读顺序</h3><p>从模型/运行时卡片开始，再进入 CLI、token packing、采样、架构和 prompt protocol。</p></div>
+      <div class="card"><span class="pill">契约</span><h3>接口与约束</h3><p>把 CLI 参数、权重变体、设备要求和输出行为解释成可检查的运行契约。</p></div>
+      <div class="card"><span class="pill">机制</span><h3>机制解释</h3><p>用图示和变量表解释 token packing、CFG、flow-matching sampler 与 Transformer 数据流。</p></div>
+      <div class="card"><span class="pill">依据</span><h3>依据分层</h3><p>对源码事实、公开声明、教学重建和未公开信息做区分，避免把猜测包装成结论。</p></div>
     </div>
   </section>
 
   <section>
-    <h2>Evidence Levels</h2>
+    <h2>依据分层</h2>
     <table>
-      <thead><tr><th>Level</th><th>Use in this report</th><th>Reader instruction</th></tr></thead>
+      <thead><tr><th>层级</th><th>课程中的用途</th><th>读者应如何理解</th></tr></thead>
       <tbody>
-        <tr><td>Source fact</td><td>直接来自本地源码或文档的行为、参数、结构。</td><td>可作为该 checkout 的事实。</td></tr>
-        <tr><td>Public claim</td><td>发布方 README、官方博客、模型卡中的公开声明。</td><td>表述为“公开资料声明”，不等同于独立复现。</td></tr>
-        <tr><td>Lineage context</td><td>与 prompt、CFG、flow matching、model card 等通用范式的对比。</td><td>用于定位设计，不证明 Ideogram 内部训练选择。</td></tr>
-        <tr><td>Course reconstruction</td><td>为了理解推理机制而做的教学重建。</td><td>不能当作官方训练配方。</td></tr>
-        <tr><td>Unknown</td><td>当前公开资料和本地源码无法确认的信息。</td><td>保持边界，不猜测。</td></tr>
+        <tr><td>源码事实</td><td>直接来自本地源码或文档的行为、参数、结构。</td><td>可以作为当前 checkout 的事实。</td></tr>
+        <tr><td>公开声明</td><td>发布方 README、官方博客、模型卡中的公开说明。</td><td>可以引用为公开资料，不等同于独立复现。</td></tr>
+        <tr><td>背景知识</td><td>与 prompt、CFG、flow matching、model card 等通用范式的对比。</td><td>用于定位设计，不证明私有训练选择。</td></tr>
+        <tr><td>教学重建</td><td>为了理解推理机制而整理出的解释路径。</td><td>帮助理解机制，不能当作官方训练配方。</td></tr>
+        <tr><td>未公开信息</td><td>当前公开资料和本地源码没有确认的信息。</td><td>不把缺失信息写成事实。</td></tr>
       </tbody>
     </table>
   </section>
 
   <section>
-    <h2>Reading Order</h2>
+    <h2>学习顺序</h2>
     <div class="grid">
       <a class="card" href="01-model-card.html"><h3>1. Model / Runtime Card</h3><p>先确定模型身份、变体、输入输出、硬件、许可、安全和限制。</p></a>
       <a class="card" href="02-cli-api-contract.html"><h3>2. CLI / API Contract</h3><p>解释每个 `run_inference.py` 参数如何影响运行和结果。</p></a>
@@ -57,24 +57,24 @@
       <a class="card" href="04-sampling-cfg.html"><h3>4. Sampling / CFG</h3><p>定义变量、公式和每步更新，说明条件信号如何改变采样方向。</p></a>
       <a class="card" href="05-transformer-architecture.html"><h3>5. Transformer Architecture</h3><p>深入 shapes、Qwen taps、MRoPE、AdaLN、SwiGLU 和 output contract。</p></a>
       <a class="card" href="06-json-caption-protocol.html"><h3>6. JSON Caption Protocol</h3><p>解释结构化 prompt 的语义、约束和与其他 prompt 范式的差异。</p></a>
-      <a class="card" href="07-training-public-record.html"><h3>7. Training Public Record</h3><p>正向分层公开训练声明、源码支持的推理事实、教学重建和 unknown。</p></a>
+      <a class="card" href="07-training-public-record.html"><h3>7. 公开训练信息</h3><p>说明公开资料能支持哪些结论，以及哪些训练细节仍未公开。</p></a>
     </div>
   </section>
 
   <section>
-    <h2>Limitations</h2>
+    <h2>学习边界</h2>
     <div class="claim boundary">
-      <div class="claim-title">Boundary</div>
-      <p>本报告不下载 gated 权重，不运行真实图片生成，不验证官方 benchmark 成绩，不推断未公开训练配方。任何关于训练数据、optimizer、compute 的内容只在公开资料可证据化时出现；否则归类为 unknown。</p>
+      <div class="claim-title">学习范围</div>
+      <p>这门课聚焦源码和公开资料能够支持的推理系统知识。涉及训练数据、优化器、训练算力、训练时长或 benchmark 复现时，课程只说明公开资料已经给出的内容；没有公开依据的部分会明确标为未公开信息。</p>
     </div>
   </section>
 
   <section class="next">
-    <a class="button primary" href="01-model-card.html">Start with Model Card</a>
-    <a class="button" href="appendix/module-index.html">Open Module Index</a>
+    <a class="button primary" href="01-model-card.html">从模型/运行时卡片开始</a>
+    <a class="button" href="appendix/module-index.html">打开模块索引</a>
   </section>
 </main>
 <script src="paper.js" data-root="."></script>
-<script>mountPaperChrome("Abstract");</script>
+<script>mountPaperChrome("课程主线");</script>
 </body>
 </html>

@@ -3,33 +3,33 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CLI and API Contract</title>
+  <title>CLI 与 API 契约</title>
   <link rel="stylesheet" href="paper.css">
 </head>
 <body>
 <main data-paper>
   <section class="hero">
-    <p class="kicker">run_inference.py / argument contract</p>
-    <h1>CLI / API Contract</h1>
+    <p class="kicker">run_inference.py / 参数契约</p>
+    <h1>CLI / API 契约</h1>
     <p class="abstract">本页把 `run_inference.py` 解释为接口契约：每个参数都有默认值、运行影响、结果影响和失败模式。目标是让读者知道改变参数会改变哪一段推理系统。</p>
   </section>
 
   <section>
-    <h2>Abstract</h2>
+    <h2>概览</h2>
     <p>本章直接把 `run_inference.py` 拆成接口契约：参数默认值、行为影响、失败模式和相互作用都在表中说明，避免读者把 CLI 误读成简单的 prompt 转发层。</p>
   </section>
 
   <section>
-    <h2>Claim and Evidence</h2>
-    <div class="claim"><div class="claim-title">Claim</div>
+    <h2>结论与依据</h2>
+    <div class="claim"><div class="claim-title">要记住的结论</div>
       <p>CLI 是完整推理路径的用户入口，但它不只是转发 prompt。它决定设备、量化权重、prompt expansion、安全筛查、采样 preset、seed 和输出位置。</p>
-      <p><strong>Evidence.</strong> `argparse` definitions and control branches in `run_inference.py`.</p>
-      <p><strong>Boundary.</strong> 该页描述 CLI 行为；`Ideogram4Pipeline.__call__` 的内部采样机制在 sampling 章节展开。</p>
+      <p><strong>依据。</strong> `run_inference.py` 中的 `argparse` 定义和控制分支。</p>
+      <p><strong>学习边界。</strong> 该页描述 CLI 行为；`Ideogram4Pipeline.__call__` 的内部采样机制在采样章节展开。</p>
     </div>
   </section>
 
   <section>
-    <h2>Argument Contract</h2>
+    <h2>参数契约</h2>
     <table>
       <thead><tr><th>Argument</th><th>Default</th><th>Effect</th><th>Failure mode / interaction</th></tr></thead>
       <tbody>
@@ -52,7 +52,7 @@
   </section>
 
   <section>
-    <h2>Operational Sequence</h2>
+    <h2>运行顺序</h2>
     <div class="diagram">parse args
   -> optional Hive text moderation
   -> optional magic prompt expansion
@@ -65,11 +65,11 @@
   </section>
 
   <section class="next">
-    <a class="button" href="01-model-card.html">Model Card</a>
-    <a class="button primary" href="03-token-packing.html">Next: Token Packing</a>
+    <a class="button" href="01-model-card.html">模型与运行时</a>
+    <a class="button primary" href="03-token-packing.html">下一章：Token Packing</a>
   </section>
 </main>
 <script src="paper.js" data-root="."></script>
-<script>mountPaperChrome("CLI Contract");</script>
+<script>mountPaperChrome("CLI 契约");</script>
 </body>
 </html>

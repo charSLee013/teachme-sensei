@@ -155,7 +155,7 @@
     {
       "path": "artifacts/source-matrix.md",
       "type": "source_matrix",
-      "audience": "backstage",
+      "audience": "supporting",
       "required": true,
       "status": "validated",
       "last_validated": "2026-07-02",
@@ -164,7 +164,7 @@
     {
       "path": "artifacts/misconception-audits/01-radius-is-not-visibility.md",
       "type": "misconception_audit",
-      "audience": "backstage",
+      "audience": "supporting",
       "required": true,
       "status": "validated",
       "last_validated": "2026-07-02",
@@ -173,7 +173,7 @@
     {
       "path": "artifacts/misconception-audits/02-sdk-events-not-string-literals.md",
       "type": "misconception_audit",
-      "audience": "backstage",
+      "audience": "supporting",
       "required": true,
       "status": "validated",
       "last_validated": "2026-07-02",
@@ -182,7 +182,7 @@
     {
       "path": "artifacts/misconception-audits/03-tools-no-websearch-no-delegation.md",
       "type": "misconception_audit",
-      "audience": "backstage",
+      "audience": "supporting",
       "required": true,
       "status": "validated",
       "last_validated": "2026-07-02",
@@ -191,7 +191,7 @@
     {
       "path": "artifacts/misconception-audits/04-test-sh-is-simple.md",
       "type": "misconception_audit",
-      "audience": "backstage",
+      "audience": "supporting",
       "required": true,
       "status": "validated",
       "last_validated": "2026-07-02",
@@ -200,7 +200,7 @@
     {
       "path": "artifacts/misconception-audits/05-lgtm-is-pr-gate-not-merge-quorum.md",
       "type": "misconception_audit",
-      "audience": "backstage",
+      "audience": "supporting",
       "required": true,
       "status": "validated",
       "last_validated": "2026-07-02",
@@ -209,7 +209,7 @@
     {
       "path": "artifacts/misconception-audits/06-counts-and-locking-claims-must-match-files.md",
       "type": "misconception_audit",
-      "audience": "backstage",
+      "audience": "supporting",
       "required": true,
       "status": "validated",
       "last_validated": "2026-07-02",
@@ -218,7 +218,7 @@
     {
       "path": "proof/static-link-check.md",
       "type": "proof_log",
-      "audience": "backstage",
+      "audience": "supporting",
       "required": true,
       "status": "validated",
       "last_validated": "2026-07-02",
@@ -227,7 +227,7 @@
     {
       "path": "proof/playwright-results.json",
       "type": "proof_log",
-      "audience": "backstage",
+      "audience": "supporting",
       "required": true,
       "status": "validated",
       "last_validated": "2026-07-02",
@@ -236,7 +236,7 @@
     {
       "path": "proof/artifact-survival.json",
       "type": "proof_log",
-      "audience": "backstage",
+      "audience": "supporting",
       "required": true,
       "status": "validated",
       "last_validated": "2026-07-02",
