@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 2：Anima 的架构关系 | Anima 课程</title>
+  <link rel="stylesheet" href="../anima.css">
+</head>
+<body>
+  <header class="course-shell">
+    <a href="../index.html">Anima 课程入口</a>
+    <a href="../../">Teachme Sensei 目录</a>
+  </header>
+  <main class="markdown-course">
+    <h1 id="lesson-2-anima-的架构关系">Lesson 2：Anima 的架构关系</h1>
+    <h2 id="本节记住什么">本节记住什么</h2>
+    <ul>
+    <li>当前主线围绕 <code>Qwen3 text encoder</code>、<code>AnimaTextConditioner</code>、<code>Cosmos transformer</code> 与 <code>Qwen-Image VAE</code> 这四个公开组件展开。</li>
+    <li>2B 参数量不只是标签，它和 hidden width、层数、latent token 数、分辨率预算绑在一起。</li>
+    </ul>
+    <h2 id="为什么重要">为什么重要</h2>
+    <p>如果架构层搞错，prompt 机制、冻结策略、数据解释和 LoRA 设计都会连锁错位。</p>
+    <h2 id="课程位置">课程位置</h2>
+    <p>这是整个课程的结构骨架。后面所有训练与评估讨论都建立在这里。</p>
+    <h2 id="用通俗语言讲清主线">用通俗语言讲清主线</h2>
+    <p>公开配置给出的最稳妥关系可以画成：</p>
+    <pre><code>prompt
+  -&gt; Qwen tokenizer / Qwen3 text encoder
+  -&gt; AnimaTextConditioner
+  -&gt; Cosmos transformer
+  -&gt; FlowMatch scheduler
+  -&gt; Qwen-Image VAE decode
+  -&gt; image</code></pre>
+    <p>这里最关键的两点是：</p>
+    <p>第一，公开配置把 <code>Qwen3Model</code> 放在主 text encoder 位置上。这样一来，文本条件、中文 prompt 与冻结策略，都应围绕 Qwen3 及其后续条件模块来理解。</p>
+    <p>第二，公开配置还显示存在独立的 <code>AnimaTextConditioner</code>。这意味着文本侧不是“一个 encoder 输出完就结束”，而是还有一个单独的条件重整模块，负责把语言侧表示送进视觉主干。</p>
+    <p>对 2B 参数量更稳妥的理解，不是“它小所以便宜”，而是“它落在一组受到高分辨率 token 成本约束的设计选择上”。当 latent token 数增大时，自注意力成本会按平方增长，因此 2B 很可能对应一个计算预算与表达能力之间的可用平衡点。</p>
+    <h2 id="已公开确认">已公开确认</h2>
+    <ul>
+    <li><code>Qwen3Model</code> 是公开配置中的 text encoder。</li>
+    <li><code>AnimaTextConditioner</code> 是独立组件。</li>
+    <li><code>CosmosTransformer3DModel</code> 是视觉主干。</li>
+    <li><code>Qwen-Image VAE</code> 是公开 VAE 类。</li>
+    </ul>
+    <h2 id="解释性重构">解释性重构</h2>
+    <ul>
+    <li>text conditioner 很可能是 prompt alignment 的敏感位置。</li>
+    <li>2B 更像 operating point，而不是任意参数标签。</li>
+    </ul>
+    <h2 id="尚未公开确认">尚未公开确认</h2>
+    <ul>
+    <li>text conditioner 内部究竟保留了多少 alignment 知识。</li>
+    <li>原始训练中是否对 text-side 模块做过部分解冻。</li>
+    <li>VAE 的完整潜空间行为边界。</li>
+    </ul>
+    <h2 id="自测">自测</h2>
+    <ol>
+    <li>为什么 <code>Qwen3Model</code> 的出现，会直接改变你对文本条件路径的理解？</li>
+    <li>为什么 text conditioner 的存在，使“冻结文本侧”这个问题变得更细，而不是更简单？</li>
+    <li>为什么分辨率一升高，参数量讨论就不再只是 <code>P</code> 的问题，而是 <code>P + N</code> 的问题？</li>
+    </ol>
+    <h2 id="下一步">下一步</h2>
+    <p>进入 <a href="03-training-boundaries.html">03-training-boundaries.md</a>，看参数量、数据混合、zero synthetic 和训练稳定性如何耦合起来。</p>
+  </main>
+</body>
+</html>

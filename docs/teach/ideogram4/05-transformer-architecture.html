@@ -9,100 +9,106 @@
 <body>
 <main data-paper>
   <section class="hero">
-    <p class="kicker">模型核心 / single-stream DiT</p>
+    <p class="kicker">模型核心 / 单流 DiT</p>
     <h1>Transformer 架构</h1>
-    <p class="abstract">Ideogram4Transformer 是一个 34 层单流 velocity predictor。它接收 Qwen3-VL 多层文本特征、noisy image latent tokens、timestep、3D position ids 和 segment/indicator masks，输出 image token velocity。</p>
+    <p class="abstract">Ideogram4Transformer 是一个 34 层单流速度预测器。它接收 Qwen3-VL 多层文本特征、带噪图像 latent token、时间步、三轴 position id 和 segment/indicator 掩码，输出图像 token 的速度更新量。</p>
   </section>
 
   <section>
-    <h2>概览</h2>
-    <p>本章不讲“Transformer 是什么”这种泛化定义，而是把这个仓库里的核心网络拆成可核对的结构：输入张量、34 层 block、Qwen3-VL 条件注入、MRoPE、AdaLN 和输出 velocity 约束。</p>
+    <h2>课程主线 <span class="visually-hidden">Main Line</span></h2>
+    <p>本章主线是：把核心网络拆成几件真正起作用的东西来看清它。输入张量如何进入、34 层模块如何运转、Qwen3-VL 条件怎样注入、位置与时间怎样调制，最后都会落到图像 token 速度的预测上。</p>
   </section>
 
   <section>
-    <h2>结论与依据</h2>
-    <div class="claim"><div class="claim-title">要记住的结论</div>
-      <p>实现定义了一个 34 层 Transformer：4608 维 embedding、18 个 attention heads、QK RMSNorm attention、MRoPE、SwiGLU MLP、由 timestep 驱动的 AdaLN-style modulation，以及最终投影到 128 channels 的 velocity head。</p>
-      <p><strong>依据。</strong> `Ideogram4Config`, `Ideogram4Attention`, `Ideogram4TransformerBlock`, `Ideogram4Transformer.forward`.</p>
-      <p><strong>学习边界。</strong> 本页描述公开代码中的推理架构和 tensor 契约，不证明未公开训练架构变体。</p>
+    <h2>现在记住 <span class="visually-hidden">Remember Now</span></h2>
+    <div class="claim"><div class="claim-title">现在记住 <span class="visually-hidden">Remember Now</span></div>
+      <p>这个实现公开的是一个 34 层、单流的速度预测器。它把文本条件特征、图像 latent token、时间步和位置/角色信息放进同一条 Transformer 计算链路里，最后输出每个图像 token 的速度更新量。</p>
+      <p><strong>这为什么重要。</strong> 只有把“它到底预测什么、条件从哪里进、残差和位置如何调制”这三件事看清，采样章节里的每一步更新才有落点。</p>
+      <p><strong>为什么可以相信这一点。</strong> 参数表、张量形状表、模块计算图和条件注入说明都在描述同一套公开实现，而不是各说各话。</p>
+      <p><strong>学习边界。</strong> 这一页讲的是已发布推理结构和张量契约，不把它外推成私有训练系统的全部架构细节。</p>
     </div>
   </section>
 
   <section>
     <h2>参数表</h2>
     <table>
-      <thead><tr><th>Field</th><th>Value</th><th>Role</th></tr></thead>
+      <thead><tr><th>字段</th><th>数值</th><th>作用</th></tr></thead>
       <tbody>
-        <tr><td>`emb_dim`</td><td>4608</td><td>Transformer hidden width.</td></tr>
-        <tr><td>`num_layers`</td><td>34</td><td>Number of Transformer blocks.</td></tr>
-        <tr><td>`num_heads`</td><td>18</td><td>Attention heads; head dim is 256.</td></tr>
-        <tr><td>`intermediate_size`</td><td>12288</td><td>SwiGLU MLP hidden width.</td></tr>
-        <tr><td>`adanln_dim`</td><td>512</td><td>Projected timestep conditioning width.</td></tr>
-        <tr><td>`in_channels`</td><td>128</td><td>VAE 32 channels times 2 x 2 patch.</td></tr>
-        <tr><td>`llm_features_dim`</td><td>4096 x 13</td><td>Qwen3-VL hidden size times selected layers.</td></tr>
+        <tr><td>`emb_dim`</td><td>4608</td><td>Transformer 隐藏宽度。</td></tr>
+        <tr><td>`num_layers`</td><td>34</td><td>Transformer 模块数量。</td></tr>
+        <tr><td>`num_heads`</td><td>18</td><td>注意力头数；每个 head 的维度是 256。</td></tr>
+        <tr><td>`intermediate_size`</td><td>12288</td><td>SwiGLU MLP 的中间宽度。</td></tr>
+        <tr><td>`adanln_dim`</td><td>512</td><td>timestep 调制投影宽度。</td></tr>
+        <tr><td>`in_channels`</td><td>128</td><td>VAE 32 通道乘以 2 x 2 patch 后得到的输入宽度。</td></tr>
+        <tr><td>`llm_features_dim`</td><td>4096 x 13</td><td>Qwen3-VL 隐状态宽度乘以选中层位点数。</td></tr>
       </tbody>
     </table>
   </section>
 
   <section>
-    <h2>Shape 对账表</h2>
+    <h2>张量形状表</h2>
     <table>
-      <thead><tr><th>Tensor</th><th>Shape</th><th>Contract</th></tr></thead>
+      <thead><tr><th>张量</th><th>形状</th><th>契约</th></tr></thead>
       <tbody>
-        <tr><td>`llm_features`</td><td>`(B, L, 4096*13)`</td><td>Text feature slots carry Qwen selected layer states; non-text slots are zeroed.</td></tr>
-        <tr><td>`x`</td><td>`(B, L, 128)`</td><td>Image latent tokens; text slots are zero padding for the positive branch.</td></tr>
-        <tr><td>`t`</td><td>`(B,)` or `(B, L)`</td><td>Flow timestep for AdaLN-style conditioning.</td></tr>
-        <tr><td>`position_ids`</td><td>`(B, L, 3)`</td><td>MRoPE coordinates.</td></tr>
-        <tr><td>`segment_ids`</td><td>`(B, L)`</td><td>Attention mask grouping.</td></tr>
-        <tr><td>`indicator`</td><td>`(B, L)`</td><td>Role mask for LLM vs image tokens.</td></tr>
-        <tr><td>`out`</td><td>`(B, L, 128)`</td><td>Velocity; only image token positions are semantically used.</td></tr>
+        <tr><td>`llm_features`</td><td>`(B, L, 4096*13)`</td><td>文本特征槽位承载 Qwen 选中层状态；非文本槽位补零。</td></tr>
+        <tr><td>`x`</td><td>`(B, L, 128)`</td><td>图像 latent token；正向分支里的文本槽位以零填充形式存在。</td></tr>
+        <tr><td>`t`</td><td>`(B,)` 或 `(B, L)`</td><td>用于 AdaLN 风格调制的流匹配时间步。</td></tr>
+        <tr><td>`position_ids`</td><td>`(B, L, 3)`</td><td>MRoPE 坐标。</td></tr>
+        <tr><td>`segment_ids`</td><td>`(B, L)`</td><td>注意力分组掩码。</td></tr>
+        <tr><td>`indicator`</td><td>`(B, L)`</td><td>区分 LLM token 与图像 token 的角色掩码。</td></tr>
+        <tr><td>`out`</td><td>`(B, L, 128)`</td><td>速度输出；只有图像 token 位置在语义上会被继续使用。</td></tr>
       </tbody>
     </table>
   </section>
 
   <section>
-    <h2>Block 计算</h2>
-    <div class="diagram">image latent x -> input_proj -> image hidden
-Qwen features -> RMSNorm -> llm_cond_proj -> text hidden
-timestep -> sinusoidal embedding -> adaln_proj -> block modulation
-hidden = image hidden + text hidden + image_indicator_embedding
-for 34 blocks:
-  QKV attention with QK RMSNorm + MRoPE + segment mask
-  gated residual from AdaLN modulation
-  SwiGLU MLP
-final layer -> 128-channel velocity</div>
+    <h2>模块计算流程</h2>
+    <div class="diagram">图像 latent x -> 输入投影 -> 图像隐藏状态
+Qwen 条件特征 -> RMSNorm -> llm_cond_proj -> 文本隐藏状态
+timestep -> 正弦时间嵌入 -> adaln_proj -> 模块调制向量
+hidden = 图像隐藏状态 + 文本隐藏状态 + 图像角色嵌入
+重复 34 个模块:
+  QKV 注意力 + QK RMSNorm + MRoPE + 分段掩码
+  来自 AdaLN 调制的门控残差
+  SwiGLU 前馈层
+最终层 -> 128 通道速度输出</div>
   </section>
 
   <section>
-    <h2>Qwen3-VL 条件输入</h2>
-    <p>The pipeline extracts hidden states from 13 Qwen3-VL layers: 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 35. These states are stacked and reshaped into a concatenated feature vector before projection into the DiT hidden width.</p>
-    <div class="claim boundary"><div class="claim-title">学习边界</div><p>源码能证明使用了哪些层、features 如何拼接，但没有提供 ablation 来证明每个 tapped layer 的独立贡献。</p></div>
+    <h2>Qwen3-VL 条件注入</h2>
+    <p>pipeline 会从 13 个 Qwen3-VL 层位点抽取隐状态，再把它们拼成一条更宽的条件特征向量，最后投影到 DiT 的隐藏维度里。这说明文本条件不是只拿最后一层，而是利用多层信息共同构成条件表示。</p>
+    <div class="claim boundary"><div class="claim-title">请注意</div><p>公开实现能证明抽取了哪些层、如何拼接，但不能仅凭这一点断定每个层位点各自贡献了多少效果。</p></div>
   </section>
 
   <section>
     <h2>MRoPE 与 AdaLN</h2>
     <table>
-      <thead><tr><th>Mechanism</th><th>Implementation meaning</th><th>Invariant</th></tr></thead>
+      <thead><tr><th>机制</th><th>实现含义</th><th>不变量</th></tr></thead>
       <tbody>
-        <tr><td>MRoPE</td><td>Computes rotary cos/sin from 3-axis `position_ids`; image H/W frequencies are interleaved into configured sections.</td><td>`position_ids` must have last dimension 3.</td></tr>
-        <tr><td>QK RMSNorm</td><td>Normalizes query and key head vectors before attention.</td><td>Hidden size must divide by head count.</td></tr>
-        <tr><td>AdaLN modulation</td><td>Timestep embedding generates scale and gate values for attention and MLP residuals.</td><td>`adanln_dim` must match block modulation input.</td></tr>
-        <tr><td>SwiGLU</td><td>`w2(silu(w1(x)) * w3(x))` feed-forward path.</td><td>Intermediate width fixed by config and weights.</td></tr>
+        <tr><td>MRoPE</td><td>根据三轴 `position_ids` 计算 rotary cos/sin，并把图像 H/W 频率交错塞进指定 section。</td><td>`position_ids` 的最后一维必须是 3。</td></tr>
+        <tr><td>QK RMSNorm</td><td>在注意力计算前对 query 和 key 的 head 向量做归一化。</td><td>隐状态宽度必须能整除 head 数。</td></tr>
+        <tr><td>AdaLN modulation</td><td>由时间步嵌入生成 attention 和 MLP 残差所需的 scale/gate。</td><td>`adanln_dim` 必须与模块调制输入匹配。</td></tr>
+        <tr><td>SwiGLU</td><td>`w2(silu(w1(x)) * w3(x))` 形式的前馈路径。</td><td>中间宽度由配置和权重共同固定。</td></tr>
       </tbody>
     </table>
   </section>
 
   <section id="output-contract">
     <h2>输出契约</h2>
-    <p>The final output has the same channel width as image latent tokens. The positive branch discards text positions after the forward pass; the negative branch is image-only. The sampler therefore updates only the image latent sequence.</p>
+    <p>最终输出与图像 latent token 保持相同的通道宽度。正向分支前向结束后会丢弃文本槽位，只把图像位置上的速度更新量交回采样器；负向分支则本来就是纯图像分支。也就是说，采样器真正更新的始终是图像 latent 序列。</p>
+  </section>
+
+  <section>
+    <h2>下一步 <span class="visually-hidden">Next Action</span></h2>
+    <p>网络结构明确后，下一步进入“JSON Caption 协议”，看文本条件本身在进入 Qwen3-VL 之前是怎样被组织成可控提示协议的。</p>
   </section>
 
   <section class="next">
-    <a class="button" href="04-sampling-cfg.html">采样 / CFG</a>
-    <a class="button primary" href="06-json-caption-protocol.html">下一章：JSON Caption</a>
+    <a class="button" href="04-sampling-cfg.html">采样与 CFG</a>
+    <a class="button primary" href="06-json-caption-protocol.html">下一章：JSON Caption 协议</a>
   </section>
 </main>
 <script src="paper.js" data-root="."></script>
-<script>mountPaperChrome("Transformer");</script>
+<script>mountPaperChrome("transformer");</script>
 </body>
 </html>

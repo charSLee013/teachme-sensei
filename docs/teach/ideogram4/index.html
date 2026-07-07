@@ -9,72 +9,78 @@
 <body>
 <main data-paper>
   <section class="hero">
-    <p class="kicker">Ideogram 4 推理工具包 / 技术课程</p>
+    <p class="kicker">Ideogram 4 推理工具包 / 源于源码的课程</p>
     <h1>Ideogram 4 推理系统课程</h1>
-    <p class="abstract">这门课程讲解 Ideogram 4 推理仓库的核心结构：模型接口、权重加载、采样逻辑、提示词处理、安全过滤和本地部署约束。课程以源码、项目文档和可访问官方资料为依据，帮助读者理解哪些结论来自代码，哪些来自公开资料，哪些只是用于理解机制的教学重建。</p>
+    <p class="abstract">这套课程把仓库讲成一个可验证的推理系统：先看模型与运行时契约，再看 token 序列、采样、Transformer、prompt 协议和公开训练信息。读者读完后应当能够复述主线，知道依据来自哪里，也知道哪些地方目前还不能确认。</p>
   </section>
 
   <section>
-    <h2>课程主线</h2>
+    <h2>课程主线 <span class="visually-hidden">Main Line</span></h2>
     <div class="claim">
-      <div class="claim-title">要记住的结论</div>
-      <p>读完后，读者应能说明 Ideogram 4 本地推理从 CLI 参数进入 pipeline，再经过 Qwen3-VL 条件编码、单流 Transformer velocity prediction、Euler flow-matching sampling、VAE decode 和可选安全过滤的完整路径。</p>
-      <p><strong>依据。</strong> 课程主要依据 `run_inference.py`、`src/ideogram4/*`、`docs/*` 和 README；权重访问方式以项目说明和 Hugging Face gated repository 行为为边界。</p>
-      <p><strong>学习边界。</strong> 课程会区分源码事实、公开声明、机制解释和未公开信息。训练数据、优化器、训练时长、训练算力和 post-training 细节没有在当前公开材料中给出，因此不会被当作事实讲解。</p>
+      <div class="claim-title">现在记住 <span class="visually-hidden">Remember Now</span></div>
+      <p>该仓库公开的是 Ideogram 4 的推理侧系统：CLI 入口、推理 pipeline 编排、Qwen3-VL 条件编码、单流 Transformer 速度预测器、Euler 流匹配采样器、VAE 解码、量化权重加载、提示协议和可选安全过滤。</p>
+      <p><strong>这为什么重要。</strong> 先把它当成推理工具包来读，后面各章的模型卡、CLI、token 序列、采样和架构才会落到同一条主线上。</p>
+      <p><strong>为什么可以相信这一点。</strong> 入口脚本、核心模块和仓库文档相互印证：它们都围绕本地推理、量化权重加载、条件编码、采样和安全集成展开。</p>
+      <p><strong>学习边界。</strong> 本课程聚焦已经公开的推理接口和公开训练说明。训练数据配方、优化器、训练算力和训练时长目前没有公开资料可确认，因此不会被当作既定事实讲解。</p>
     </div>
   </section>
 
   <section>
-    <h2>这门课提供什么</h2>
+    <h2>本课程补上的内容</h2>
     <div class="grid">
-      <div class="card"><span class="pill">路径</span><h3>清晰阅读顺序</h3><p>从模型/运行时卡片开始，再进入 CLI、token packing、采样、架构和 prompt protocol。</p></div>
-      <div class="card"><span class="pill">契约</span><h3>接口与约束</h3><p>把 CLI 参数、权重变体、设备要求和输出行为解释成可检查的运行契约。</p></div>
-      <div class="card"><span class="pill">机制</span><h3>机制解释</h3><p>用图示和变量表解释 token packing、CFG、flow-matching sampler 与 Transformer 数据流。</p></div>
-      <div class="card"><span class="pill">依据</span><h3>依据分层</h3><p>对源码事实、公开声明、教学重建和未公开信息做区分，避免把猜测包装成结论。</p></div>
+      <div class="card"><h3>学习结构</h3><p>每章先给主线，再解释依据、机制和学习边界，让技术读者先抓住系统结构，再理解证据和限制。</p></div>
+      <div class="card"><h3>接口与运行时</h3><p>CLI 参数、权重变体、许可、安全和硬件约束被整理成可操作的契约，而不是散落在 README 和代码里。</p></div>
+      <div class="card"><h3>机制解释</h3><p>Token 打包和采样/CFG 用交互图、变量表和文字备选说明来解释，不靠术语堆砌。</p></div>
+      <div class="card"><h3>训练边界</h3><p>课程把已公开说明、源码能确认的推理行为和当前仍待公开的部分分开讲清，避免把空白处讲成事实。</p></div>
     </div>
   </section>
 
   <section>
-    <h2>依据分层</h2>
+    <h2>如何理解依据</h2>
     <table>
-      <thead><tr><th>层级</th><th>课程中的用途</th><th>读者应如何理解</th></tr></thead>
+      <thead><tr><th>依据层级</th><th>课程中的用途</th><th>读者应如何理解</th></tr></thead>
       <tbody>
-        <tr><td>源码事实</td><td>直接来自本地源码或文档的行为、参数、结构。</td><td>可以作为当前 checkout 的事实。</td></tr>
-        <tr><td>公开声明</td><td>发布方 README、官方博客、模型卡中的公开说明。</td><td>可以引用为公开资料，不等同于独立复现。</td></tr>
-        <tr><td>背景知识</td><td>与 prompt、CFG、flow matching、model card 等通用范式的对比。</td><td>用于定位设计，不证明私有训练选择。</td></tr>
-        <tr><td>教学重建</td><td>为了理解推理机制而整理出的解释路径。</td><td>帮助理解机制，不能当作官方训练配方。</td></tr>
-        <tr><td>未公开信息</td><td>当前公开资料和本地源码没有确认的信息。</td><td>不把缺失信息写成事实。</td></tr>
+        <tr><td>源码和文档直接说明的内容</td><td>来自可见实现、接口定义和仓库文档的行为、参数和结构。</td><td>可以把它们当作这个 checkout 的已知事实。</td></tr>
+        <tr><td>发布方公开说明</td><td>README、官方博客和公开模型说明里的发布信息。</td><td>它们说明发布口径，不等同于我们已经独立复现。</td></tr>
+        <tr><td>相关范式对照</td><td>与 prompt、CFG、flow matching、model card 等通用做法的比较。</td><td>用于帮助定位设计，不代表已经证明 Ideogram 的私有训练选择。</td></tr>
+        <tr><td>为理解机制而做的重述</td><td>把推理过程拆成更容易学会的解释步骤。</td><td>用于教学，不把它当作官方训练配方。</td></tr>
+        <tr><td>当前公开资料还不能确认的部分</td><td>本地源码和公开资料都没有回答的问题。</td><td>保持边界，不用猜测来补空白。</td></tr>
       </tbody>
     </table>
   </section>
 
   <section>
-    <h2>学习顺序</h2>
+    <h2>阅读顺序</h2>
     <div class="grid">
-      <a class="card" href="01-model-card.html"><h3>1. Model / Runtime Card</h3><p>先确定模型身份、变体、输入输出、硬件、许可、安全和限制。</p></a>
-      <a class="card" href="02-cli-api-contract.html"><h3>2. CLI / API Contract</h3><p>解释每个 `run_inference.py` 参数如何影响运行和结果。</p></a>
-      <a class="card" href="03-token-packing.html"><h3>3. Token Packing</h3><p>用 2D/3D 图解释 prompt、text token 和 image latent token 如何进入同一序列。</p></a>
-      <a class="card" href="04-sampling-cfg.html"><h3>4. Sampling / CFG</h3><p>定义变量、公式和每步更新，说明条件信号如何改变采样方向。</p></a>
-      <a class="card" href="05-transformer-architecture.html"><h3>5. Transformer Architecture</h3><p>深入 shapes、Qwen taps、MRoPE、AdaLN、SwiGLU 和 output contract。</p></a>
-      <a class="card" href="06-json-caption-protocol.html"><h3>6. JSON Caption Protocol</h3><p>解释结构化 prompt 的语义、约束和与其他 prompt 范式的差异。</p></a>
-      <a class="card" href="07-training-public-record.html"><h3>7. 公开训练信息</h3><p>说明公开资料能支持哪些结论，以及哪些训练细节仍未公开。</p></a>
+      <a class="card" href="01-model-card.html"><h3>1. 模型与运行时</h3><p>先确定模型身份、变体、输入输出、硬件、许可、安全和限制。</p></a>
+      <a class="card" href="02-cli-api-contract.html"><h3>2. CLI 接口契约</h3><p>解释每个 `run_inference.py` 参数如何影响运行和结果。</p></a>
+      <a class="card" href="03-token-packing.html"><h3>3. Token 打包</h3><p>用 2D/3D 图解释提示文本、文本 token 和图像 latent token 如何进入同一序列。</p></a>
+      <a class="card" href="04-sampling-cfg.html"><h3>4. 采样与 CFG</h3><p>定义变量、公式和每步更新，说明条件信号如何改变采样方向。</p></a>
+      <a class="card" href="05-transformer-architecture.html"><h3>5. Transformer 架构</h3><p>深入张量形状、Qwen 取层位点、MRoPE、AdaLN、SwiGLU 和输出契约。</p></a>
+      <a class="card" href="06-json-caption-protocol.html"><h3>6. JSON Caption 协议</h3><p>解释结构化提示协议的语义、约束和与其他提示范式的差异。</p></a>
+      <a class="card" href="07-training-public-record.html"><h3>7. 公开训练信息</h3><p>把已公开的训练说明、源码能确认的推理事实和当前仍待公开的部分分开讲清。</p></a>
     </div>
   </section>
 
   <section>
     <h2>学习边界</h2>
     <div class="claim boundary">
-      <div class="claim-title">学习范围</div>
-      <p>这门课聚焦源码和公开资料能够支持的推理系统知识。涉及训练数据、优化器、训练算力、训练时长或 benchmark 复现时，课程只说明公开资料已经给出的内容；没有公开依据的部分会明确标为未公开信息。</p>
+      <div class="claim-title">请注意</div>
+      <p>本课程把重点放在已公开的模型接口、运行时约束、条件生成机制和可确认的训练公开说明上。真实图片质量、官方基准测试复现，以及未公开训练配方都需要额外权重、实验或一手资料，当前页面不会把这些内容写成已验证结论。</p>
     </div>
   </section>
 
+  <section>
+    <h2>下一步 <span class="visually-hidden">Next Action</span></h2>
+    <p>先从“模型与运行时”建立模型身份和运行时边界，再进入 CLI、Token 打包和采样章节。这样读下去，后面的架构与训练边界会更容易放回同一条主线上。</p>
+  </section>
+
   <section class="next">
-    <a class="button primary" href="01-model-card.html">从模型/运行时卡片开始</a>
-    <a class="button" href="appendix/module-index.html">打开模块索引</a>
+    <a class="button primary" href="01-model-card.html">从模型与运行时开始</a>
+    <a class="button" href="appendix/module-index.html">查看系统模块索引</a>
   </section>
 </main>
 <script src="paper.js" data-root="."></script>
-<script>mountPaperChrome("课程主线");</script>
+<script>mountPaperChrome("index");</script>
 </body>
 </html>

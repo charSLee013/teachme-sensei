@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anima 方法论参考 | Anima 课程</title>
+  <link rel="stylesheet" href="../anima.css">
+</head>
+<body>
+  <header class="course-shell">
+    <a href="../index.html">Anima 课程入口</a>
+    <a href="../../">Teachme Sensei 目录</a>
+  </header>
+  <main class="markdown-course">
+    <h1 id="anima-方法论参考">Anima 方法论参考</h1>
+    <h2 id="主题">主题</h2>
+    <p>这个参考页服务于三个问题：</p>
+    <ul>
+    <li>2B operating point 如何从 scaling law 与高分辨率 token 成本来解释。</li>
+    <li>anime + non-anime art mixture 如何写成可辩护的数据分布问题。</li>
+    <li>warmup、<code>beta2</code>、text-side policy 如何形成可判别的实验矩阵。</li>
+    </ul>
+    <h2 id="公开事实">公开事实</h2>
+    <ul>
+    <li>公开 Diffusers 配置可确认：Cosmos transformer、Qwen3 text encoder、Anima text conditioner、Qwen-Image VAE、FlowMatch scheduler。</li>
+    <li>训练数据公开边界：several million anime images + about 800k non-anime artistic images，no synthetic data。</li>
+    <li>原始 optimizer、真实训练步数、完整过滤阈值未公开。</li>
+    </ul>
+    <h2 id="参数量选型">参数量选型</h2>
+    <p>较稳妥的理论解释是：2B 更像一个 operating point，而不是孤立标签。它同时受以下量约束：</p>
+    <ul>
+    <li>hidden width</li>
+    <li>transformer depth</li>
+    <li>latent token count</li>
+    <li>分辨率预算</li>
+    <li>文本条件维度</li>
+    </ul>
+    <p>在高分辨率 latent self-attention 为二次复杂度的前提下，更大模型并不天然优于一个受到预算约束的 2B 级方案。</p>
+    <h2 id="数据混合">数据混合</h2>
+    <p>公开材料表明目标分布不是纯 anime-only。一个可教学的写法是：</p>
+    <pre><code>p_target = lambda_anime * p_anime + lambda_art * p_art
+lambda_photo ~= 0</code></pre>
+    <p>这里更重要的不是精确比例，而是三种竞争解释：</p>
+    <ul>
+    <li>forgetting regularizer</li>
+    <li>caption bridge</li>
+    <li>aesthetic smoother</li>
+    </ul>
+    <h2 id="文本侧策略">文本侧策略</h2>
+    <p>text-side policy 至少包含三种竞争假设：</p>
+    <ul>
+    <li>fully frozen</li>
+    <li>low-LR trainable</li>
+    <li>delayed unfreeze</li>
+    </ul>
+    <p>它们真正区分开的，不是口头解释，而是：</p>
+    <ul>
+    <li>英文 prompt following</li>
+    <li>中文 prompt following</li>
+    <li>attribute binding</li>
+    <li>rare concept retention</li>
+    <li>semantic drift</li>
+    </ul>
+    <h2 id="warmup-与稳定性">warmup 与稳定性</h2>
+    <p>在 AdamW-like 解释框架中，warmup 更适合被理解为：</p>
+    <ul>
+    <li>帮助目标学习率进入稳定 regime</li>
+    <li>与 <code>beta2</code> 的统计时间尺度耦合</li>
+    <li>缓冲 early-loss volatility</li>
+    </ul>
+    <p>把 warmup 仅仅写成“防止早期梯度爆炸”，对这类系统是不够的。</p>
+    <h2 id="建议阅读">建议阅读</h2>
+    <ul>
+    <li>先读 lessons 主线。</li>
+    <li>再把这里当作“为什么这些 lesson 不只是经验总结”的补充页。</li>
+    </ul>
+  </main>
+</body>
+</html>

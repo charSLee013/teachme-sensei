@@ -3,72 +3,78 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>JSON Caption Protocol</title>
+  <title>JSON Caption 协议</title>
   <link rel="stylesheet" href="paper.css">
 </head>
 <body>
 <main data-paper>
   <section class="hero">
-    <p class="kicker">Prompt 协议 / 结构化条件</p>
-    <h1>JSON Caption Protocol</h1>
-    <p class="abstract">Ideogram 4 的 prompt 设计重点是把画面条件结构化：整体描述、风格、媒介、颜色、背景、对象、文字和可选位置约束被组织成 JSON caption。magic prompt 在 CLI 默认路径中承担 plain text 到 structured caption 的编译器角色。</p>
+    <p class="kicker">提示协议 / 结构化条件</p>
+    <h1>JSON Caption 协议</h1>
+    <p class="abstract">Ideogram 4 的提示设计重点是把画面条件结构化：整体描述、风格、媒介、颜色、背景、对象、文字和可选位置约束被组织成 JSON caption。magic prompt 在 CLI 默认路径中承担把自然语言提示转换成结构化 caption 的编译器角色。</p>
   </section>
 
   <section>
-    <h2>概览</h2>
-    <p>本章解释的是这个仓库里真正可执行的 prompt 协议：JSON caption 的字段语义、约束关系，以及为什么 magic prompt 会把自然语言先编译成结构化条件。</p>
+    <h2>课程主线 <span class="visually-hidden">Main Line</span></h2>
+    <p>本章主线是：这个仓库把 prompt 当成结构化条件协议来对待，而不是随手写一句自然语言。字段的拆分方式，决定了画面语义、风格、颜色、元素和版式控制是怎样进入模型的。</p>
   </section>
 
   <section>
-    <h2>结论与依据</h2>
-    <div class="claim"><div class="claim-title">要记住的结论</div>
-      <p>该仓库把结构化 JSON caption 作为高控制力 prompt protocol，并提供 verifier 检查 schema、key order、bounding boxes 和 color palette constraints。</p>
-      <p><strong>依据。</strong> `docs/prompting.md`, `caption_verifier.py`, `magic_prompt.py`, CLI magic-prompt default behavior.</p>
-      <p><strong>学习边界。</strong> 与其他 prompting 范式的比较只用于理解设计取舍，不推断 Ideogram 私有训练过程或竞品内部实现。</p>
+    <h2>现在记住 <span class="visually-hidden">Remember Now</span></h2>
+    <div class="claim"><div class="claim-title">现在记住 <span class="visually-hidden">Remember Now</span></div>
+      <p>仓库把 JSON caption 视为高控制度的提示协议，并配有校验器来检查字段结构、顺序、颜色和可选 bbox 等约束。</p>
+      <p><strong>这为什么重要。</strong> 这解释了为什么课程后面谈到的布局、配色、文字元素和 magic prompt 都不是零散技巧，而是同一套结构化提示思路的不同侧面。</p>
+      <p><strong>为什么可以相信这一点。</strong> 提示词文档、校验器行为和 CLI 的默认 prompt 路径指向的是同一个事实：系统期待的是结构化条件，而不是完全自由的散文式提示。</p>
+      <p><strong>学习边界。</strong> 本页和其他 prompt 范式的比较只用于帮助读者理解控制方式差异，不把这种比较写成对私有训练过程或竞品内部机制的断言。</p>
     </div>
   </section>
 
   <section>
-    <h2>Schema 语义</h2>
+    <h2>字段语义</h2>
     <table>
-      <thead><tr><th>Field</th><th>Condition represented</th><th>Why it matters</th></tr></thead>
+      <thead><tr><th>字段</th><th>表示的条件</th><th>为什么重要</th></tr></thead>
       <tbody>
-        <tr><td>`high_level_description`</td><td>Global semantic intent.</td><td>Gives the model a concise whole-image target.</td></tr>
-        <tr><td>`style_description.aesthetics`</td><td>Visual mood and style adjectives.</td><td>Separates style from object content.</td></tr>
-        <tr><td>`lighting`</td><td>Illumination condition.</td><td>Controls scene rendering independent of object list.</td></tr>
-        <tr><td>`photo` / `art_style`</td><td>Photographic or non-photographic rendering mode.</td><td>Enforces mutually exclusive style branch in verifier.</td></tr>
-        <tr><td>`color_palette`</td><td>Global or per-element colors.</td><td>Makes palette control explicit instead of implicit prose.</td></tr>
-        <tr><td>`background`</td><td>Scene environment.</td><td>Separates context from foreground elements.</td></tr>
-        <tr><td>`elements[]`</td><td>Objects or text instances, optional bbox.</td><td>Gives element-level composition and typography targets.</td></tr>
+        <tr><td>`high_level_description`</td><td>全局语义意图。</td><td>给模型一个简洁的整图目标。</td></tr>
+        <tr><td>`style_description.aesthetics`</td><td>视觉氛围与风格形容词。</td><td>把风格从对象内容里拆开表达。</td></tr>
+        <tr><td>`lighting`</td><td>光照条件。</td><td>独立控制场景的受光方式。</td></tr>
+        <tr><td>`photo` / `art_style`</td><td>摄影或非摄影渲染模式。</td><td>在校验器中约束互斥的风格分支。</td></tr>
+        <tr><td>`color_palette`</td><td>全局或局部色彩方案。</td><td>把调色控制从隐含 prose 里显式拿出来。</td></tr>
+        <tr><td>`background`</td><td>场景背景环境。</td><td>把环境语义从前景元素中拆开。</td></tr>
+        <tr><td>`elements[]`</td><td>对象或文字实例，可选 bbox。</td><td>提供元素级的构图与排版目标。</td></tr>
       </tbody>
     </table>
   </section>
 
   <section>
-    <h2>Prompt 范式对比</h2>
+    <h2>提示范式比较</h2>
     <table>
-      <thead><tr><th>Paradigm</th><th>Control form</th><th>Strength</th><th>Tradeoff</th></tr></thead>
+      <thead><tr><th>范式</th><th>控制形式</th><th>优势</th><th>代价</th></tr></thead>
       <tbody>
-        <tr><td>Plain prompt</td><td>Natural-language sentence.</td><td>Low writing overhead.</td><td>Layout, palette, and typography control remain implicit.</td></tr>
-        <tr><td>Prompt + negative prompt</td><td>Positive/negative prose.</td><td>Can suppress unwanted concepts.</td><td>Still weakly structured and often heuristic.</td></tr>
-        <tr><td>External control modules</td><td>Prompt plus extra image/control condition.</td><td>Can provide strong spatial control.</td><td>Control is distributed across tools and assets.</td></tr>
-        <tr><td>Ideogram JSON caption</td><td>Structured fields for style, elements, text, palette, optional bbox.</td><td>Centralizes composition and design controls in one text protocol.</td><td>Higher authoring burden; verifier/magic prompt becomes important.</td></tr>
+        <tr><td>普通提示文本</td><td>自然语言句子。</td><td>写作负担低。</td><td>构图、配色和排版控制仍然是隐含的。</td></tr>
+        <tr><td>正向提示 + 负向提示</td><td>正向/反向自然语言描述。</td><td>能压制不想要的概念。</td><td>结构仍然偏弱，很多时候带有启发式成分。</td></tr>
+        <tr><td>外部控制模块</td><td>prompt 加额外图像或控制条件。</td><td>能提供很强的空间控制。</td><td>控制信息被分散到多种工具和素材里。</td></tr>
+        <tr><td>Ideogram JSON caption</td><td>用结构化字段描述风格、元素、文字、配色和可选 bbox。</td><td>把构图和设计控制集中进一套文本协议。</td><td>编写成本更高，校验器和 Magic Prompt 变得更重要。</td></tr>
       </tbody>
     </table>
   </section>
 
   <section>
-    <h2>把 Magic Prompt 理解为编译器</h2>
-    <p>在 CLI 默认路径中，plain prompt 不会直接送入模型，而是先通过注册的 magic prompt backend 展开成 minified JSON caption。可以把 magic prompt 理解为从自然语言意图到结构化模型条件的编译器。</p>
-    <div class="claim warning"><div class="claim-title">失败条件</div><p>如果启用 magic prompt 但没有可用 API key，CLI 会在加载模型前退出。如果禁用 magic prompt，调用方必须提供 verifier 可接受的 prompt，或显式使用 warning mode。</p></div>
+    <h2>Magic Prompt 作为编译器</h2>
+    <p>在 CLI 默认路径里，普通自然语言 prompt 不会直接送进模型，而是先经由 magic prompt 后端扩展成压缩后的 JSON caption。把它理解成“把口语意图编译成结构化条件”的转换器，会比把它看成单纯润色器更准确。</p>
+    <div class="claim warning"><div class="claim-title">请注意</div><p>如果关闭 Magic Prompt，调用者就要自己给出能通过校验器的 prompt 结构；否则系统只能退回到告警模式或直接报错。</p></div>
+  </section>
+
+  <section>
+    <h2>下一步 <span class="visually-hidden">Next Action</span></h2>
+    <p>提示协议看清之后，下一步进入公开训练信息，区分哪些训练相关说法已经公开，哪些只是源码能反推到的推理事实，哪些目前还不能确认。</p>
   </section>
 
   <section class="next">
-    <a class="button" href="05-transformer-architecture.html">Transformer</a>
+    <a class="button" href="05-transformer-architecture.html">Transformer 架构</a>
     <a class="button primary" href="07-training-public-record.html">下一章：公开训练信息</a>
   </section>
 </main>
 <script src="paper.js" data-root="."></script>
-<script>mountPaperChrome("JSON Caption");</script>
+<script>mountPaperChrome("json_caption");</script>
 </body>
 </html>

@@ -3,48 +3,58 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ideogram 4 依据说明</title>
+  <title>依据说明</title>
   <link rel="stylesheet" href="../paper.css">
 </head>
 <body>
 <main data-paper>
   <section class="hero">
-    <p class="kicker">Appendix / evidence guide</p>
+    <p class="kicker">附录 / 依据边界</p>
     <h1>依据说明</h1>
-    <p class="abstract">本页说明课程中的关键结论来自哪里，以及哪些内容只能作为公开资料范围内的解释。详细依据矩阵位于 artifacts/source-matrix.md；普通读者不需要先读矩阵，也能理解每个结论的依据边界。</p>
+    <p class="abstract">本附录把主线章节里的关键结论重新归类成读者可直接理解的依据类型，让你在不离开课程的情况下，看清每个判断为什么成立、又在哪些地方必须留边界。</p>
+  </section>
+
+  <section>
+    <h2>课程主线 <span class="visually-hidden">Main Line</span></h2>
+    <div class="claim"><div class="claim-title">现在记住 <span class="visually-hidden">Remember Now</span></div><p>干净的学生页不等于没有证据。主线章节负责把系统讲清楚，这一页则把关键结论对应到“源码与文档直接说明”“发布方公开说明”“为理解机制的教学重述”和“当前仍待公开”的不同依据层。</p><p><strong>这为什么重要。</strong> 这样读者既能保持主线流畅，也不会因为看不到依据而怀疑课程在偷换概念。</p><p><strong>学习边界。</strong> 这页只解释依据类型与边界；更细的核对记录属于课程支撑材料，不是理解主线所必需的前提。</p></div>
   </section>
 
   <section>
     <h2>核心结论</h2>
     <table>
-      <thead><tr><th>结论</th><th>依据类型</th><th>边界</th></tr></thead>
+      <thead><tr><th>结论</th><th>依据类型</th><th>学习边界</th></tr></thead>
       <tbody>
-        <tr><td>该仓库是 Ideogram 4 的推理工具包。</td><td>源码事实 + 本地文档。</td><td>不覆盖私有训练系统。</td></tr>
-        <tr><td>pipeline 会把文本特征和图像 latent token 打包进共享序列。</td><td>来自 `pipeline_ideogram4.py` 的源码事实。</td><td>解释推理布局，不解释训练数据组成。</td></tr>
-        <tr><td>模型核心是 34 层单流 Transformer velocity predictor。</td><td>来自 `modeling_ideogram4.py` 和本地文档的源码事实。</td><td>架构名称以仓库源码和文档为准。</td></tr>
-        <tr><td>采样会组合文本条件 velocity 和 image-only baseline velocity。</td><td>来自 pipeline sampling loop 的源码事实。</td><td>质量影响需要另行实验，不在本课程中声称。</td></tr>
-        <tr><td>结构化 JSON caption 是高控制提示词协议。</td><td>本地 prompting 文档和 verifier 实现。</td><td>与其他提示词范式的比较仅用于背景定位。</td></tr>
-        <tr><td>公开资料没有给出完整训练细节。</td><td>源码缺失 + 公开资料边界。</td><td>未公开不等于不存在，只表示当前材料无法确认。</td></tr>
+        <tr><td>这个仓库讲的是 Ideogram 4 的推理工具包。</td><td>源码与仓库文档直接说明。</td><td>它不等于私有训练系统的完整公开版。</td></tr>
+        <tr><td>pipeline 会把文本特征和图像 latent token 打包进同一条序列。</td><td>公开实现可直接支持。</td><td>这解释的是推理布局，不拿来推断训练数据构成。</td></tr>
+        <tr><td>模型核心是 34 层单流 Transformer 速度预测器。</td><td>公开实现与本地文档相互印证。</td><td>课程里使用的架构名称以当前公开实现为准。</td></tr>
+        <tr><td>采样阶段会结合文本条件和纯图像基线的速度。</td><td>公开实现可直接支持。</td><td>真实画质收益仍需要独立生成实验来评估。</td></tr>
+        <tr><td>结构化 JSON caption 是高控制度的提示协议。</td><td>提示词文档与校验器行为共同支持。</td><td>和其他提示范式的比较只是帮助理解控制方式差异。</td></tr>
+        <tr><td>训练细节里仍有一部分当前公开资料不足以确认。</td><td>公开资料缺位本身就是边界信息。</td><td>“目前不能确认”不等于“永远不存在”。</td></tr>
       </tbody>
     </table>
   </section>
 
   <section>
-    <h2>表述标准</h2>
+    <h2>依据表达标准</h2>
     <div class="grid">
-      <div class="claim"><div class="claim-title">源码事实</div><p>使用“实现中定义了……”来描述可由源码直接确认的内容。</p></div>
-      <div class="claim"><div class="claim-title">公开声明</div><p>使用“公开资料说明……”来描述发布方文档中的声明。</p></div>
-      <div class="claim boundary"><div class="claim-title">教学解释</div><p>使用“为了理解机制，可以这样组织……”来描述课程重建。</p></div>
-      <div class="claim warning"><div class="claim-title">避免</div><p>不要猜测训练数据、训练算力、优化器或私有方法。</p></div>
+      <div class="claim"><div class="claim-title">建议使用</div><p>“源码和文档直接说明……” 适合讲可见实现已经明确给出的事实。</p></div>
+      <div class="claim"><div class="claim-title">建议使用</div><p>“发布方公开说明……” 适合讲 README、博客或公开模型说明里的口径。</p></div>
+      <div class="claim boundary"><div class="claim-title">建议使用</div><p>“为了帮助理解，这里把机制重述为……” 适合讲教学性的机制拆解。</p></div>
+      <div class="claim warning"><div class="claim-title">避免</div><p>不要把训练数据、算力、优化器或私有方法的空白处用猜测补满。</p></div>
     </div>
   </section>
 
+  <section>
+    <h2>下一步 <span class="visually-hidden">Next Action</span></h2>
+    <p>如果你想把课程内容映射回仓库结构，下一步去系统模块索引；如果你要回到主线，直接返回模型与运行时重新顺读即可。</p>
+  </section>
+
   <section class="next">
-    <a class="button" href="module-index.html">模块索引</a>
-    <a class="button primary" href="../01-model-card.html">模型与运行时</a>
+    <a class="button" href="module-index.html">系统模块索引</a>
+    <a class="button primary" href="../01-model-card.html">回到模型与运行时</a>
   </section>
 </main>
 <script src="../paper.js" data-root=".."></script>
-<script>mountPaperChrome("依据说明");</script>
+<script>mountPaperChrome("evidence");</script>
 </body>
 </html>

@@ -3,30 +3,35 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>系统层模块索引</title>
+  <title>系统模块索引</title>
   <link rel="stylesheet" href="../paper.css">
 </head>
 <body>
 <main data-paper>
   <section class="hero">
-    <p class="kicker">Appendix / system-layer index</p>
+    <p class="kicker">附录 / 系统层索引</p>
     <h1>系统层模块索引</h1>
-    <p class="abstract">本索引按系统职责组织仓库，而不是按文件树讲解。每个系统层给出 purpose、input/output、invariant、failure mode 和课程跳转。</p>
+    <p class="abstract">本索引按系统职责组织仓库，而不是按文件树讲解。每个系统层给出职责目的、输入输出、不变量、失败模式和课程跳转。</p>
   </section>
 
   <section>
-    <h2>分层地图</h2>
+    <h2>课程主线 <span class="visually-hidden">Main Line</span></h2>
+    <div class="claim"><div class="claim-title">现在记住 <span class="visually-hidden">Remember Now</span></div><p>这一页不是主线章节，而是一张面向代码读者的系统地图。它把模块放回“接口、表示、模型核心、采样、解码、运行时、安全”这些职责层里，帮助你在回看源码时不被文件树牵着走。</p><p><strong>这为什么重要。</strong> 当课程主线已经建立起来后，这张索引能帮你把认知结构反投影回仓库模块。</p><p><strong>学习边界。</strong> 这里出现模块文件名，是为了帮助仓库导航；主线理解仍然应当以前面章节的系统解释为主。</p></div>
+  </section>
+
+  <section>
+    <h2>系统层地图</h2>
     <table>
-      <thead><tr><th>Layer</th><th>Primary modules</th><th>Contract</th><th>Course link</th></tr></thead>
+      <thead><tr><th>系统层</th><th>主要模块</th><th>职责契约</th><th>课程跳转</th></tr></thead>
       <tbody>
-        <tr><td>User/API</td><td>`run_inference.py`, `__init__.py`</td><td>Expose CLI and public import surface.</td><td><a href="../02-cli-api-contract.html">CLI contract</a></td></tr>
-        <tr><td>Prompt Protocol</td><td>`magic_prompt.py`, `caption_verifier.py`</td><td>Convert or verify prompt strings as structured caption conditions.</td><td><a href="../06-json-caption-protocol.html">JSON caption protocol</a></td></tr>
-        <tr><td>Representation</td><td>`pipeline_ideogram4.py`, `constants.py`</td><td>Tokenize, extract Qwen features, pack text/image tokens, assign positions and indicators.</td><td><a href="../03-token-packing.html">Token packing</a></td></tr>
-        <tr><td>Model Core</td><td>`modeling_ideogram4.py`</td><td>Predict image-token velocity from text features, noisy latents, timestep, positions, and masks.</td><td><a href="../05-transformer-architecture.html">Transformer architecture</a></td></tr>
-        <tr><td>Sampler</td><td>`scheduler.py`, `sampler_configs.py`, pipeline loop</td><td>把 step intervals 映射到 logit-normal schedule，并用 Euler updates 积分 velocity。</td><td><a href="../04-sampling-cfg.html">采样 / CFG</a></td></tr>
-        <tr><td>Decoder</td><td>`autoencoder.py`, `latent_norm.py`</td><td>Denormalize latent tokens, unpatch to VAE latent map, decode to RGB image.</td><td><a href="../05-transformer-architecture.html#output-contract">Output contract</a></td></tr>
-        <tr><td>Runtime</td><td>`quantized_loading.py`</td><td>Map nf4/fp8 state dicts to executable PyTorch modules.</td><td><a href="../01-model-card.html#runtime">Runtime card</a></td></tr>
-        <tr><td>Safety/Governance</td><td>`safety.py`, `docs/safety.md`, licenses</td><td>Moderate prompt/output when keys exist; define usage expectations and license boundaries.</td><td><a href="../01-model-card.html#safety">Safety and access</a></td></tr>
+        <tr><td>用户入口 / API</td><td>`run_inference.py`, `__init__.py`</td><td>暴露 CLI 入口和公开导入接口。</td><td><a href="../02-cli-api-contract.html">CLI 接口契约</a></td></tr>
+        <tr><td>提示协议</td><td>`magic_prompt.py`, `caption_verifier.py`</td><td>把 prompt 转成结构化条件，或检查 prompt 是否满足结构化约束。</td><td><a href="../06-json-caption-protocol.html">JSON Caption 协议</a></td></tr>
+        <tr><td>表示层</td><td>`pipeline_ideogram4.py`, `constants.py`</td><td>完成 tokenization、Qwen 特征提取、文本/图像 token 打包，以及位置与角色轨道分配。</td><td><a href="../03-token-packing.html">Token 打包</a></td></tr>
+        <tr><td>模型核心</td><td>`modeling_ideogram4.py`</td><td>依据文本特征、带噪 latent、timestep、位置和掩码预测图像 token 的速度更新量。</td><td><a href="../05-transformer-architecture.html">Transformer 架构</a></td></tr>
+        <tr><td>采样层</td><td>`scheduler.py`, `sampler_configs.py`, 采样主循环</td><td>根据 logit-normal schedule 生成步进区间，并用 Euler 更新积分速度。</td><td><a href="../04-sampling-cfg.html">采样与 CFG</a></td></tr>
+        <tr><td>解码层</td><td>`autoencoder.py`, `latent_norm.py`</td><td>把 latent token 反归一化并还原成 VAE latent 图，再解码成 RGB 图像。</td><td><a href="../05-transformer-architecture.html#output-contract">输出契约</a></td></tr>
+        <tr><td>运行时</td><td>`quantized_loading.py`</td><td>把 nf4/fp8 的量化权重映射成可执行的 PyTorch 模块。</td><td><a href="../01-model-card.html#runtime">模型与运行时</a></td></tr>
+        <tr><td>安全与治理</td><td>`safety.py`, `docs/safety.md`, licenses</td><td>在有密钥时执行 prompt/output moderation，并说明使用边界与许可约束。</td><td><a href="../01-model-card.html#safety">安全、访问与许可</a></td></tr>
       </tbody>
     </table>
   </section>
@@ -34,23 +39,28 @@
   <section>
     <h2>不变量与失败模式</h2>
     <table>
-      <thead><tr><th>Layer</th><th>Invariant</th><th>Failure mode</th></tr></thead>
+      <thead><tr><th>系统层</th><th>不变量</th><th>失败模式</th></tr></thead>
       <tbody>
-        <tr><td>Representation</td><td>height and width must be divisible by `patch_size * ae_scale_factor = 16`.</td><td>Pipeline raises before sampling.</td></tr>
-        <tr><td>Text encoding</td><td>Text token count must not exceed `max_text_tokens = 2048`.</td><td>Pipeline raises before Qwen encoding.</td></tr>
-        <tr><td>nf4 runtime</td><td>bnb 4-bit path requires CUDA device.</td><td>Transformer build raises on non-CUDA.</td></tr>
-        <tr><td>Caption verifier</td><td>Default pipeline treats verifier issues as errors.</td><td>Plain text direct `pipe(...)` can fail unless using magic prompt or warnings.</td></tr>
-        <tr><td>Hive safety</td><td>Runtime filters require configured keys.</td><td>Missing keys produce warnings, not blocking moderation.</td></tr>
+        <tr><td>表示层</td><td>height 和 width 必须能被 `patch_size * ae_scale_factor = 16` 整除。</td><td>pipeline 会在进入采样前直接报错。</td></tr>
+        <tr><td>文本编码</td><td>文本 token 数量不能超过 `max_text_tokens = 2048`。</td><td>超过上限会在进入 Qwen 编码前报错。</td></tr>
+        <tr><td>nf4 运行时</td><td>bnb 4-bit 路径要求 CUDA 设备。</td><td>在非 CUDA 设备上构建 transformer 会失败。</td></tr>
+        <tr><td>Caption 校验器</td><td>默认 pipeline 会把 verifier 问题当成错误处理。</td><td>直接传入普通文本时，如果不用 magic prompt 或 warning mode，就可能失败。</td></tr>
+        <tr><td>Hive 安全层</td><td>运行时过滤依赖可用密钥。</td><td>缺少密钥时会发出 warning，但不会自动阻断。</td></tr>
       </tbody>
     </table>
   </section>
 
+  <section>
+    <h2>下一步 <span class="visually-hidden">Next Action</span></h2>
+    <p>如果你在课程主线里遇到某个模块名，这一页可以帮你把它放回系统层；如果你已经完成模块对照，下一步去依据说明看这些章节结论分别依赖哪类依据。</p>
+  </section>
+
   <section class="next">
     <a class="button" href="../index.html">返回课程主线</a>
-    <a class="button primary" href="evidence.html">依据说明</a>
+    <a class="button primary" href="evidence.html">下一章：依据说明</a>
   </section>
 </main>
 <script src="../paper.js" data-root=".."></script>
-<script>mountPaperChrome("模块索引");</script>
+<script>mountPaperChrome("module_index");</script>
 </body>
 </html>

@@ -9,17 +9,18 @@
 <body>
 <main data-paper>
   <section class="hero">
-    <p class="kicker">模型接口 / 运行时约束</p>
+    <p class="kicker">模型卡 / 运行时卡</p>
     <h1>模型与运行时</h1>
     <p class="abstract">本页将 Ideogram 4 推理包描述为可运行模型接口，而不是概念图。字段覆盖模型身份、变体、输入输出、运行时、许可、访问、安全与限制。</p>
   </section>
 
   <section>
-    <h2>概览</h2>
-    <div class="claim"><div class="claim-title">要记住的结论</div>
-      <p>该仓库提供 Ideogram 4 的本地推理接口：输入为 caption string 和图像尺寸/采样参数，输出为 `PIL.Image`。模型权重通过 Hugging Face gated repositories 获取，CLI 暴露 nf4 和 fp8 两类变体。</p>
-      <p><strong>依据。</strong> `run_inference.py` 的 `QUANTIZATION_REPOS`、`Ideogram4PipelineConfig`、README model zoo 和 license files。</p>
-      <p><strong>学习边界。</strong> 未认证环境无法读取 Ideogram HF raw model cards；本页只使用本地源码、README 和可访问官方页面中的信息。</p>
+    <h2>课程主线 <span class="visually-hidden">Main Line</span></h2>
+    <div class="claim"><div class="claim-title">现在记住 <span class="visually-hidden">Remember Now</span></div>
+      <p>这份仓库交付的是 Ideogram 4 的本地推理接口：输入是 prompt 与尺寸/采样参数，输出是生成后的图像对象；公开提供 nf4 和 fp8 两类运行时路径。</p>
+      <p><strong>这为什么重要。</strong> 先搞清模型身份、变体、许可和运行时，后面再读 CLI、采样和架构章节时，才不会把系统约束误解成实现细节。</p>
+      <p><strong>为什么可以相信这一点。</strong> 公开 README、下载说明、运行时配置和许可文件在同一方向上描述了这些接口与变体。</p>
+      <p><strong>学习边界。</strong> 这里讲的是已发布推理包和可见许可边界，不把受限权重仓库之外的私有信息补写成事实。</p>
     </div>
   </section>
 
@@ -28,10 +29,10 @@
     <table>
       <tbody>
         <tr><th>名称</th><td>Ideogram 4</td></tr>
-        <tr><th>仓库包</th><td>`ideogram-4` Python 推理包</td></tr>
-        <tr><th>公开参数量</th><td>本地 README model zoo 中标注为 9.3B</td></tr>
-        <tr><th>主要任务</th><td>从 prompt/caption string 生成图像</td></tr>
-        <tr><th>实现范围</th><td>推理 pipeline、模型架构、量化加载、prompt 处理、安全 API 调用和文档</td></tr>
+        <tr><th>仓库包名</th><td>`ideogram-4` Python 推理包</td></tr>
+        <tr><th>公开参数规模</th><td>本地 README model zoo 标注为 9.3B</td></tr>
+        <tr><th>主要任务</th><td>依据 prompt/caption string 进行文生图生成</td></tr>
+        <tr><th>实现范围</th><td>推理 pipeline、模型结构、量化加载、prompt 处理、安全接口和配套文档</td></tr>
       </tbody>
     </table>
   </section>
@@ -41,8 +42,8 @@
     <table>
       <thead><tr><th>变体</th><th>权重仓库</th><th>加载路径</th><th>运行时约束</th></tr></thead>
       <tbody>
-        <tr><td>nf4</td><td>`ideogram-ai/ideogram-4-nf4`</td><td>bitsandbytes `Linear4bit` 和预量化 state dict</td><td>当前实现要求 CUDA。</td></tr>
-        <tr><td>fp8</td><td>`ideogram-ai/ideogram-4-fp8`</td><td>weight-only e4m3 FP8 buffers + per-row scale</td><td>Activation 使用 compute dtype；代码路径不只服务 FP8 tensor cores。</td></tr>
+        <tr><td>nf4</td><td>`ideogram-ai/ideogram-4-nf4`</td><td>bitsandbytes `Linear4bit` 与预量化 state dict</td><td>当前实现要求 CUDA。</td></tr>
+        <tr><td>fp8</td><td>`ideogram-ai/ideogram-4-fp8`</td><td>weight-only e4m3 FP8 buffer 与逐行 scale</td><td>激活值沿用 compute dtype；这条路径不等于只支持 FP8 tensor core。</td></tr>
       </tbody>
     </table>
   </section>
@@ -50,12 +51,12 @@
   <section>
     <h2>输入与输出</h2>
     <table>
-      <thead><tr><th>字段</th><th>契约</th><th>影响</th></tr></thead>
+      <thead><tr><th>字段</th><th>契约</th><th>作用</th></tr></thead>
       <tbody>
-        <tr><td>Prompt</td><td>String；推荐使用结构化 JSON caption。</td><td>经 Qwen3-VL hidden-state extraction 后提供文本条件。</td></tr>
-        <tr><td>Height / width</td><td>实现要求能被 16 整除。</td><td>决定 image token grid 和 schedule resolution 调整。</td></tr>
-        <tr><td>Sampler parameters</td><td>Steps、guidance schedule、`mu`、`std`。</td><td>控制 denoising trajectory 和条件强度。</td></tr>
-        <tr><td>Output</td><td>`PIL.Image` 对象列表。</td><td>CLI 会把第一张图保存到 `--output`。</td></tr>
+        <tr><td>提示文本</td><td>字符串；更推荐结构化 JSON caption。</td><td>在 Qwen3-VL 隐状态提取之后提供文本条件。</td></tr>
+        <tr><td>高度 / 宽度</td><td>当前实现要求能被 16 整除。</td><td>决定图像 token 网格和 schedule 的分辨率调整。</td></tr>
+        <tr><td>采样参数</td><td>步数、guidance schedule、`mu`、`std`。</td><td>控制去噪轨迹和条件强度。</td></tr>
+        <tr><td>输出结果</td><td>`PIL.Image` 对象列表。</td><td>CLI 会把第一张图保存到 `--output`。</td></tr>
       </tbody>
     </table>
   </section>
@@ -63,27 +64,32 @@
   <section id="safety">
     <h2>安全、访问与许可</h2>
     <div class="grid">
-      <div class="claim"><div class="claim-title">访问</div><p>README 说明模型权重位于 Hugging Face gated repositories；未配置凭据时无法直接读取 raw HF README。</p></div>
-      <div class="claim"><div class="claim-title">许可</div><p>源码许可证是 Apache-2.0；模型权重使用 `model_licenses/` 下的 Ideogram Non-Commercial Model Agreement。</p></div>
-      <div class="claim warning"><div class="claim-title">安全</div><p>Hive moderation 已接入，但依赖 API key；缺少 key 时 CLI 给出 warning，而不是完成阻断式审核。</p></div>
+      <div class="claim"><div class="claim-title">访问</div><p>README 说明权重通过 Hugging Face 的受限访问流程发放，因此阅读公开源码和直接获取完整权重元信息是两件事。</p></div>
+      <div class="claim"><div class="claim-title">许可</div><p>源码使用 Apache-2.0；模型权重采用 Ideogram Non-Commercial Model Agreement，对商业使用边界有单独限制。</p></div>
+      <div class="claim warning"><div class="claim-title">安全</div><p>Hive moderation 已接入，但要依赖可用的密钥配置。没有密钥时，CLI 会给出提示，而不会自动补出同等强度的过滤。</p></div>
     </div>
   </section>
 
   <section>
-    <h2>已知边界</h2>
+    <h2>当前边界</h2>
     <ul>
-      <li>训练数据、optimizer、compute 和训练时长没有在该推理仓库中公开。</li>
-      <li>真实图像质量、延迟和显存表现需要有权限的权重与具体硬件测量。</li>
-      <li>Prompt safety 和 output safety 依赖已配置的 Hive keys 或等价部署控制。</li>
+      <li>训练数据、优化器、训练算力和训练时长并不是这个推理仓库会公开回答的问题。</li>
+      <li>真实图片质量、延迟和显存表现需要在已获授权的权重和具体硬件上做实测。</li>
+      <li>提示词安全和输出安全仍然依赖 Hive 密钥或等效的部署侧控制。</li>
     </ul>
+  </section>
+
+  <section>
+    <h2>下一步 <span class="visually-hidden">Next Action</span></h2>
+    <p>模型身份和运行时边界明确后，下一步进入 CLI 接口契约，看这些约束如何变成可操作的参数接口。</p>
   </section>
 
   <section class="next">
     <a class="button" href="index.html">返回课程主线</a>
-    <a class="button primary" href="02-cli-api-contract.html">下一章：CLI 契约</a>
+    <a class="button primary" href="02-cli-api-contract.html">下一章：CLI 接口契约</a>
   </section>
 </main>
 <script src="paper.js" data-root="."></script>
-<script>mountPaperChrome("模型与运行时");</script>
+<script>mountPaperChrome("model_card");</script>
 </body>
 </html>

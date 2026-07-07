@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 5：评估、验收与消融 | Anima 课程</title>
+  <link rel="stylesheet" href="../anima.css">
+</head>
+<body>
+  <header class="course-shell">
+    <a href="../index.html">Anima 课程入口</a>
+    <a href="../../">Teachme Sensei 目录</a>
+  </header>
+  <main class="markdown-course">
+    <h1 id="lesson-5-评估-验收与消融">Lesson 5：评估、验收与消融</h1>
+    <h2 id="本节记住什么">本节记住什么</h2>
+    <ul>
+    <li>动漫模型评估不能只看 FID。</li>
+    <li>公开基线之间的评估协议并不统一，因此“比较谁更强”之前要先比较“用了什么指标”。</li>
+    <li>角色一致性、tail coverage、prompt following 和 human preference，都是动漫场景里不可省略的维度。</li>
+    </ul>
+    <h2 id="为什么重要">为什么重要</h2>
+    <p>如果只盯着一个分数，你很容易把“看起来更接近训练分布”和“真正更懂动漫 prompt”混为一谈。</p>
+    <h2 id="课程位置">课程位置</h2>
+    <p>这是主线的最后一课。它把架构、训练和数据问题收束到“如何验收”。</p>
+    <h2 id="用通俗语言讲清主线">用通俗语言讲清主线</h2>
+    <h3 id="1-fid-只回答一部分问题">1. FID 只回答一部分问题</h3>
+    <p>FID 衡量的是生成分布与参考分布的距离，但它默认使用的 Inception 特征来自写实图像语境，因此在动漫域会遇到 domain shift。它能提供整体分布信息，却不一定能看见 tail collapse、角色一致性或复杂 prompt 绑定失败。</p>
+    <h3 id="2-prompt-following-需要独立观察">2. prompt following 需要独立观察</h3>
+    <p>CLIP 类指标可以帮助观察通用文本对齐，但对具体角色名、艺术家风格和罕见动漫概念并不总是足够敏感。因此动漫场景需要把“通用语义对齐”和“领域特异性控制”拆开看。</p>
+    <h3 id="3-角色一致性与-tail-coverage-是动漫域特有痛点">3. 角色一致性与 tail coverage 是动漫域特有痛点</h3>
+    <p>角色一致性更接近“这个角色还是不是同一个角色”，而 tail coverage 更接近“低频角色名、稀有风格和小众构图有没有一起掉队”。这两类问题，通常不会被单独一个通用指标完整捕获。</p>
+    <h3 id="4-human-preference-不是可有可无">4. human preference 不是可有可无</h3>
+    <p>动漫图像的风格纯度、解剖规范、色彩协调、细节完成度，经常需要人工评价才能稳定识别。自动指标可以做筛查，但不能完全替代人工判断。</p>
+    <h2 id="已公开确认">已公开确认</h2>
+    <ul>
+    <li>Illustrious-XL 与 NovelAI V3 的公开报告并没有共享统一的评估协议。</li>
+    <li>CCIP 代表了一类面向角色一致性的评估方向。</li>
+    </ul>
+    <h2 id="解释性重构">解释性重构</h2>
+    <ul>
+    <li>一个更合适的动漫评估矩阵，应同时包含分布、对齐、角色、尾部和人工偏好。</li>
+    <li>tail-sensitive metric 在 zero synthetic / anti-collapse 研究里尤其重要。</li>
+    </ul>
+    <h2 id="尚未公开确认">尚未公开确认</h2>
+    <ul>
+    <li>Anima 官方完整 benchmark 套件。</li>
+    <li>官方是否使用了动漫域替代版 FID。</li>
+    <li>任何尚未跑出的 <code>TBD</code> 表格结果。</li>
+    </ul>
+    <h2 id="自测">自测</h2>
+    <ol>
+    <li>为什么 FID 低不等于动漫生成质量一定高？</li>
+    <li>为什么 CCIP 这类指标在动漫域有独立价值？</li>
+    <li>为什么 <code>TBD</code> 或逆向估算值不应直接放进学生主线结论页？</li>
+    </ol>
+    <h2 id="下一步">下一步</h2>
+    <p>如果你要深入论文方法论，进入 <a href="../reference/methodology.html">../reference/methodology.md</a>。公开证据边界已在课程正文中用“已公开确认 / 解释性重构 / 尚未公开确认”分层呈现，支撑材料不进入公开课程目录。</p>
+  </main>
+</body>
+</html>

@@ -3,73 +3,79 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CLI 与 API 契约</title>
+  <title>CLI 接口契约</title>
   <link rel="stylesheet" href="paper.css">
 </head>
 <body>
 <main data-paper>
   <section class="hero">
     <p class="kicker">run_inference.py / 参数契约</p>
-    <h1>CLI / API 契约</h1>
+    <h1>CLI 接口契约</h1>
     <p class="abstract">本页把 `run_inference.py` 解释为接口契约：每个参数都有默认值、运行影响、结果影响和失败模式。目标是让读者知道改变参数会改变哪一段推理系统。</p>
   </section>
 
   <section>
-    <h2>概览</h2>
-    <p>本章直接把 `run_inference.py` 拆成接口契约：参数默认值、行为影响、失败模式和相互作用都在表中说明，避免读者把 CLI 误读成简单的 prompt 转发层。</p>
+    <h2>课程主线 <span class="visually-hidden">Main Line</span></h2>
+    <p>本章主线很简单：CLI 不是一层薄包装，它决定设备、权重路径、prompt 扩展、安全检查和采样参数，因此也是读懂整条推理链路的最快入口。</p>
   </section>
 
   <section>
-    <h2>结论与依据</h2>
-    <div class="claim"><div class="claim-title">要记住的结论</div>
+    <h2>现在记住 <span class="visually-hidden">Remember Now</span></h2>
+    <div class="claim"><div class="claim-title">现在记住 <span class="visually-hidden">Remember Now</span></div>
       <p>CLI 是完整推理路径的用户入口，但它不只是转发 prompt。它决定设备、量化权重、prompt expansion、安全筛查、采样 preset、seed 和输出位置。</p>
-      <p><strong>依据。</strong> `run_inference.py` 中的 `argparse` 定义和控制分支。</p>
-      <p><strong>学习边界。</strong> 该页描述 CLI 行为；`Ideogram4Pipeline.__call__` 的内部采样机制在采样章节展开。</p>
+      <p><strong>这为什么重要。</strong> 这些参数不是装饰项，改的是实际运行路径：是否先扩展 prompt、去哪个权重仓库、在哪里做安全检查，以及用哪条采样设定。</p>
+      <p><strong>为什么可以相信这一点。</strong> CLI 帮助文本、默认值和执行顺序相互吻合，说明这张参数表对应的是仓库真实暴露给用户的接口。</p>
+      <p><strong>学习边界。</strong> 这一页只解释接口层行为；每一步内部如何实现，会在 token packing、sampling 和 architecture 章节展开。</p>
     </div>
   </section>
 
   <section>
-    <h2>参数契约</h2>
+    <h2>参数契约表</h2>
     <table>
-      <thead><tr><th>Argument</th><th>Default</th><th>Effect</th><th>Failure mode / interaction</th></tr></thead>
+      <thead><tr><th>参数</th><th>默认值</th><th>作用</th><th>失败模式与联动</th></tr></thead>
       <tbody>
-        <tr><td>`--prompt`</td><td>required</td><td>Input text. With magic prompt on, it is expanded before model inference.</td><td>Missing value makes argparse fail.</td></tr>
-        <tr><td>`--output`</td><td>`output.png`</td><td>File path for saving first generated image.</td><td>Filesystem write errors happen after generation.</td></tr>
-        <tr><td>`--height`</td><td>1024</td><td>Contributes to image token grid and schedule resolution.</td><td>Pipeline requires divisibility by 16.</td></tr>
-        <tr><td>`--width`</td><td>1024</td><td>Contributes to image token grid and aspect ratio for magic prompt.</td><td>Pipeline requires divisibility by 16.</td></tr>
-        <tr><td>`--sampler-preset`</td><td>`V4_QUALITY_48`</td><td>Sets `num_steps`, guidance schedule, `mu`, `std`.</td><td>Choices restricted to `PRESETS` keys.</td></tr>
-        <tr><td>`--seed`</td><td>0</td><td>Seeds latent noise generator for reproducible generation.</td><td>Same seed does not guarantee same output across changed code/hardware/deps.</td></tr>
-        <tr><td>`--device`</td><td>CUDA, else MPS, else CPU</td><td>Device for pipeline components and sampling tensors.</td><td>nf4 path rejects non-CUDA.</td></tr>
-        <tr><td>`--quantization`</td><td>CUDA: nf4; else fp8</td><td>Selects Hugging Face repo and quantized loading path.</td><td>Gated repo access required; incompatible device can fail.</td></tr>
-        <tr><td>`--magic-prompt` / `--no-magic-prompt`</td><td>on</td><td>Controls plain prompt expansion into structured caption.</td><td>If on and no key exists, CLI exits before loading model.</td></tr>
-        <tr><td>`--magic-prompt-model`</td><td>`ideogram-4-v1`</td><td>Selects Ideogram hosted API or OpenRouter Claude implementation.</td><td>Backend requires matching API key and network availability.</td></tr>
-        <tr><td>`--magic-prompt-key`</td><td>`MAGIC_PROMPT_API_KEY` or `IDEOGRAM_API_KEY`</td><td>Authenticates prompt expansion service.</td><td>Required unless `--no-magic-prompt`.</td></tr>
-        <tr><td>`--warn-on-caption-issues`</td><td>false</td><td>Turns caption verifier failures into warnings.</td><td>Can allow out-of-schema prompts to reach model.</td></tr>
-        <tr><td>`--hive-text-key`</td><td>`HIVE_TEXT_MODERATION_KEY`</td><td>Enables prompt moderation before generation.</td><td>Missing key disables prompt screening with warning.</td></tr>
-        <tr><td>`--hive-visual-key`</td><td>`HIVE_VISUAL_MODERATION_KEY`</td><td>Enables generated image moderation before saving.</td><td>Missing key disables output screening with warning.</td></tr>
+        <tr><td>`--prompt`</td><td>必填</td><td>输入文本；开启 magic prompt 时会先扩展后再进入模型。</td><td>缺值会让 argparse 直接报错。</td></tr>
+        <tr><td>`--output`</td><td>`output.png`</td><td>保存第一张生成图的文件路径。</td><td>文件系统写入错误通常发生在生成之后。</td></tr>
+        <tr><td>`--height`</td><td>1024</td><td>参与决定图像 token 网格和 schedule 分辨率。</td><td>pipeline 要求能被 16 整除。</td></tr>
+        <tr><td>`--width`</td><td>1024</td><td>参与决定图像 token 网格，并影响 magic prompt 的宽高比信息。</td><td>pipeline 要求能被 16 整除。</td></tr>
+        <tr><td>`--sampler-preset`</td><td>`V4_QUALITY_48`</td><td>设置 `num_steps`、guidance schedule、`mu`、`std`。</td><td>可选项受 `PRESETS` 键集合限制。</td></tr>
+        <tr><td>`--seed`</td><td>0</td><td>为 latent 噪声生成器设定可复现种子。</td><td>代码、硬件或依赖变化后，相同 seed 也不保证同图。</td></tr>
+        <tr><td>`--device`</td><td>CUDA，否则 MPS，再否则 CPU</td><td>决定 pipeline 组件和采样张量使用的设备。</td><td>nf4 路径会拒绝非 CUDA 设备。</td></tr>
+        <tr><td>`--quantization`</td><td>CUDA: nf4；否则 fp8</td><td>选择 Hugging Face 仓库和量化加载路径。</td><td>需要受限权重访问权限，设备不兼容时会失败。</td></tr>
+        <tr><td>`--magic-prompt` / `--no-magic-prompt`</td><td>开启</td><td>控制是否把普通 prompt 扩展成结构化 caption。</td><td>开启但没有 key 时，CLI 会在模型加载前退出。</td></tr>
+        <tr><td>`--magic-prompt-model`</td><td>`ideogram-4-v1`</td><td>选择 Ideogram hosted API 或 OpenRouter Claude 实现。</td><td>后端要求对应 API key 和可用网络。</td></tr>
+        <tr><td>`--magic-prompt-key`</td><td>`MAGIC_PROMPT_API_KEY` 或 `IDEOGRAM_API_KEY`</td><td>用于 prompt 扩展服务认证。</td><td>除非使用 `--no-magic-prompt`，否则必须提供。</td></tr>
+        <tr><td>`--warn-on-caption-issues`</td><td>false</td><td>把 caption verifier 失败从错误改成告警。</td><td>可能让不符合 schema 的 prompt 继续进入模型。</td></tr>
+        <tr><td>`--hive-text-key`</td><td>`HIVE_TEXT_MODERATION_KEY`</td><td>在生成前启用 prompt moderation。</td><td>缺 key 时会 warning，并跳过这层筛查。</td></tr>
+        <tr><td>`--hive-visual-key`</td><td>`HIVE_VISUAL_MODERATION_KEY`</td><td>在保存前启用图像 moderation。</td><td>缺 key 时会 warning，并跳过输出筛查。</td></tr>
       </tbody>
     </table>
   </section>
 
   <section>
     <h2>运行顺序</h2>
-    <div class="diagram">parse args
-  -> optional Hive text moderation
-  -> optional magic prompt expansion
-  -> select sampler preset
-  -> load Ideogram4Pipeline from selected quantized repo
+    <div class="diagram">解析参数
+  -> 可选的 Hive 文本审核
+  -> 可选的 magic prompt 扩展
+  -> 选择采样预设
+  -> 从选定量化仓库加载 Ideogram4Pipeline
   -> pipe(prompt, height, width, preset params, seed)
-  -> optional Hive visual moderation
-  -> save first PIL image</div>
-    <p>This sequence is an interface contract: a failure before pipeline load avoids downloading weights; a failure after generation may still consume inference resources.</p>
+  -> 可选的 Hive 图像审核
+  -> 保存第一张 PIL 图像</div>
+    <p>这条顺序本身就是接口契约：如果在加载 pipeline 之前失败，就不会进入权重下载和采样；如果在生成之后才失败，前面的推理资源已经消耗掉了。</p>
+  </section>
+
+  <section>
+    <h2>下一步 <span class="visually-hidden">Next Action</span></h2>
+    <p>CLI 解决的是“入口怎么控制系统”，下一步看 Token 打包，理解这些参数最终如何影响 Transformer 看到的序列。</p>
   </section>
 
   <section class="next">
     <a class="button" href="01-model-card.html">模型与运行时</a>
-    <a class="button primary" href="03-token-packing.html">下一章：Token Packing</a>
+    <a class="button primary" href="03-token-packing.html">下一章：Token 打包</a>
   </section>
 </main>
 <script src="paper.js" data-root="."></script>
-<script>mountPaperChrome("CLI 契约");</script>
+<script>mountPaperChrome("cli_contract");</script>
 </body>
 </html>

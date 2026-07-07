@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anima 公式与符号参考 | Anima 课程</title>
+  <link rel="stylesheet" href="../anima.css">
+</head>
+<body>
+  <header class="course-shell">
+    <a href="../index.html">Anima 课程入口</a>
+    <a href="../../">Teachme Sensei 目录</a>
+  </header>
+  <main class="markdown-course">
+    <h1 id="anima-公式与符号参考">Anima 公式与符号参考</h1>
+    <h2 id="rectified-flow-flow-matching">Rectified Flow / Flow Matching</h2>
+    <pre><code>x_t = (1 - t) x_0 + t epsilon
+v* = epsilon - x_0
+L = E[ || v_theta(x_t, t, c) - (epsilon - x_0) ||^2 ]</code></pre>
+    <p>用途：</p>
+    <ul>
+    <li>说明 flow-family 目标与 DDPM 噪声路径的差异。</li>
+    </ul>
+    <h2 id="dit-token-成本">DiT token 成本</h2>
+    <pre><code>N = latent image token count
+d = hidden width
+
+self-attention ~ O(N^2 d)
+MLP / projection ~ O(N d^2)</code></pre>
+    <p>用途：</p>
+    <ul>
+    <li>说明为什么分辨率提高后，token 成本会快速主导预算。</li>
+    </ul>
+    <h2 id="fid">FID</h2>
+    <pre><code>FID = ||mu_r - mu_g||^2 + Tr(Sigma_r + Sigma_g - 2 (Sigma_r Sigma_g)^(1/2))</code></pre>
+    <p>用途：</p>
+    <ul>
+    <li>衡量分布距离，但在动漫域存在 domain shift。</li>
+    </ul>
+    <h2 id="clip-score">CLIP Score</h2>
+    <pre><code>CLIPScore = E[ cosine( f_img(x), f_text(c) ) ]</code></pre>
+    <p>用途：</p>
+    <ul>
+    <li>衡量通用文本对齐，不足以完整覆盖角色一致性与尾部分布。</li>
+    </ul>
+    <h2 id="strong-model-collapse-提示项">Strong Model Collapse 提示项</h2>
+    <pre><code>Delta Error ~ p_2^2 * tr(Delta)</code></pre>
+    <p>用途：</p>
+    <ul>
+    <li>说明少量 synthetic contamination 也可能带来可测影响。</li>
+    </ul>
+    <h2 id="学习提醒">学习提醒</h2>
+    <ul>
+    <li>公式在这里是 reference，不是结论。</li>
+    <li>任何公式要进入论文主结果，都还需要和具体实验读数绑定。</li>
+    </ul>
+  </main>
+</body>
+</html>

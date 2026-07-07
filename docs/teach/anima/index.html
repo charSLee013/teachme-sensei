@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anima 课程入口 | Anima 课程</title>
+  <link rel="stylesheet" href="anima.css">
+</head>
+<body>
+  <header class="course-shell">
+    <a href="index.html">Anima 课程入口</a>
+    <a href="../">Teachme Sensei 目录</a>
+  </header>
+  <main class="markdown-course">
+    <h1 id="anima-课程入口">Anima 课程入口</h1>
+    <blockquote>这是一套面向研究复现与论文准备的学习包，而不是研究报告堆栈。</blockquote>
+    <h2 id="先读什么">先读什么</h2>
+    <p>如果你第一次进入这个主题，按下面顺序读：</p>
+    <ol>
+    <li><a href="course-map.html">course-map.md</a></li>
+    <li><a href="lessons/01-what-is-anima.html">lessons/01-what-is-anima.md</a></li>
+    <li><a href="lessons/02-architecture.html">lessons/02-architecture.md</a></li>
+    <li><a href="lessons/03-training-boundaries.html">lessons/03-training-boundaries.md</a></li>
+    <li><a href="lessons/04-prompting.html">lessons/04-prompting.md</a></li>
+    <li><a href="lessons/05-evaluation.html">lessons/05-evaluation.md</a></li>
+    </ol>
+    <h2 id="你会得到什么">你会得到什么</h2>
+    <p>读完主线后，应当能够回答这五个问题：</p>
+    <ul>
+    <li>Anima 的公开架构事实是什么，哪些只是重建解释。</li>
+    <li>为什么 2B 级 DiT 可能构成一个动漫领域适配的 operating point。</li>
+    <li>为什么 zero synthetic data、non-anime art mixture、text-side policy 会同时影响训练结果。</li>
+    <li>为什么 prompt 机制不能再按旧的 <code>T5-XXL + LM Adapter</code> 叙述去理解。</li>
+    <li>为什么动漫模型评估不能只看 FID。</li>
+    </ul>
+    <h2 id="文档分层">文档分层</h2>
+    <h3 id="主线课程">主线课程</h3>
+    <ul>
+    <li><a href="lessons/01-what-is-anima.html">lessons/01-what-is-anima.md</a></li>
+    <li><a href="lessons/02-architecture.html">lessons/02-architecture.md</a></li>
+    <li><a href="lessons/03-training-boundaries.html">lessons/03-training-boundaries.md</a></li>
+    <li><a href="lessons/04-prompting.html">lessons/04-prompting.md</a></li>
+    <li><a href="lessons/05-evaluation.html">lessons/05-evaluation.md</a></li>
+    </ul>
+    <h3 id="深入参考">深入参考</h3>
+    <ul>
+    <li><a href="reference/methodology.html">reference/methodology.md</a></li>
+    <li><a href="reference/formulas.html">reference/formulas.md</a></li>
+    <li><a href="reference/resources.html">reference/resources.md</a></li>
+    </ul>
+    <h2 id="公开事实与解释边界">公开事实与解释边界</h2>
+    <p>这套材料默认使用以下边界：</p>
+    <ul>
+    <li>已公开确认：可直接由模型卡、Diffusers config 或公开仓库文件支持。</li>
+    <li>解释性重构：基于公开配置与相关文献，对机制进行的教学性整理。</li>
+    <li>尚未公开确认：原始训练步数、真实 optimizer、完整过滤阈值、原始 curriculum 等。</li>
+    </ul>
+    <h2 id="纠错说明">纠错说明</h2>
+    <p>本目录中已移除旧的错误正文文件，不再保留可直接误导学习者的旧版主文档。</p>
+    <p>其中最重要的修正是：</p>
+    <ul>
+    <li>当前主线统一采用公开配置可确认的文本路径：主 text encoder 是 <code>Qwen3Model</code>，并存在独立 <code>AnimaTextConditioner</code>。</li>
+    </ul>
+    <p>如果你是为了论文复现而来，先走 lessons 主线，再回到 reference。</p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 1：Anima 到底是什么 | Anima 课程</title>
+  <link rel="stylesheet" href="../anima.css">
+</head>
+<body>
+  <header class="course-shell">
+    <a href="../index.html">Anima 课程入口</a>
+    <a href="../../">Teachme Sensei 目录</a>
+  </header>
+  <main class="markdown-course">
+    <h1 id="lesson-1-anima-到底是什么">Lesson 1：Anima 到底是什么</h1>
+    <h2 id="本节记住什么">本节记住什么</h2>
+    <ul>
+    <li>Anima 是一个 2B 级 text-to-image 模型，面向 anime、characters、styles 和 non-photorealistic art。</li>
+    <li>它基于公开的 Cosmos 路线，而不是一个完全私有、不可见的黑盒。</li>
+    <li>公开材料能确认一部分架构和数据边界，但仍有不少训练细节没有公开。</li>
+    </ul>
+    <h2 id="为什么重要">为什么重要</h2>
+    <p>如果一开始就把 Anima 当成“又一个动漫 checkpoint”，后面会很容易把架构、数据和评估全部混在一起。先把对象边界讲清，后面的推导才不会漂。</p>
+    <h2 id="课程位置">课程位置</h2>
+    <p>这是课程入口。目标不是讲细节，而是建立一张正确的地图。</p>
+    <h2 id="用通俗语言讲清主线">用通俗语言讲清主线</h2>
+    <p>可以把 Anima 先理解成三个叠在一起的层：</p>
+    <ol>
+    <li>一个公开可见的生成基座。</li>
+    <li>一个被拉向动漫/插画分布的领域适配过程。</li>
+    <li>一组还没有完全公开的训练决策。</li>
+    </ol>
+    <p>公开材料目前能直接确认的事实包括：</p>
+    <ul>
+    <li>它是 2B 参数量级。</li>
+    <li>它的目标分布主要是 anime / characters / styles / non-photorealistic art。</li>
+    <li>训练数据包含数百万 anime 图像，以及约 800k 非动漫艺术图像。</li>
+    <li>训练没有使用 synthetic data。</li>
+    <li>Diffusers 配置公开了 Cosmos transformer、Qwen3 text encoder、Anima text conditioner、Qwen-Image VAE 和 FlowMatch scheduler。</li>
+    </ul>
+    <p>这些事实已经足够建立一张可靠的入门地图，但许多训练细节仍然没有公开。</p>
+    <h2 id="已公开确认">已公开确认</h2>
+    <ul>
+    <li>主 text encoder 是 <code>Qwen3Model</code>。</li>
+    <li>存在独立的 <code>AnimaTextConditioner</code>。</li>
+    <li>存在 <code>Qwen-Image VAE</code>。</li>
+    <li>生成建议区间包括 512-1536 分辨率、30-50 步、CFG 4-5。</li>
+    </ul>
+    <h2 id="解释性重构">解释性重构</h2>
+    <ul>
+    <li>2B 可能是一个在高分辨率注意力成本下较现实的 operating point。</li>
+    <li>non-anime art 子集可能承担 regularization 或 caption bridge 作用。</li>
+    </ul>
+    <h2 id="尚未公开确认">尚未公开确认</h2>
+    <ul>
+    <li>原始训练是否存在明确 Stage 1 / Stage 2。</li>
+    <li>text conditioner 是否在原始训练中始终冻结。</li>
+    <li>random tag dropout 的精确比例。</li>
+    </ul>
+    <h2 id="自测">自测</h2>
+    <ol>
+    <li>为什么 “公开能确认一部分” 和 “很多训练细节仍未公开” 不是一回事？</li>
+    <li>为什么 zero synthetic data 对理解 Anima 的训练边界特别重要？</li>
+    <li>目前公开材料中，哪一个事实最能改变你对文本条件路径的理解？</li>
+    </ol>
+    <h2 id="下一步">下一步</h2>
+    <p>进入 <a href="02-architecture.html">02-architecture.md</a>，把组件关系真正讲清。</p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 4：提示词、条件路径与公开可确认规则 | Anima 课程</title>
+  <link rel="stylesheet" href="../anima.css">
+</head>
+<body>
+  <header class="course-shell">
+    <a href="../index.html">Anima 课程入口</a>
+    <a href="../../">Teachme Sensei 目录</a>
+  </header>
+  <main class="markdown-course">
+    <h1 id="lesson-4-提示词-条件路径与公开可确认规则">Lesson 4：提示词、条件路径与公开可确认规则</h1>
+    <h2 id="本节记住什么">本节记住什么</h2>
+    <ul>
+    <li>当前关于 prompting 的主线，应围绕公开 model card 与公开配置来讲。</li>
+    <li><code>@artist</code>、tag order、CFG 4-5、30-50 steps、512-1536 分辨率，属于公开可确认的使用建议。</li>
+    <li>提示词页面必须区分公开建议与待验证机制。</li>
+    </ul>
+    <h2 id="为什么重要">为什么重要</h2>
+    <p>提示词页面最容易把“经验技巧”“猜测机制”“公开事实”混成一团。这里如果不收紧边界，读者会以为已经知道了底层实现，但其实只是继承了旧假设。</p>
+    <h2 id="课程位置">课程位置</h2>
+    <p>这是从“训练视角”转向“使用与条件机制视角”的一课。</p>
+    <h2 id="用通俗语言讲清主线">用通俗语言讲清主线</h2>
+    <p>公开材料支持我们稳妥地说出三类事情。</p>
+    <h3 id="1-公开可确认的使用建议">1. 公开可确认的使用建议</h3>
+    <ul>
+    <li>推荐分辨率区间：512-1536</li>
+    <li>推荐采样步数：30-50</li>
+    <li>推荐 CFG：4-5</li>
+    <li>训练提示词形态同时覆盖 Danbooru-style tags、natural-language captions 以及两者混合</li>
+    <li>艺术家标签使用 <code>@</code> 前缀时效果更稳定</li>
+    <li>模型卡给出了一种 tag order：quality/meta/year/safety -&gt; subject count -&gt; character -&gt; series -&gt; artist -&gt; general tags</li>
+    </ul>
+    <h3 id="2-公开可确认的条件路径边界">2. 公开可确认的条件路径边界</h3>
+    <p>公开配置中可确认的主 text encoder 是 <code>Qwen3Model</code>，并存在独立 <code>AnimaTextConditioner</code>。因此，提示词机制的主线解释应围绕当前公开组件来建立。</p>
+    <h3 id="3-仍然只属于解释性重构的部分">3. 仍然只属于解释性重构的部分</h3>
+    <ul>
+    <li>为什么 <code>@artist</code> 前缀更有效</li>
+    <li>为什么 tag 顺序会影响视觉权重分布</li>
+    <li>为什么某些 prompt 片段更容易被前部 token 抢占注意力</li>
+    </ul>
+    <p>这些都可能是合理机制解释，但在没有 tokenization 实验和 ablation 之前，更适合写成待验证解释，而不是既成实现事实。</p>
+    <h2 id="已公开确认">已公开确认</h2>
+    <ul>
+    <li>主 text encoder 是 <code>Qwen3Model</code>。</li>
+    <li>model card 给出 <code>@artist</code>、tag order、CFG 4-5 等使用建议。</li>
+    <li>随机 tag dropout 存在，但精确比例未公开。</li>
+    </ul>
+    <h2 id="解释性重构">解释性重构</h2>
+    <ul>
+    <li><code>@</code> 前缀可能改变 tokenizer 行为或标签可识别性。</li>
+    <li>tag order 可能通过条件权重分配影响结果。</li>
+    </ul>
+    <h2 id="尚未公开确认">尚未公开确认</h2>
+    <ul>
+    <li>公开 modular pipeline 中同时出现的 <code>T5Tokenizer</code> 在推理路径里承担的精确角色。</li>
+    <li>某些旧的 token 级经验解释是否仍能局部迁移到当前系统。</li>
+    </ul>
+    <h2 id="自测">自测</h2>
+    <ol>
+    <li>为什么 <code>Qwen3Model</code> 这一事实会改变 prompt 机制的主线解释？</li>
+    <li>哪些 prompting 规则属于公开建议，哪些只是机制推测？</li>
+    <li>为什么 <code>@artist</code> 的解释应该被写成“待验证”，而不是“底层已经证明”？</li>
+    </ol>
+    <h2 id="下一步">下一步</h2>
+    <p>进入 <a href="05-evaluation.html">05-evaluation.md</a>，学习为什么动漫模型验收不能只依赖一个指标。</p>
+  </main>
+</body>
+</html>

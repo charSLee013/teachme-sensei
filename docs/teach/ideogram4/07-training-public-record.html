@@ -3,67 +3,72 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>训练方式与公开信息分层</title>
+  <title>公开训练信息</title>
   <link rel="stylesheet" href="paper.css">
 </head>
 <body>
 <main data-paper>
   <section class="hero">
-    <p class="kicker">训练信息 / 公开资料分层</p>
+    <p class="kicker">训练信息 / 公开记录分层</p>
     <h1>训练方式与公开信息分层</h1>
     <p class="abstract">训练方式相关信息应进行明确分层。公开资料中已有可确认的高层声明；本仓库专注于推理部署，训练相关的具体细节（如数据配方、优化器、训练时长、计算资源）应以官方公开文档或声明为准。本节仅整合当前可证据化的公开内容，并标出无法由本仓库确认的部分。</p>
   </section>
 
   <section>
-    <h2>概览</h2>
-    <p>本章只讲公开记录能支撑到哪里：哪些是发布方声明，哪些是源码能证明的推理行为，哪些是课程重建，哪些仍然属于尚未公开确认的信息。</p>
+    <h2>课程主线 <span class="visually-hidden">Main Line</span></h2>
+    <p>本章主线是：训练相关内容必须分层阅读。读者需要同时知道发布方公开说了什么、源码只证明了哪些推理行为，以及哪些训练细节目前还没有公开资料能够确认。</p>
   </section>
 
   <section>
-    <h2>结论与依据</h2>
-    <div class="claim"><div class="claim-title">要记住的结论</div><p>这门课把训练相关信息分成四层阅读：公开发布信息、源码可支持的推理行为、课程重构解释、以及公开资料不足以确认的细节。</p><p><strong>依据。</strong> README、prompting 文档、safety 文档和本地推理源码。</p><p><strong>学习边界。</strong> 数据集构成、optimizer、compute、训练时长和详细 post-training 方法无法由当前 checkout 确认。</p></div>
+    <h2>现在记住 <span class="visually-hidden">Remember Now</span></h2>
+    <div class="claim"><div class="claim-title">现在记住 <span class="visually-hidden">Remember Now</span></div><p>这套课程不会把训练相关信息混成一句话讲完。已经公开的发布说明、源码能证明的推理事实、为理解机制而做的教学重述，以及当前仍待公开的细节，必须分别处理。</p><p><strong>这为什么重要。</strong> 如果不分层，读者很容易把“为了帮助理解的重述”误认成官方训练配方，或者把发布口径误认成已经独立验证的事实。</p><p><strong>为什么可以相信这一点。</strong> README、提示协议文档、安全文档和本地推理实现能共同支撑公开接口和推理行为，但并不会自动补出训练数据、优化器或算力规模。</p><p><strong>学习边界。</strong> 数据构成、优化器、训练算力、训练时长以及更细的后训练做法，目前没有公开资料可供本课程确认。</p></div>
   </section>
 
   <section>
-    <h2>分层阅读</h2>
+    <h2>信息分层表</h2>
     <table>
-      <thead><tr><th>层级</th><th>内容</th><th>状态</th></tr></thead>
+      <thead><tr><th>层级</th><th>内容</th><th>说明</th></tr></thead>
       <tbody>
-        <tr><td>公开发布信息</td><td>README 把 Ideogram 4 描述为 foundation/open-weight text-to-image model，并说明它是从头训练而不是 fine-tune。</td><td>公开/本地文档声明。</td></tr>
-        <tr><td>Prompt 训练接口</td><td>Prompting 文档说明模型使用 structured JSON captions 训练，并建议按该 schema 编写 prompt。</td><td>公开/本地文档声明，且 verifier 实现支持这一使用方式。</td></tr>
-        <tr><td>源码能支持的推理行为</td><td>公开代码实现 Qwen3-VL conditioning、single-stream DiT velocity prediction、logit-normal schedule 和 Euler sampling。</td><td>关于推理行为的源码事实。</td></tr>
-        <tr><td>课程重构解释</td><td>为了理解推理，可以把 flow-matching 训练解释为：在文本条件下学习 noisy latent 到 clean latent 的 velocity field。</td><td>教学重构，不等同于官方训练 recipe。</td></tr>
-        <tr><td>尚未公开确认的细节</td><td>Dataset mixture、filtering specifics、optimizer、batch size、compute、duration、post-training method details。</td><td>当前仓库和本课程使用的可访问来源无法确认。</td></tr>
+        <tr><td>发布方公开说明</td><td>README 把 Ideogram 4 描述为开放权重的文生图基础模型，并说明它是从头训练而非在旧模型上微调。</td><td>可当作发布口径阅读。</td></tr>
+        <tr><td>提示协议相关公开说明</td><td>提示协议文档说明模型按照结构化 JSON caption 这一接口习惯来使用，并建议尽量贴近该结构约定。</td><td>由公开文档和校验器行为共同支持。</td></tr>
+        <tr><td>源码能确认的推理行为</td><td>公开代码实现了 Qwen3-VL 条件编码、单流 DiT 速度预测、logit-normal 日程和 Euler 采样。</td><td>这是当前仓库能直接证明的部分。</td></tr>
+        <tr><td>为理解机制而做的教学重述</td><td>可以把流匹配理解成：模型学习在文本条件下，把带噪 latent 朝着干净 latent 方向推进的速度场。</td><td>这是教学解释，不是官方训练配方全文。</td></tr>
+        <tr><td>当前仍待公开的细节</td><td>数据混合、过滤细节、优化器、batch size、算力规模、训练时长和更细的后训练过程。</td><td>目前公开资料不足以确认。</td></tr>
       </tbody>
     </table>
   </section>
 
   <section>
-    <h2>为了理解推理而做的课程重构</h2>
-    <div class="diagram">公开/源码事实:
-  推理模型预测 velocity
-  sampler 积分 velocity
-  prompt condition 是 structured caption -> Qwen features
+    <h2>帮助理解推理的教学重述</h2>
+    <div class="diagram">公开资料和源码能支持的事实：
+  推理模型预测的是速度场
+  采样器负责积分这个速度场
+  提示条件会先变成结构化 caption，再转成 Qwen 特征
 
-课程重构:
-  clean image -> VAE latent z0
-  noise sample -> noisy latent zt
-  text condition -> Qwen features
-  model learns velocity target for flow from noise to image latent</div>
-    <div class="claim boundary"><div class="claim-title">学习边界</div><p>这个重构用于理解推理阶段 velocity 和 timestep 的含义，不说明 Ideogram 未公开的 loss 实现、data pipeline 或 optimizer 配置。</p></div>
+为帮助理解而做的教学重述：
+  干净图像 -> VAE latent z0
+  噪声样本 -> 带噪 latent zt
+  文本条件 -> Qwen 特征
+  模型学习的是从噪声 latent 走向图像 latent 的速度目标</div>
+    <div class="claim boundary"><div class="claim-title">请注意</div><p>这段重述的作用是帮助读者理解速度场和时间步在推理时意味着什么；它不是对 Ideogram 私有损失函数、数据管线或优化器配置的替代描述。</p></div>
   </section>
 
   <section>
-    <h2>本课程会明确覆盖什么</h2>
-    <p>当前公开仓库足以学习已发布的推理接口、架构契约、prompt protocol、量化加载和 sampler 行为。训练系统细节应作为公开资料问题处理，只有当 primary sources 披露后才更新课程表述。</p>
+    <h2>本章能确认到哪里</h2>
+    <p>公开仓库已经足够支撑这门课程去讲已发布的推理接口、架构契约、提示协议、量化加载路径和采样行为。训练系统更深的细节则应当被看成公开记录问题，只有在一手资料披露后才适合纳入课程事实层。</p>
+  </section>
+
+  <section>
+    <h2>下一步 <span class="visually-hidden">Next Action</span></h2>
+    <p>读完这一章后，进入依据说明，复查课程的核心结论分别依赖哪类依据，以及这些依据的边界在哪里。</p>
   </section>
 
   <section class="next">
-    <a class="button" href="06-json-caption-protocol.html">JSON Caption</a>
-    <a class="button primary" href="appendix/evidence.html">依据说明</a>
+    <a class="button" href="06-json-caption-protocol.html">JSON Caption 协议</a>
+    <a class="button primary" href="appendix/evidence.html">下一章：依据说明</a>
   </section>
 </main>
 <script src="paper.js" data-root="."></script>
-<script>mountPaperChrome("公开训练信息");</script>
+<script>mountPaperChrome("training_record");</script>
 </body>
 </html>

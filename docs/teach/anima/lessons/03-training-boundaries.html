@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 3：训练边界与方法论主线 | Anima 课程</title>
+  <link rel="stylesheet" href="../anima.css">
+</head>
+<body>
+  <header class="course-shell">
+    <a href="../index.html">Anima 课程入口</a>
+    <a href="../../">Teachme Sensei 目录</a>
+  </header>
+  <main class="markdown-course">
+    <h1 id="lesson-3-训练边界与方法论主线">Lesson 3：训练边界与方法论主线</h1>
+    <h2 id="本节记住什么">本节记住什么</h2>
+    <ul>
+    <li>Anima 的核心训练问题不是“怎么把 loss 跑下去”，而是怎么同时守住计算预算、文本语义、数据分布和收敛稳定性。</li>
+    <li>zero synthetic data、anime + non-anime art mixture、text-side policy、warmup 耦合，是这条主线上的四个关键杠杆。</li>
+    <li>许多细节仍未公开，因此课程里必须把“已确认事实”和“解释性重构”分开。</li>
+    </ul>
+    <h2 id="为什么重要">为什么重要</h2>
+    <p>论文真正有价值的部分，通常不在 config 表本身，而在你能否解释“为什么这个 operating point 合理、它牺牲了什么、又保住了什么”。</p>
+    <h2 id="课程位置">课程位置</h2>
+    <p>这是从“组件识别”进入“训练推理”的过渡课。</p>
+    <h2 id="用通俗语言讲清主线">用通俗语言讲清主线</h2>
+    <p>可以把训练问题压缩成四组张力：</p>
+    <h3 id="1-参数量与分辨率张力">1. 参数量与分辨率张力</h3>
+    <p>2B 不是抽象数字。它和 1024-1536px 区间下的 latent token 成本绑定在一起。分辨率越高，attention 成本上涨越快，因此更大的模型未必真的更优。</p>
+    <h3 id="2-数据混合与遗忘张力">2. 数据混合与遗忘张力</h3>
+    <p>公开材料显示，训练数据不是纯 anime-only，还混入了 non-anime artistic images。这让训练目标不只是“风格专业化”，还带上了“不要把较宽的视觉构图和语言对齐能力完全忘掉”的问题。</p>
+    <h3 id="3-文本侧适配与语义漂移张力">3. 文本侧适配与语义漂移张力</h3>
+    <p>一旦 text-side 模块可训练，域内标签适配可能变强，但 prompt drift 风险也会同时上升。于是 <code>fully frozen / low-LR trainable / delayed unfreeze</code> 就变成了真正需要实验判别的假设空间。</p>
+    <h3 id="4-warmup-与稳定性张力">4. warmup 与稳定性张力</h3>
+    <p>warmup 不是一个“防爆炸按钮”，更像是为了让目标学习率与 Adam 二阶统计量进入更稳定关系的缓冲区。它和 <code>beta2</code>、分辨率 bucket、梯度波动一起决定 early-loss volatility。</p>
+    <h2 id="已公开确认">已公开确认</h2>
+    <ul>
+    <li>zero synthetic data 是模型卡明确声明的事实。</li>
+    <li>数据中存在 non-anime art 子集。</li>
+    <li>模型卡给出 <code>llm_adapter_lr=0</code> 与 rank-32 <code>2e-5</code> 这类下游微调建议。</li>
+    </ul>
+    <h2 id="解释性重构">解释性重构</h2>
+    <ul>
+    <li>non-anime art 子集可能充当 forgetting regularizer 或 caption bridge。</li>
+    <li>2B 级 DiT 很可能是高分辨率预算下的现实 operating point。</li>
+    <li>warmup 长度与 <code>beta2</code> 的关系，比“经验步数”更值得解释。</li>
+    </ul>
+    <h2 id="尚未公开确认">尚未公开确认</h2>
+    <ul>
+    <li>原始 optimizer 与真实 warmup 步数。</li>
+    <li>原始训练是否真的分阶段。</li>
+    <li>原始数据混合采样器是 constant、annealed 还是 rarity-aware。</li>
+    </ul>
+    <h2 id="自测">自测</h2>
+    <ol>
+    <li>为什么 zero synthetic data 不只是“品味问题”，而是分布稳定性问题？</li>
+    <li>为什么 non-anime art 子集既可能帮忙，也可能稀释 anime specialization？</li>
+    <li>为什么 text-side policy 必须用消融实验来判别，而不能仅靠直觉？</li>
+    </ol>
+    <h2 id="下一步">下一步</h2>
+    <p>进入 <a href="04-prompting.html">04-prompting.md</a>，把公开可确认的 prompt 规则和尚待验证的机制解释分开。</p>
+  </main>
+</body>
+</html>

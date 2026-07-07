@@ -3,92 +3,98 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Token Packing 机制</title>
+  <title>Token 打包机制</title>
   <link rel="stylesheet" href="paper.css">
 </head>
 <body>
 <main data-paper>
   <section class="hero">
     <p class="kicker">表示层 / 序列构造</p>
-    <h1>Token Packing 机制</h1>
-    <p class="abstract">Ideogram 4 的推理输入不是单一文本向量。Pipeline 构造一个 packed sequence：左侧是 Qwen3-VL 文本 token 对应的 hidden features，右侧是 image latent tokens。并行的 position、segment 和 indicator 轨道定义了每个 token 在 Transformer 中的角色。</p>
+    <h1>Token 打包机制</h1>
+    <p class="abstract">Ideogram 4 的推理输入不是单一文本向量。推理 pipeline 会构造一条打包序列：左侧是 Qwen3-VL 文本 token 对应的条件特征，右侧是图像 latent token。并行的位置、分段和角色轨道一起定义了每个 token 在 Transformer 中的职责。</p>
   </section>
 
   <section>
-    <h2>概览</h2>
-    <p>本章围绕 packed sequence 解释推理输入的真实结构：文本特征、图像 latent token、位置轨道、段轨道和 indicator 轨道如何共同决定 Transformer 看到的序列。</p>
+    <h2>课程主线 <span class="visually-hidden">Main Line</span></h2>
+    <p>本章主线是：推理输入不是“把 prompt 喂给模型”这么简单，而是把文本特征、图像 latent token 以及角色与位置轨道一起打包成一条可供 Transformer 处理的序列。</p>
   </section>
 
   <section>
-    <h2>结论与依据</h2>
-    <div class="claim"><div class="claim-title">要记住的结论</div>
-      <p>`_build_inputs` 会构造一个 packed sequence：前半段是 text token slots，后半段是 image latent token slots。同时它还构造 Transformer 使用的 `position_ids`、`segment_ids` 和 `indicator` tensors。</p>
-      <p><strong>依据。</strong> `pipeline_ideogram4.py::_tokenize`, `_build_inputs`, `_encode_text`; constants `LLM_TOKEN_INDICATOR`, `OUTPUT_IMAGE_INDICATOR`, `IMAGE_POSITION_OFFSET`.</p>
-      <p><strong>学习边界。</strong> 本页解释推理阶段的 tensor 构造，不推断训练 batch 的内部构造方式。</p>
+    <h2>现在记住 <span class="visually-hidden">Remember Now</span></h2>
+    <div class="claim"><div class="claim-title">现在记住 <span class="visually-hidden">Remember Now</span></div>
+      <p>推理阶段会先放入文本 token 对应的特征槽位，再接上图像 latent token。与此同时，位置、分段和角色三条辅助轨道一起告诉 Transformer：哪些位置是文本，哪些位置是图像，以及它们应当如何被读取。</p>
+      <p><strong>这为什么重要。</strong> 只有看清这个打包方式，后面的 MRoPE、indicator、采样更新和输出契约才会连成同一个机制。</p>
+      <p><strong>为什么可以相信这一点。</strong> 课程里的变量表、2D 车道图和 3D 示意图都在解释同一个实现事实：模型读到的是一条混合序列，而不是两套彼此隔离的输入。</p>
+      <p><strong>学习边界。</strong> 这里说明的是推理时的张量组织方式，不据此推断内部训练批次如何构造。</p>
     </div>
   </section>
 
   <section>
-    <h2>先定义对象</h2>
+    <h2>关键对象</h2>
     <table>
-      <thead><tr><th>Object</th><th>Shape / value</th><th>Role</th></tr></thead>
+      <thead><tr><th>对象</th><th>形状或取值</th><th>作用</th></tr></thead>
       <tbody>
-        <tr><td>`token_ids`</td><td>`(B, total_seq_len)`</td><td>Qwen text token ids; image slots stay zero.</td></tr>
-        <tr><td>`position_ids`</td><td>`(B, total_seq_len, 3)`</td><td>MRoPE coordinates for text and image tokens.</td></tr>
-        <tr><td>`segment_ids`</td><td>`(B, total_seq_len)`</td><td>Block-diagonal attention grouping and padding separation.</td></tr>
-        <tr><td>`indicator`</td><td>`(B, total_seq_len)`</td><td>Distinguishes LLM tokens from output image tokens.</td></tr>
-        <tr><td>`num_image_tokens`</td><td>`height/16 * width/16`</td><td>Image latent token count after VAE compression and 2x2 patching.</td></tr>
+        <tr><td>`token_ids`</td><td>`(B, total_seq_len)`</td><td>Qwen 文本 token id；图像槽位保持为零。</td></tr>
+        <tr><td>`position_ids`</td><td>`(B, total_seq_len, 3)`</td><td>文本和图像 token 共用的 MRoPE 坐标。</td></tr>
+        <tr><td>`segment_ids`</td><td>`(B, total_seq_len)`</td><td>用于 block-diagonal attention 分组和 padding 隔离。</td></tr>
+        <tr><td>`indicator`</td><td>`(B, total_seq_len)`</td><td>区分 LLM token 与输出图像 token。</td></tr>
+        <tr><td>`num_image_tokens`</td><td>`height/16 * width/16`</td><td>VAE 压缩并经过 2x2 patch 后得到的图像 latent token 数。</td></tr>
       </tbody>
     </table>
   </section>
 
   <section>
-    <h2>交互式 2D 序列通道</h2>
-    <p>下面的通道图展示一个 prompt 如何变成并行 token metadata。拖动 text length 和 latent grid，可以看到 sequence length 与 image token budget 如何变化。</p>
+    <h2>2D 序列轨道</h2>
+    <p>下面的车道图展示单个 prompt 如何变成并行的 token 元数据。拖动文本长度和图像网格，就能看到总序列长度和图像 token 预算如何变化。</p>
     <div class="controls">
-      <label>Text tokens <input id="textTokens" type="range" min="4" max="40" value="14"></label>
-      <label>Image grid <input id="gridSize" type="range" min="4" max="18" value="8"></label>
+      <label>文本 token <input id="textTokens" type="range" min="4" max="40" value="14"></label>
+      <label>图像网格 <input id="gridSize" type="range" min="4" max="18" value="8"></label>
       <span id="packingReadout" class="pill"></span>
     </div>
     <canvas id="packingCanvas" height="380" aria-label="Token packing lanes"></canvas>
     <details open>
       <summary>文字说明</summary>
-      <p>序列顺序是 text tokens 在前，image tokens 在后。Text positions 是 `[pos, pos, pos]`，image positions 是 `[0, h, w] + 65536`。Indicator 轨道用 `LLM_TOKEN_INDICATOR` 标记文本位置，用 `OUTPUT_IMAGE_INDICATOR` 标记图像位置。</p>
+      <p>这条序列先放文本，再放图像。文本位置沿着 token 顺序递增；图像位置则把二维网格坐标编码进去。角色轨道再额外标明当前槽位对应的是文本条件还是输出图像 token。</p>
     </details>
   </section>
 
   <section>
-    <h2>3D 网格理解</h2>
-    <p>3D 视图是示意图：它把序列角色映射成空间隐喻。Text tokens 是抬高的轨道，image tokens 是 H x W 平面。旋转 lattice 可以区分 sequence role、grid geometry 和 token metadata。</p>
+    <h2>3D 示意图</h2>
+    <p>这个 3D 视图是示意图，不是模型内部真的存在的几何空间。蓝色高轨表示文本位置，红色平面表示图像 token 网格；旋转它的目的，是把序列角色、网格结构和位置元数据分开看清。</p>
     <div class="controls">
-      <label>Lattice angle <input id="latticeAngle" type="range" min="-45" max="45" value="18"></label>
+      <label>格架角度 <input id="latticeAngle" type="range" min="-45" max="45" value="18"></label>
       <span id="latticeReadout" class="pill"></span>
     </div>
     <canvas id="latticeCanvas" height="420" aria-label="3D schematic token lattice"></canvas>
     <details open>
-      <summary>3D 文字说明</summary>
-      <p>抬高的蓝色轨道表示携带 Qwen-derived features 的文本位置；红色平面表示带 grid coordinates 的 image latent tokens。这只是解释用的示意投影，不是 literal embedding space 或 learned geometry。</p>
+      <summary>文字说明</summary>
+      <p>蓝色高轨表示承载文本条件特征的位置，红色平面表示带有二维网格坐标的图像 latent token。这只是为了帮助理解的示意投影，不要把它读成真实的嵌入空间。</p>
     </details>
   </section>
 
   <section>
-    <h2>机制后果</h2>
+    <h2>机制结果</h2>
     <ul>
-      <li>提高分辨率会让 image token count 按平方级增长。</li>
-      <li>更长的 prompt 会增加 text sequence length，但不会改变 image grid size。</li>
-      <li>Text/image role 不是只靠 position 推断；`indicator` 明确参与 masking 和 embeddings。</li>
-      <li>Padding 通过 segment ids 保持隔离，不会混入真实 sample sequence。</li>
+      <li>提高分辨率会让图像 token 数量按面积增长，而不是线性增长。</li>
+      <li>拉长 prompt 会增加文本序列长度，但不会改变图像网格本身。</li>
+      <li>文本和图像的角色不能只靠位置猜出来，系统还会显式带上角色轨道。</li>
+      <li>padding 会被段轨道隔离，不会混入真实样本序列。</li>
     </ul>
   </section>
 
+  <section>
+    <h2>下一步 <span class="visually-hidden">Next Action</span></h2>
+    <p>看清序列如何打包之后，下一步进入“采样与 CFG”，观察这条混合序列怎样在每一步更新里影响图像 latent 的移动方向。</p>
+  </section>
+
   <section class="next">
-    <a class="button" href="02-cli-api-contract.html">CLI 契约</a>
-    <a class="button primary" href="04-sampling-cfg.html">下一章：采样 / CFG</a>
+    <a class="button" href="02-cli-api-contract.html">CLI 接口契约</a>
+    <a class="button primary" href="04-sampling-cfg.html">下一章：采样与 CFG</a>
   </section>
 </main>
 <script src="paper.js" data-root="."></script>
 <script>
-mountPaperChrome("Token Packing");
+mountPaperChrome("token_packing");
 const textInput = document.getElementById("textTokens");
 const gridInput = document.getElementById("gridSize");
 const readout = document.getElementById("packingReadout");
@@ -100,8 +106,8 @@ function updatePacking() {
   const textTokens = Number(textInput.value);
   const grid = Number(gridInput.value);
   const angle = Number(latticeAngle.value);
-  readout.textContent = `${textTokens} text + ${grid * grid} image = ${textTokens + grid * grid} tokens`;
-  latticeReadout.textContent = `angle = ${angle}deg`;
+  readout.textContent = `文本 ${textTokens} + 图像 ${grid * grid} = 总计 ${textTokens + grid * grid} 个 token`;
+  latticeReadout.textContent = `格架角度 = ${angle} 度`;
   drawTokenPacking(canvas, { textTokens, grid });
   drawTokenLattice3D(latticeCanvas, { textTokens, grid, angle });
 }
