@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课程 0006：四大核心对象</title>
+  <style>
+    :root { --bg:#f5efe6; --paper:rgba(255,251,245,.95); --ink:#221b18; --muted:#655b52; --line:#dbcec0; --accent:#8c3a21; --teal:#1a615b; }
+    * { box-sizing:border-box; } body { margin:0; background:linear-gradient(180deg,#faf6ee 0%,var(--bg) 100%); color:var(--ink); font-family:"PingFang SC","Noto Serif SC","Songti SC",serif; line-height:1.72; }
+    main { width:min(980px,calc(100vw - 28px)); margin:0 auto; padding:38px 0 78px; }
+    .panel,.card,.note { background:var(--paper); border:1px solid var(--line); border-radius:20px; box-shadow:0 14px 34px rgba(58,43,34,.08); }
+    .panel { padding:26px 28px; margin-bottom:20px; } .card { padding:18px; } .note { padding:16px 18px; margin-top:18px; border-left:4px solid var(--teal); }
+    h1,h2,h3 { line-height:1.14; margin:0 0 14px; } h1 { font-size:clamp(2.2rem,5vw,3.8rem); } h2 { font-size:1.6rem; } h3 { font-size:1.12rem; }
+    .eyebrow { text-transform:uppercase; letter-spacing:.12em; color:var(--accent); font-size:.82rem; margin:0 0 10px; } .lede { color:var(--muted); font-size:1.12rem; max-width:68ch; }
+    .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); margin-top:16px; }
+    a { color:var(--teal); text-decoration:none; border-bottom:1px solid rgba(26,97,91,.35); } code { font-family:Menlo,Consolas,monospace; background:rgba(34,27,24,.06); border-radius:6px; padding:.08rem .3rem; }
+    .evidence { background:rgba(26,97,91,.08); border-left:4px solid var(--teal); border-radius:16px; padding:14px 16px; margin-top:16px; }
+    details { margin-top:18px; } summary { cursor:pointer; color:var(--accent); font-weight:700; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <p class="eyebrow">课程 0006</p>
+      <h1>四大核心对象</h1>
+      <p class="lede">如果你总是按文件树看仓库，你会很难长期记住它。更稳的方式是：先把系统固定成四个对象，再去看它们如何通过契约协作。</p>
+      <div class="note"><strong>课程位置：</strong>这是对象层的总课。读完后你应该能不用文件名，也能解释系统由什么构成。</div>
+    </section>
+
+    <section class="panel">
+      <h2>记住什么</h2>
+      <ul>
+        <li><strong>Text Encoder</strong> 负责把 prompt 变成条件表示。</li>
+        <li><strong>AutoEncoder</strong> 负责像素与 latent 表示之间的往返。</li>
+        <li><strong>Sampler</strong> 负责组织时间步、token、reference 条件和 denoising loop。</li>
+        <li><strong>Transformer</strong> 负责主要的 latent 去噪计算。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>对象图</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>Text Encoder</h3>
+          <p>输入是 prompt，输出是后续 transformer 可消费的条件表示。这里最容易忽视的一点是：<code>dev</code> 与 <code>klein</code> 路线的文本模型并不相同。</p>
+        </article>
+        <article class="card">
+          <h3>AutoEncoder</h3>
+          <p>负责把图片压到 latent 空间，再从 latent 解回图片。它决定了通道数、空间缩放和表示习惯，因此是 VAE 研究的第一战场。</p>
+        </article>
+        <article class="card">
+          <h3>Sampler</h3>
+          <p>负责把“条件”组织成实际的推理过程：token 化、位置 ID、schedule、CFG、多参考图与 KV cache 分流都在这里发生。</p>
+        </article>
+        <article class="card">
+          <h3>Transformer</h3>
+          <p>负责真正的 flow matching 主干推理。这里不仅有模型规模差异，还有双流 / 单流和 KV cache 的结构路径差异。</p>
+        </article>
+      </div>
+      <div class="evidence"><strong>可见证据：</strong>四对象划分是课程重构，但每个对象都直接对应当前仓库中的清晰模块：<code>text_encoder.py</code>、<code>autoencoder.py</code>、<code>sampling.py</code>、<code>model.py</code>。<strong>边界：</strong>这是为教学做的结构化解释，不是官方 README 的原始章节结构。</div>
+    </section>
+
+    <section class="panel">
+      <h2>为什么这个对象图比文件树更好用</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>因为研究问题常跨文件</h3>
+          <p>“如果我改 latent 表示会怎样”不是某一个文件的问题，而是 AE、sampler 和 transformer 三个对象的共同问题。</p>
+        </article>
+        <article class="card">
+          <h3>因为产品叙事常跨模块</h3>
+          <p>比如 KV cache，不是只属于模型文件，也会影响 sampler 选择和模型家族理解。</p>
+        </article>
+        <article class="card">
+          <h3>因为教学必须稳定</h3>
+          <p>哪怕未来文件结构调整，这四个对象依然是你解释系统的稳定骨架。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>练习与检索</h2>
+      <ol>
+        <li>不用提文件名，复述四个对象的输入、输出和职责。</li>
+        <li>说出哪个对象最像“组织层”，哪个对象最像“表示层”，哪个对象最像“主干计算层”。</li>
+        <li>判断：如果你要研究 prompt upsampling，首先应该把注意力放在哪个对象上？如果要研究 latent 表示，首先该看哪个对象？</li>
+      </ol>
+      <div class="note"><strong>下一步：</strong>如果你最关心 VAE / latent，下一页读 <a href="./0007-autoencoder-and-latent-representation.html">0007</a>；如果你想理解采样逻辑，下一页读 <a href="./0008-sampler-schedule-and-cfg.html">0008</a>。</div>
+    </section>
+
+    <section class="panel">
+      <h2>证据附录</h2>
+      <details>
+        <summary>展开实现锚点</summary>
+        <ul>
+          <li><code>src/flux2/text_encoder.py</code>：文本编码、prompt upsampling、安全过滤。</li>
+          <li><code>src/flux2/autoencoder.py</code>：像素与 latent 往返、pack/unpack。</li>
+          <li><code>src/flux2/sampling.py</code>：token 化、schedule、CFG、reference encoding。</li>
+          <li><code>src/flux2/model.py</code>：主干推理、双流 / 单流、KV cache 前向路径。</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

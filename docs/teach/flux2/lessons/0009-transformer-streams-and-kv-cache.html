@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课程 0009：Transformer、双流与 KV Cache</title>
+  <style>
+    :root { --bg:#f5efe6; --paper:rgba(255,251,245,.95); --ink:#221b18; --muted:#655b52; --line:#dbcec0; --accent:#8c3a21; --teal:#1a615b; }
+    * { box-sizing:border-box; } body { margin:0; background:linear-gradient(180deg,#faf6ee 0%,var(--bg) 100%); color:var(--ink); font-family:"PingFang SC","Noto Serif SC","Songti SC",serif; line-height:1.72; }
+    main { width:min(980px,calc(100vw - 28px)); margin:0 auto; padding:38px 0 78px; } .panel,.card,.note { background:var(--paper); border:1px solid var(--line); border-radius:20px; box-shadow:0 14px 34px rgba(58,43,34,.08); }
+    .panel { padding:26px 28px; margin-bottom:20px; } .card { padding:18px; } .note { padding:16px 18px; margin-top:18px; border-left:4px solid var(--teal); } .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); margin-top:16px; }
+    h1,h2,h3 { line-height:1.14; margin:0 0 14px; } h1 { font-size:clamp(2.2rem,5vw,3.8rem); } h2 { font-size:1.6rem; } h3 { font-size:1.12rem; }
+    .eyebrow { text-transform:uppercase; letter-spacing:.12em; color:var(--accent); font-size:.82rem; margin:0 0 10px; } .lede { color:var(--muted); font-size:1.12rem; max-width:68ch; }
+    a { color:var(--teal); text-decoration:none; border-bottom:1px solid rgba(26,97,91,.35); } code { font-family:Menlo,Consolas,monospace; background:rgba(34,27,24,.06); border-radius:6px; padding:.08rem .3rem; }
+    .evidence { background:rgba(26,97,91,.08); border-left:4px solid var(--teal); border-radius:16px; padding:14px 16px; margin-top:16px; } details { margin-top:18px; } summary { cursor:pointer; color:var(--accent); font-weight:700; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <p class="eyebrow">课程 0009</p>
+      <h1>Transformer、双流与 KV Cache</h1>
+      <p class="lede">这一课不试图把整个主干的每一层都讲成论文复现，而是先抓住三个真正会影响系统理解的点：规模参数、双流到合流的结构、以及 reference token 的 KV cache 路径。</p>
+      <div class="note"><strong>课程位置：</strong>这是机制层里最重的一课。你已经知道对象与采样层后，才适合进入这里。</div>
+    </section>
+
+    <section class="panel">
+      <h2>记住什么</h2>
+      <ul>
+        <li>当前主干不是“纯图像网络”，它从一开始就在组织文本流与图像流。</li>
+        <li>双流与单流的切换，是理解 reference token、文本条件和图像 latent 如何汇合的关键。</li>
+        <li>KV cache 路径的意义，不是抽象提速，而是“把参考图条件的重复处理挪到第一步”。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>你真正需要抓住的三个结构点</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>结构点 1：规模参数是显式分叉</h3>
+          <p><code>Flux2Params</code>、<code>Klein9BParams</code>、<code>Klein4BParams</code> 分别定义不同主干规模。这不是外部元数据，而是本地实现显式写进参数类中的事实。</p>
+        </article>
+        <article class="card">
+          <h3>结构点 2：先双流，再合流</h3>
+          <p>主干先让文本和图像在双流块中分别调制，再进入单流块做统一处理。这是“文本条件如何影响图像 latent”的主要结构骨架。</p>
+        </article>
+        <article class="card">
+          <h3>结构点 3：KV cache 把 reference tokens 先提出来</h3>
+          <p>第一步完整跑 reference token 并抽出 KV，后续步数不再重复把 reference token 整个走一遍。</p>
+        </article>
+      </div>
+      <div class="evidence"><strong>可见证据：</strong>当前仓库的主干类里有明确的 `double_blocks`、`single_blocks`、`forward_kv_extract` 和 `forward_kv_cached`。<strong>边界：</strong>本课重点是解释结构作用，不尝试逐层数学复写全部 attention 细节。</div>
+    </section>
+
+    <section class="panel">
+      <h2>为什么 9B KV 不能被理解成“只是更快”</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>因为它改的是条件复用方式</h3>
+          <p>真正被缓存的是 reference token 的 KV，而不是整条推理链路里所有内容。</p>
+        </article>
+        <article class="card">
+          <h3>因为它只在特定条件下触发</h3>
+          <p>本地仓库里只有显式支持 `use_kv_cache` 的模型，并且在有 reference tokens 时才会走 cached 路线。</p>
+        </article>
+        <article class="card">
+          <h3>因为它改变了你解释多参考编辑性能的方式</h3>
+          <p>如果你以后要比较 4B、9B、9B KV 在多参考任务上的差异，必须把这条路径单独讲出来。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>练习与检索</h2>
+      <ol>
+        <li>不用看代码，解释“先双流，再合流”到底在教学上帮你理解了什么。</li>
+        <li>说清 cached 路线里“第一步做了什么，后续步做了什么”。</li>
+        <li>判断：如果没有 reference image，`9B KV` 还会体现出同样的结构优势吗？为什么？</li>
+      </ol>
+      <div class="note"><strong>下一步：</strong>机制层读完后，去读 <a href="./0010-model-family-licenses-and-boundaries.html">0010</a>，把本地主干结构和官方模型家族叙事重新对齐。</div>
+    </section>
+
+    <section class="panel">
+      <h2>证据附录</h2>
+      <details>
+        <summary>展开实现锚点</summary>
+        <ul>
+          <li><code>src/flux2/model.py</code>：参数类、`Flux2`、`double_blocks`、`single_blocks`、`forward_kv_extract()`、`forward_kv_cached()`。</li>
+          <li><code>src/flux2/util.py</code>：`klein-9b-kv` 的 `use_kv_cache=True`。</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

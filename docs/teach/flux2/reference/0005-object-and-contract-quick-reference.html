@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考 0005：对象与契约速查</title>
+  <style>
+    body { margin:0; background:#f5efe6; color:#221b18; font-family:"PingFang SC","Noto Serif SC","Songti SC",serif; line-height:1.68; }
+    main { width:min(980px,calc(100vw - 28px)); margin:0 auto; padding:34px 0 70px; } .panel,.card { background:rgba(255,251,245,.95); border:1px solid #dbcec0; border-radius:20px; box-shadow:0 14px 34px rgba(58,43,34,.08); }
+    .panel { padding:24px 26px; margin-bottom:20px; } .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); margin-top:14px; } .card { padding:18px; }
+    h1,h2,h3 { line-height:1.14; margin:0 0 14px; } h1 { font-size:clamp(2rem,4vw,3.2rem); } h2 { font-size:1.45rem; } h3 { font-size:1.08rem; }
+    .eyebrow { text-transform:uppercase; letter-spacing:.12em; color:#8c3a21; font-size:.82rem; margin:0 0 10px; } .lede { color:#655b52; font-size:1.1rem; max-width:70ch; }
+    code { font-family:Menlo,Consolas,monospace; background:rgba(34,27,24,.06); border-radius:6px; padding:.08rem .3rem; } a { color:#1a615b; text-decoration:none; border-bottom:1px solid rgba(26,97,91,.35); }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <p class="eyebrow">参考 0005</p>
+      <h1>对象与契约速查</h1>
+      <p class="lede">这页给你一个快速回忆卡：四大对象是什么、最硬的契约是什么、最常见的失效面是什么。</p>
+    </section>
+    <section class="panel">
+      <h2>四大对象</h2>
+      <div class="grid">
+        <article class="card"><h3>Text Encoder</h3><p>把 prompt 编成条件表示。关键提醒：`dev` 与 `klein` 路线不共享同一文本模型。</p></article>
+        <article class="card"><h3>AutoEncoder</h3><p>像素与 latent 往返。关键提醒：128 通道不是任意数字。</p></article>
+        <article class="card"><h3>Sampler</h3><p>组织时间步、token、CFG、多参考路径。关键提醒：Base 与 distilled 在这里直接分叉。</p></article>
+        <article class="card"><h3>Transformer</h3><p>执行主干去噪。关键提醒：双流 / 单流与 KV cache 是结构差异，不是小参数。</p></article>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>最硬契约</h2>
+      <ul>
+        <li><code>in_channels = 128</code></li>
+        <li>像素到 latent 的 /16 网格假设</li>
+        <li>图像 token 的 <code>t / h / w / l</code> 位置 ID 组织</li>
+        <li>`klein` distilled 的固定 steps / guidance 合约</li>
+      </ul>
+    </section>
+    <section class="panel">
+      <h2>最常见失效面</h2>
+      <ul>
+        <li>把 AE 改动误判成纯局部改动</li>
+        <li>把产品 docs 能力上限直接等同于本地实现</li>
+        <li>把 9B / 32B 理解成完整系统总参数量</li>
+        <li>把仓库没公开训练栈误读成官方没有训练系统</li>
+      </ul>
+      <p>若你想继续决策，下一页读 <a href="./0006-research-route-decision-tree.html">0006 决策树</a>。</p>
+    </section>
+  </main>
+</body>
+</html>

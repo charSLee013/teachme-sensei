@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课程 0008：Sampler、schedule 与 CFG</title>
+  <style>
+    :root { --bg:#f5efe6; --paper:rgba(255,251,245,.95); --ink:#221b18; --muted:#655b52; --line:#dbcec0; --accent:#8c3a21; --teal:#1a615b; }
+    * { box-sizing:border-box; } body { margin:0; background:linear-gradient(180deg,#faf6ee 0%,var(--bg) 100%); color:var(--ink); font-family:"PingFang SC","Noto Serif SC","Songti SC",serif; line-height:1.72; }
+    main { width:min(980px,calc(100vw - 28px)); margin:0 auto; padding:38px 0 78px; } .panel,.card,.note { background:var(--paper); border:1px solid var(--line); border-radius:20px; box-shadow:0 14px 34px rgba(58,43,34,.08); }
+    .panel { padding:26px 28px; margin-bottom:20px; } .card { padding:18px; } .note { padding:16px 18px; margin-top:18px; border-left:4px solid var(--teal); } .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); margin-top:16px; }
+    h1,h2,h3 { line-height:1.14; margin:0 0 14px; } h1 { font-size:clamp(2.2rem,5vw,3.8rem); } h2 { font-size:1.6rem; } h3 { font-size:1.12rem; }
+    .eyebrow { text-transform:uppercase; letter-spacing:.12em; color:var(--accent); font-size:.82rem; margin:0 0 10px; } .lede { color:var(--muted); font-size:1.12rem; max-width:68ch; }
+    a { color:var(--teal); text-decoration:none; border-bottom:1px solid rgba(26,97,91,.35); } code { font-family:Menlo,Consolas,monospace; background:rgba(34,27,24,.06); border-radius:6px; padding:.08rem .3rem; }
+    .evidence { background:rgba(26,97,91,.08); border-left:4px solid var(--teal); border-radius:16px; padding:14px 16px; margin-top:16px; } details { margin-top:18px; } summary { cursor:pointer; color:var(--accent); font-weight:700; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <p class="eyebrow">课程 0008</p>
+      <h1>Sampler、schedule 与 CFG</h1>
+      <p class="lede">这一课讲清一件事：模型主干不会自己决定如何被调用，真正把条件、步数、位置 ID 和参考图约束组织成一条推理过程的是 sampler 层。</p>
+      <div class="note"><strong>课程位置：</strong>这是从“对象图”进入“过程图”的第一课。它解释为什么很多研究改动其实会先撞上采样层约束。</div>
+    </section>
+
+    <section class="panel">
+      <h2>记住什么</h2>
+      <ul>
+        <li>sampler 不只是一个 for-loop；它定义了文本、图像、reference 和时间步怎么被组织成主干输入。</li>
+        <li>当前仓库里有三条关键 denoising 路线：<code>denoise</code>、<code>denoise_cached</code>、<code>denoise_cfg</code>。</li>
+        <li>Distilled 和 Base 的差别，在 sampler 层是直接可见的，而不只是产品定位。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>采样层的四个职责</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>组织 token</h3>
+          <p>把图像 latent 与文本条件分别转换成可被主干消费的序列，并为它们构造位置 ID。</p>
+        </article>
+        <article class="card">
+          <h3>构造时间步</h3>
+          <p><code>get_schedule()</code> 根据步数和图像序列长度生成时间步表，决定 denoising loop 如何前进。</p>
+        </article>
+        <article class="card">
+          <h3>插入 reference 条件</h3>
+          <p>参考图不是直接送给主干，而是先编码、展平、打时间偏移，再并入条件序列。</p>
+        </article>
+        <article class="card">
+          <h3>选择具体 denoise 路线</h3>
+          <p>Base 用 CFG 路线；distilled 用普通 denoise；若模型支持且有 reference tokens，则可走 cached 路线。</p>
+        </article>
+      </div>
+      <div class="evidence"><strong>可见证据：</strong>这些职责都能在 <code>sampling.py</code> 中找到明确函数边界：`prc_img`、`prc_txt`、`get_schedule`、`encode_image_refs`、`denoise*`。<strong>边界：</strong>这是对职责的课程重组，不是文件原始注释的逐句转写。</div>
+    </section>
+
+    <section class="panel">
+      <h2>为什么 schedule 和 CFG 不能被当成外围细节</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>因为它们决定“如何调用模型”</h3>
+          <p>同一个主干，如果采样步数和 guidance 组织方式不同，体验出来的模型就不是同一条产品路径。</p>
+        </article>
+        <article class="card">
+          <h3>因为 Base / distilled 的差别在这里显式出现</h3>
+          <p>Base 路线需要 CFG 双路条件；distilled 路线则直接按固定 guidance / steps 跑。</p>
+        </article>
+        <article class="card">
+          <h3>因为 reference image 的组织在这里完成</h3>
+          <p>如果你以后研究多参考编辑，sampler 是第一批必须深入理解的地方。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>练习与检索</h2>
+      <ol>
+        <li>说出三条 denoise 路线各自服务哪类模型或条件。</li>
+        <li>解释为什么“改 sampler 默认步数”并不是一个纯外部脚本层的小改动。</li>
+        <li>复述 reference image 从输入图到 reference tokens 的大致过程。</li>
+      </ol>
+      <div class="note"><strong>下一步：</strong>继续读 <a href="./0009-transformer-streams-and-kv-cache.html">0009</a>，把 cached / non-cached 的模型主干差异接起来。</div>
+    </section>
+
+    <section class="panel">
+      <h2>证据附录</h2>
+      <details>
+        <summary>展开实现锚点</summary>
+        <ul>
+          <li><code>src/flux2/sampling.py</code>：`prc_img`、`prc_txt`、`encode_image_refs`、`get_schedule`、`denoise`、`denoise_cached`、`denoise_cfg`。</li>
+          <li><code>src/flux2/util.py</code>：Base / distilled 默认步数与 guidance。</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

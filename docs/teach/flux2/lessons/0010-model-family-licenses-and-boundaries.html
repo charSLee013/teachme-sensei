@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课程 0010：模型家族、许可与边界</title>
+  <style>
+    :root { --bg:#f5efe6; --paper:rgba(255,251,245,.95); --ink:#221b18; --muted:#655b52; --line:#dbcec0; --accent:#8c3a21; --teal:#1a615b; }
+    * { box-sizing:border-box; } body { margin:0; background:linear-gradient(180deg,#faf6ee 0%,var(--bg) 100%); color:var(--ink); font-family:"PingFang SC","Noto Serif SC","Songti SC",serif; line-height:1.72; }
+    main { width:min(1020px,calc(100vw - 28px)); margin:0 auto; padding:38px 0 78px; } .panel,.note { background:var(--paper); border:1px solid var(--line); border-radius:20px; box-shadow:0 14px 34px rgba(58,43,34,.08); }
+    .panel { padding:26px 28px; margin-bottom:20px; } .note { padding:16px 18px; margin-top:18px; border-left:4px solid var(--teal); }
+    h1,h2,h3 { line-height:1.14; margin:0 0 14px; } h1 { font-size:clamp(2.2rem,5vw,3.8rem); } h2 { font-size:1.6rem; } .eyebrow { text-transform:uppercase; letter-spacing:.12em; color:var(--accent); font-size:.82rem; margin:0 0 10px; } .lede { color:var(--muted); font-size:1.12rem; max-width:70ch; }
+    a { color:var(--teal); text-decoration:none; border-bottom:1px solid rgba(26,97,91,.35); } code { font-family:Menlo,Consolas,monospace; background:rgba(34,27,24,.06); border-radius:6px; padding:.08rem .3rem; }
+    .table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:18px; background:rgba(255,255,255,.55); margin-top:16px; }
+    table { width:100%; border-collapse:collapse; min-width:780px; } th, td { text-align:left; vertical-align:top; padding:13px 14px; border-top:1px solid rgba(219,207,193,.8); } thead th { border-top:0; color:var(--muted); font-size:.84rem; text-transform:uppercase; }
+    .evidence { background:rgba(26,97,91,.08); border-left:4px solid var(--teal); border-radius:16px; padding:14px 16px; margin-top:16px; } details { margin-top:18px; } summary { cursor:pointer; color:var(--accent); font-weight:700; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <p class="eyebrow">课程 0010</p>
+      <h1>模型家族、许可与边界</h1>
+      <p class="lede">这一课专门解决一种常见混淆：把官方整个 FLUX.2 产品家族、当前开源仓库支持的模型、以及 Hugging Face 上的开放程度混成一团。</p>
+      <div class="note"><strong>课程位置：</strong>这是机制层之后的“边界课”。它让你重新校准你以为自己已经懂了的模型家族。</div>
+    </section>
+
+    <section class="panel">
+      <h2>记住什么</h2>
+      <ul>
+        <li>本地开源仓库的核心公开推理对象是 <code>klein</code> 家族和 <code>dev</code>，不是完整 FLUX.2 产品家族的全部实现。</li>
+        <li>4B / 9B / 32B 是官方公开参数名义，但系统里还可能包含独立文本编码器。</li>
+        <li>许可、gated 状态和“能否公开读完整 model card”是相关但不完全等价的三个问题。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>最小可用矩阵</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>模型</th><th>公开定位</th><th>许可 / gated</th><th>适合作什么</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>`klein 4B`</td><td>最快、消费级 GPU、开放权重</td><td>Apache 2.0 / ungated</td><td>本地部署、实时应用、低门槛实验</td></tr>
+            <tr><td>`klein 9B`</td><td>小模型旗舰、质量/速度平衡</td><td>FLUX NCL / gated</td><td>高质量推理、研究参考</td></tr>
+            <tr><td>`klein 9B KV`</td><td>9B 的 KV cache 性能分支</td><td>FLUX NCL / gated</td><td>多参考任务性能优化路线</td></tr>
+            <tr><td>`klein Base 4B`</td><td>undistilled foundation model</td><td>Apache 2.0 / ungated</td><td>fine-tuning、LoRA、训练准备首站</td></tr>
+            <tr><td>`klein Base 9B`</td><td>更高质量的 Base 路线</td><td>FLUX NCL / gated</td><td>高质量研究起点</td></tr>
+            <tr><td>`dev`</td><td>32B 高质量研究 / 开发路线</td><td>FLUX NCL / gated</td><td>更重的本地研究或高质量路径</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="evidence"><strong>可见证据：</strong>这一表综合官方 README、官方 docs、公开 model card 与 Hugging Face API 元数据。<strong>边界：</strong>gated 模型卡正文当前并非全部公开可读，因此某些细节只能记录为元数据层事实。</div>
+    </section>
+
+    <section class="panel">
+      <h2>为什么“9B”不等于“整个系统只有 9B”</h2>
+      <p>官方博客公开写过：<code>[klein] 9B</code> 是 <strong>9B flow model with 8B Qwen3 text embedder</strong>。这条信息很重要，因为它告诉你：</p>
+      <ol>
+        <li>产品命名通常先指主干规模。</li>
+        <li>系统里还可能包含独立文本编码器。</li>
+        <li>讨论参数量时，必须说清你在说“主干名义规模”还是“更完整的系统组成”。</li>
+      </ol>
+    </section>
+
+    <section class="panel">
+      <h2>研究决策上的直接后果</h2>
+      <ol>
+        <li>如果你最怕被许可卡住，先看 4B 路线。</li>
+        <li>如果你最怕蒸馏带来的采样限制，先看 Base 路线。</li>
+        <li>如果你追求更接近高质量研究路径、又能接受更重硬件和 gated 约束，再考虑 <code>dev</code>。</li>
+      </ol>
+      <div class="note"><strong>下一步：</strong>去读 <a href="./0011-evidence-boundaries.html">0011 证据边界</a>，把“哪些是公开事实、哪些是课程推断”彻底分清。</div>
+    </section>
+
+    <section class="panel">
+      <h2>证据附录</h2>
+      <details>
+        <summary>展开实现与外部锚点</summary>
+        <ul>
+          <li>官方 README：`minimal inference code`、发布日、`dev` 32B、模型总表。</li>
+          <li>官方 docs：`flux2_overview.md` 中的 `[klein]`、Base、推荐用途、能力边界。</li>
+          <li>公开 model cards：`FLUX.2-klein-4B` 与 `FLUX.2-klein-base-4B`。</li>
+          <li>HF API metadata：gated 状态、下载量、创建时间。</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

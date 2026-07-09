@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FLUX.2 训练准备术语表</title>
+  <style>
+    :root {
+      --paper: #f5f0e6;
+      --ink: #1f1a17;
+      --muted: #6a5d53;
+      --accent: #9d3d1f;
+      --accent-soft: #e8cbbd;
+      --line: #d7cabc;
+      --card: rgba(255, 252, 247, 0.82);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, #fffaf2 0, transparent 33%),
+        linear-gradient(180deg, #efe7da 0%, var(--paper) 100%);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 48px 24px 72px;
+    }
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 0.78rem;
+      color: var(--accent);
+      margin: 0 0 12px;
+    }
+    h1, h2 {
+      font-weight: 600;
+      line-height: 1.15;
+      margin: 0 0 16px;
+    }
+    h1 { font-size: clamp(2.2rem, 5vw, 3.8rem); }
+    h2 { font-size: 1.35rem; margin-top: 36px; }
+    p, li { font-size: 1.03rem; }
+    .lede {
+      font-size: 1.16rem;
+      max-width: 62ch;
+      color: var(--muted);
+    }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 22px 0 28px;
+    }
+    nav a, .source a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(157, 61, 31, 0.35);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px 18px 16px;
+      box-shadow: 0 12px 30px rgba(62, 46, 36, 0.08);
+    }
+    .term {
+      font-size: 1.08rem;
+      margin: 0 0 8px;
+    }
+    .anchor {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+    code {
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      font-size: 0.92em;
+      background: rgba(131, 93, 65, 0.08);
+      padding: 0.08rem 0.32rem;
+      border-radius: 6px;
+    }
+    ul {
+      padding-left: 20px;
+      margin: 12px 0 0;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">参考页 0001</p>
+    <h1>FLUX.2 训练准备术语表</h1>
+    <p class="lede">
+      在你碰这个仓库里的 VAE 或训练相关工作之前，先把这份压缩词表放在手边。
+      读课程和源码时都可以随时回看。
+    </p>
+
+    <nav>
+      <a href="../course-map.html">课程总地图</a>
+      <a href="../lessons/0003-flux2-system-masterclass.html">总览大课</a>
+      <a href="../lessons/0001-find-the-latent-contract.html">课程 0001</a>
+      <a href="./0002-flux2-latent-contract-map.html">Latent 契约图</a>
+    </nav>
+
+    <section>
+      <h2>核心术语</h2>
+      <div class="grid">
+        <article class="card">
+          <h3 class="term">Latent contract</h3>
+          <p>
+            autoencoder 输出、sampler 的噪声张量，以及 transformer 期望输入形状之间的固定协议。
+          </p>
+        </article>
+        <article class="card">
+          <h3 class="term">In-channels = 128</h3>
+          <p>
+            这个仓库里所有已发布的 FLUX.2 模型都假定 latent token 的通道数是 128。你一旦改掉它，就立刻离开“只改 AE”范畴。
+          </p>
+        </article>
+        <article class="card">
+          <h3 class="term">16 的倍数规则</h3>
+          <p>
+            输入图片会先中心裁剪到宽高都能被 16 整除，CLI 也按 <code>height // 16</code> 和 <code>width // 16</code> 分配 latent 噪声。
+          </p>
+        </article>
+        <article class="card">
+          <h3 class="term">Distilled 模型</h3>
+          <p>
+            指推理默认值本身已经成为契约的一类 checkpoint。这个仓库里的 distilled <code>klein</code> 变体把 <code>guidance=1.0</code> 和 <code>num_steps=4</code> 固定住了。
+          </p>
+        </article>
+        <article class="card">
+          <h3 class="term">Base 模型</h3>
+          <p>
+            指非 distilled 的 checkpoint，仍然暴露出更接近训练语境的 50-step 路径。在这个仓库里，它们是未来做微调或表示实验时最干净的起点。
+          </p>
+        </article>
+        <article class="card">
+          <h3 class="term">Reference tokens</h3>
+          <p>
+            一张或多张输入参考图编码后的 latent token，在图像编辑时会拼接到待生成的 latent 序列里。
+          </p>
+        </article>
+        <article class="card">
+          <h3 class="term">KV cache 路径</h3>
+          <p>
+            <code>flux.2-klein-9b-kv</code> 的特殊图像编辑路径：在第一步去噪后，把 reference token 的 attention key/value 缓存起来，后续复用。
+          </p>
+        </article>
+        <article class="card">
+          <h3 class="term">文本编码器分裂</h3>
+          <p>
+            <code>flux.2-dev</code> 用 Mistral embedding，<code>klein</code> 模型用 Qwen3 embedding。如果你的研究会动到文本侧契约，这个分裂很重要。
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="source">
+      <h2>下一步</h2>
+      <p>如果你想把这些术语立刻放回系统里，先去 <a href="./0002-flux2-latent-contract-map.html">0002 契约图</a>；如果你想从课程主线继续，回到 <a href="../lessons/0003-flux2-system-masterclass.html">0003 总览大课</a>。</p>
+    </section>
+
+    <section class="source">
+      <h2>建议常驻打开的外部资料</h2>
+      <ul>
+        <li><a href="https://github.com/black-forest-labs/flux2">官方仓库</a></li>
+        <li><a href="https://bfl.ai/research/representation-comparison">BFL autoencoder 研究说明</a></li>
+        <li><a href="https://huggingface.co/blog/flux-2">Diffusers 的 FLUX.2 指南</a></li>
+      </ul>
+    </section>
+
+    <section class="source">
+      <details>
+        <summary><strong>源码附录：想确认术语来源时再展开</strong></summary>
+        <ul>
+          <li><code>src/flux2/util.py:15-87</code>：模型家族、`base` / distilled、文本编码器选择</li>
+          <li><code>src/flux2/autoencoder.py:314-335</code>：latent 重排</li>
+          <li><code>src/flux2/sampling.py:52-90</code> 与 <code>src/flux2/sampling.py:310-355</code>：reference token 与 KV cache</li>
+          <li><code>scripts/cli.py:437-440</code>：噪声形状与尺寸缩放假设</li>
+          <li><code>src/flux2/text_encoder.py:33-54</code>：Mistral 文本编码器路径</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

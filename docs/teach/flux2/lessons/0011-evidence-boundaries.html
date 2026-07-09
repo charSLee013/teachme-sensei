@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课程 0011：证据边界</title>
+  <style>
+    :root { --bg:#f5efe6; --paper:rgba(255,251,245,.95); --ink:#221b18; --muted:#655b52; --line:#dbcec0; --accent:#8c3a21; --teal:#1a615b; }
+    * { box-sizing:border-box; } body { margin:0; background:linear-gradient(180deg,#faf6ee 0%,var(--bg) 100%); color:var(--ink); font-family:"PingFang SC","Noto Serif SC","Songti SC",serif; line-height:1.72; }
+    main { width:min(980px,calc(100vw - 28px)); margin:0 auto; padding:38px 0 78px; } .panel,.card,.note { background:var(--paper); border:1px solid var(--line); border-radius:20px; box-shadow:0 14px 34px rgba(58,43,34,.08); }
+    .panel { padding:26px 28px; margin-bottom:20px; } .card { padding:18px; } .note { padding:16px 18px; margin-top:18px; border-left:4px solid var(--teal); } .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); margin-top:16px; }
+    h1,h2,h3 { line-height:1.14; margin:0 0 14px; } h1 { font-size:clamp(2.2rem,5vw,3.8rem); } h2 { font-size:1.6rem; } h3 { font-size:1.12rem; }
+    .eyebrow { text-transform:uppercase; letter-spacing:.12em; color:var(--accent); font-size:.82rem; margin:0 0 10px; } .lede { color:var(--muted); font-size:1.12rem; max-width:68ch; }
+    a { color:var(--teal); text-decoration:none; border-bottom:1px solid rgba(26,97,91,.35); } code { font-family:Menlo,Consolas,monospace; background:rgba(34,27,24,.06); border-radius:6px; padding:.08rem .3rem; }
+    .evidence { background:rgba(26,97,91,.08); border-left:4px solid var(--teal); border-radius:16px; padding:14px 16px; margin-top:16px; } details { margin-top:18px; } summary { cursor:pointer; color:var(--accent); font-weight:700; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <p class="eyebrow">课程 0011</p>
+      <h1>证据边界</h1>
+      <p class="lede">这一课不是额外的学术礼仪，而是防止你在研究准备阶段被“看起来像事实”的句子误导。我们要明确区分：官方公开事实、本地实现事实、课程重构、工程迁移判断和未知。</p>
+      <div class="note"><strong>课程位置：</strong>这是研究迁移前的安全阀。读完它，后面很多判断你才不会拿错证据层。</div>
+    </section>
+
+    <section class="panel">
+      <h2>记住什么</h2>
+      <ul>
+        <li>“有引用”不等于“就是源文事实”。</li>
+        <li>当前课程里最容易被误读的，是“参数量口径”“训练缺口判断”“产品能力上限与本地实现上限的关系”。</li>
+        <li>凡是会影响你选研究路线、改系统接口、或相信某个能力上限的结论，都必须先问：这到底是哪一层证据？</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>五层证据</h2>
+      <div class="grid">
+        <article class="card"><h3>官方公开事实</h3><p>直接来自官方 README、官方 docs、公开 model card、公开元数据接口。</p></article>
+        <article class="card"><h3>本地实现事实</h3><p>当前仓库源码直接写出来的行为与结构，比如 `in_channels=128` 或 `use_kv_cache=True`。</p></article>
+        <article class="card"><h3>课程重构</h3><p>为了让仓库更可学而做的结构化表达，比如“四大对象”“对象图”。</p></article>
+        <article class="card"><h3>工程迁移判断</h3><p>把仓库理解迁移到研究或系统 fork 上的判断，比如“这个改动会联动 AE / sampler / transformer”。</p></article>
+        <article class="card"><h3>未知</h3><p>公开证据不足、gated 正文不可直接验证、或产品叙事无法直接落到本地实现上的部分。</p></article>
+      </div>
+      <div class="evidence"><strong>可见证据：</strong>这一课里的强判断都先分清“公开资料直接支持了什么”“当前仓库直接写了什么”“哪些只是课程为了便于理解做的重构”。<strong>边界：</strong>学生页只展示简化后的证据分层，真正细的实现锚点放在下方附录。</div>
+    </section>
+
+    <section class="panel">
+      <h2>最容易犯错的三个地方</h2>
+      <ol>
+        <li><strong>把 9B / 32B 当成全系统总参数量。</strong><br>这常常只是主干名义规模，系统里还可能有独立文本编码器。</li>
+        <li><strong>把“仓库没公开训练栈”说成“官方没有训练系统”。</strong><br>前者是开源实现边界，后者是无证据推断。</li>
+        <li><strong>把产品文档的能力上限直接套到本地代码。</strong><br>比如 API 文档里“最多 10 张参考图”，不等于本地开源实现公开承诺相同上限。</li>
+      </ol>
+    </section>
+
+    <section class="panel">
+      <h2>练习与检索</h2>
+      <ol>
+        <li>判断下列句子属于哪层证据：“当前仓库里 `klein-9b-kv` 的模型注册表启用了 `use_kv_cache=True`。”</li>
+        <li>判断另一个句子：“如果你改 latent 通道数，研究计划就不再只是局部 VAE 实验。”</li>
+        <li>再判断：“`FLUX.2 [dev]` 完整系统总参数一定等于 32B。”为什么这句话不能直接成立？</li>
+      </ol>
+      <div class="note"><strong>下一步：</strong>去读 <a href="./0012-from-repo-understanding-to-training-fork.html">0012</a>，把你现在的仓库理解转成真正的研究路线和训练 fork 决策。</div>
+    </section>
+
+    <section class="panel">
+      <h2>证据附录</h2>
+      <details>
+        <summary>展开公开依据与实现锚点</summary>
+        <ul>
+          <li>本地实现侧：模型注册表、主干输入假设、KV cache 路线和训练缺口判断。</li>
+          <li>公开资料：GitHub README、官方 docs、Hugging Face API metadata、公开 model card、`[klein]` 官方博客。</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

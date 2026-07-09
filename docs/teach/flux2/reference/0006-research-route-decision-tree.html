@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考 0006：研究路线决策树</title>
+  <style>
+    body { margin:0; background:#f5efe6; color:#221b18; font-family:"PingFang SC","Noto Serif SC","Songti SC",serif; line-height:1.68; }
+    main { width:min(980px,calc(100vw - 28px)); margin:0 auto; padding:34px 0 70px; } .panel,.card { background:rgba(255,251,245,.95); border:1px solid #dbcec0; border-radius:20px; box-shadow:0 14px 34px rgba(58,43,34,.08); }
+    .panel { padding:24px 26px; margin-bottom:20px; } .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); margin-top:14px; } .card { padding:18px; }
+    h1,h2,h3 { line-height:1.14; margin:0 0 14px; } h1 { font-size:clamp(2rem,4vw,3.2rem); } h2 { font-size:1.45rem; } h3 { font-size:1.08rem; }
+    .eyebrow { text-transform:uppercase; letter-spacing:.12em; color:#8c3a21; font-size:.82rem; margin:0 0 10px; } .lede { color:#655b52; font-size:1.1rem; max-width:70ch; }
+    a { color:#1a615b; text-decoration:none; border-bottom:1px solid rgba(26,97,91,.35); }
+    .note { padding:16px 18px; margin-top:18px; border-left:4px solid #1a615b; background:rgba(26,97,91,.08); border-radius:16px; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <p class="eyebrow">参考 0006</p>
+      <h1>研究路线决策树</h1>
+      <p class="lede">这页帮助你快速决定该从哪条研究路线起步。它更接近 <a href="../lessons/0004-pick-your-first-research-path.html">0004</a> 的一页式操作化版本，用来先做第一次分流，而不是替代 <a href="../lessons/0012-from-repo-understanding-to-training-fork.html">0012</a> 的迁移动作页。</p>
+      <div class="note"><strong>记住什么：</strong>这是一页决策辅助，不是官方唯一推荐路径。它把仓库真相、模型家族定位和工程摩擦压缩成可执行问题。</div>
+      <div class="note"><strong>为什么重要：</strong>没有稳定的决策树，后面的实验方向很容易因为“看起来都能做”而漂移。</div>
+      <div class="note"><strong>可见证据：</strong>这页的推荐顺序建立在三类事实之上：当前仓库的 latent 契约、本地注册表里的 Base / distilled 分流、以及官方 docs 对 Base 路线的 research / fine-tuning 定位。<strong>边界：</strong>具体推荐哪条路是工程迁移建议，不是官方产品页原句。<strong>置信度：</strong>中高。</div>
+    </section>
+    <section class="panel">
+      <h2>第一问：你要不要先保住 latent contract？</h2>
+      <div class="grid">
+        <article class="card"><h3>要</h3><p>优先走不破契约路线，首选 `klein-base-4b`。适合验证 VAE 内部改动、loss、轻量微调方向。</p></article>
+        <article class="card"><h3>不确定</h3><p>默认仍先保契约。因为这能最大化把问题限制在表示层，而不是一下子变成系统级 fork。</p></article>
+        <article class="card"><h3>不要</h3><p>你已经明确要改 latent 通道数、空间缩放或 token 组织。准备同时回看 AE、sampler、transformer。</p></article>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>第二问：你更在意什么？</h2>
+      <ul>
+        <li><strong>最低摩擦：</strong>`klein-base-4b`</li>
+        <li><strong>更高质量起点：</strong>`klein-base-9b`</li>
+        <li><strong>更接近重型研究路线：</strong>`flux.2-dev`</li>
+      </ul>
+    </section>
+    <section class="panel">
+      <h2>第三问：你此刻缺的是什么？</h2>
+      <ul>
+        <li>如果缺的是“仓库真相”，回去读 `0005` 到 `0009`。</li>
+        <li>如果缺的是“训练栈骨架”，补训练缺口清单与外部工程方案。</li>
+        <li>如果缺的是“许可与公开边界”，回去读 `0010` 与 `0011`。</li>
+      </ul>
+      <div class="note"><strong>下一步：</strong>如果你已经选了路线，回到 <a href="../lessons/0012-from-repo-understanding-to-training-fork.html">0012</a> 把它转成缺口清单；如果你还没看清模型边界，先去 <a href="../lessons/0010-model-family-licenses-and-boundaries.html">0010</a>。如果你想看完整解释而不是一页式分流，回到 <a href="../lessons/0004-pick-your-first-research-path.html">0004</a>。</div>
+    </section>
+  </main>
+</body>
+</html>

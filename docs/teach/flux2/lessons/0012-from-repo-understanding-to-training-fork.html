@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课程 0012：从仓库理解到训练 fork</title>
+  <style>
+    :root { --bg:#f5efe6; --paper:rgba(255,251,245,.95); --ink:#221b18; --muted:#655b52; --line:#dbcec0; --accent:#8c3a21; --teal:#1a615b; }
+    * { box-sizing:border-box; } body { margin:0; background:linear-gradient(180deg,#faf6ee 0%,var(--bg) 100%); color:var(--ink); font-family:"PingFang SC","Noto Serif SC","Songti SC",serif; line-height:1.72; }
+    main { width:min(1000px,calc(100vw - 28px)); margin:0 auto; padding:38px 0 78px; } .panel,.card,.note { background:var(--paper); border:1px solid var(--line); border-radius:20px; box-shadow:0 14px 34px rgba(58,43,34,.08); }
+    .panel { padding:26px 28px; margin-bottom:20px; } .card { padding:18px; } .note { padding:16px 18px; margin-top:18px; border-left:4px solid var(--teal); } .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); margin-top:16px; }
+    h1,h2,h3 { line-height:1.14; margin:0 0 14px; } h1 { font-size:clamp(2.2rem,5vw,3.8rem); } h2 { font-size:1.6rem; } h3 { font-size:1.12rem; }
+    .eyebrow { text-transform:uppercase; letter-spacing:.12em; color:var(--accent); font-size:.82rem; margin:0 0 10px; } .lede { color:var(--muted); font-size:1.12rem; max-width:68ch; }
+    a { color:var(--teal); text-decoration:none; border-bottom:1px solid rgba(26,97,91,.35); } code { font-family:Menlo,Consolas,monospace; background:rgba(34,27,24,.06); border-radius:6px; padding:.08rem .3rem; }
+    .evidence { background:rgba(26,97,91,.08); border-left:4px solid var(--teal); border-radius:16px; padding:14px 16px; margin-top:16px; }
+    .table-wrap { margin-top:16px; overflow-x:auto; border:1px solid var(--line); border-radius:18px; background:rgba(255,255,255,.55); }
+    table { width:100%; min-width:720px; border-collapse:collapse; }
+    th,td { text-align:left; vertical-align:top; padding:13px 14px; border-top:1px solid rgba(219,206,192,.85); }
+    thead th { border-top:0; color:var(--muted); font-size:.84rem; letter-spacing:.05em; text-transform:uppercase; }
+    details { margin-top:18px; } summary { cursor:pointer; color:var(--accent); font-weight:700; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <p class="eyebrow">课程 0012</p>
+      <h1>从仓库理解到训练 fork</h1>
+      <p class="lede">读到这里，默认前提已经不是“我要不要选这条路”，而是“我已经选了大方向，现在该把它翻译成训练缺口、迁移动作和停止条件”。</p>
+      <div class="note"><strong>课程位置：</strong>这是把仓库理解过渡到研究迁移的收口页。默认前提是：你已经在 <a href="./0004-pick-your-first-research-path.html">0004</a> 或 <a href="../reference/0006-research-route-decision-tree.html">0006</a> 做过第一次路线选择。</div>
+    </section>
+
+    <section class="panel">
+      <h2>记住什么</h2>
+      <ul>
+        <li>当前仓库最适合做“研究准备地图”，而不是直接拿来当完整训练框架。</li>
+        <li>这页不负责再帮你选路，而是负责把已选路线翻译成下一步动作。</li>
+        <li>真正会拉开差距的，不是路线名词本身，而是你要补哪些训练层、接受哪些新增耦合。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>为什么重要</h2>
+      <p>
+        这页的重要性在于，它把前面所有“仓库理解”转成真正会改变工程行为的迁移动作。到了这里，问题不再是“选哪张路线卡更顺眼”，而是“我下一步该补什么、哪里会立刻升级成系统级工程”。
+      </p>
+      <div class="evidence"><strong>可见证据：</strong>这里的迁移建议建立在三层事实之上：当前仓库没有公开训练栈、本地实现对 latent 契约的耦合很强、官方资料把 Base 路线定位为 fine-tuning / research。<strong>边界：</strong>路线 A / B / C 仍是课程为研究准备做的重构，不是官方原始分类。<strong>置信度：</strong>中高。</div>
+    </section>
+
+    <section class="panel">
+      <h2>你已经选了路，现在只看迁移差异</h2>
+      <div class="note"><strong>默认前提：</strong>如果你还没做第一次路线选择，先回到 <a href="./0004-pick-your-first-research-path.html">0004</a>。这页只负责把已选路线转成缺口清单和动作，不负责重新说服你选哪条路线。</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>当前路线</th>
+              <th>你保持什么不动</th>
+              <th>你立刻新增什么耦合</th>
+              <th>下一步最该补什么</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>路线 A：先保契约</strong></td>
+              <td>保持 128 通道、/16 缩放、现有 token 组织与主干接口。</td>
+              <td>主要还是表示层与轻量训练准备，不会立刻把整个系统一起拖下水。</td>
+              <td>先补实验骨架、轻量 loss 设计、最小验证闭环。</td>
+            </tr>
+            <tr>
+              <td><strong>路线 B：小心破契约</strong></td>
+              <td>你不再承诺维持完整 latent contract。</td>
+              <td>AE、sampler、transformer 的接口联动会立刻出现，形状与 token 组织都要回看。</td>
+              <td>先把联动面列清楚，再决定是否值得继续扩大改动。</td>
+            </tr>
+            <tr>
+              <td><strong>路线 C：训练向完整 fork</strong></td>
+              <td>不再把当前仓库当成训练框架本体。</td>
+              <td>数据、loss、优化器、评估、checkpoint 生命周期都要自己建。</td>
+              <td>先设计训练栈骨架，再决定模型起点是 <code>9B</code> 还是 <code>dev</code>。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><strong>停止条件：</strong>如果你还说不清 latent contract 是什么，或者还分不清 Base 与 distilled 的差异，先不要直接跳路线 C。</div>
+    </section>
+
+    <section class="panel">
+      <h2>仓库外必须补齐的层</h2>
+      <div class="grid">
+        <article class="card"><h3>数据管线</h3><p>数据读取、清洗、混合、caption / reference 组织。</p></article>
+        <article class="card"><h3>训练目标</h3><p>loss、采样训练目标、是否有额外感知或对齐目标。</p></article>
+        <article class="card"><h3>优化器与调度</h3><p>optimizer、lr schedule、梯度累积、EMA 等。</p></article>
+        <article class="card"><h3>评估与验证</h3><p>不只是能跑，还要有可重复的质量、对齐和稳定性评估。</p></article>
+        <article class="card"><h3>实验编排</h3><p>checkpoint、resume、日志、版本化和结果追踪。</p></article>
+        <article class="card"><h3>安全与许可边界</h3><p>尤其是 gated / non-commercial 路线下的使用约束和发布边界。</p></article>
+      </div>
+      <div class="evidence"><strong>可见证据：</strong>这些缺口来自对当前仓库结构、README 定位和现有工作区研究记录的综合判断。<strong>边界：</strong>这表示“当前公开开源实现没有给你这些层”，不表示官方内部不存在相应系统。</div>
+    </section>
+
+    <section class="panel">
+      <h2>最稳的第一步</h2>
+      <ol>
+        <li>先确认你刚才选中的路线，到底要补“训练层”还是补“联动分析”。</li>
+        <li>若你现在还没有任何实验闭环，优先从不破契约的 Base 路线开始补最小训练准备。</li>
+        <li>只要一旦要改 latent 通道、缩放或 token 组织，就立刻重新审视 AE、sampler 和 transformer 的接口联动。</li>
+      </ol>
+      <div class="note"><strong>下一步：</strong>继续拿这页的缺口表去对照 <a href="../reference/0003-training-gap-checklist.html">0003 训练缺口清单</a>；如果你想重新确认选路，回到 <a href="../reference/0006-research-route-decision-tree.html">0006 决策树</a>。</div>
+    </section>
+
+    <section class="panel">
+      <h2>证据附录</h2>
+      <details>
+        <summary>展开公开依据与实现锚点</summary>
+        <ul>
+          <li>本地仓库：无公开训练代码、无数据管线、无优化器、无评估 harness。</li>
+          <li>官方文档与 model cards：Base 路线定位为 fine-tuning、LoRA、研究和自定义 pipeline。</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

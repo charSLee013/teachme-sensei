@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FLUX.2 全局总课：从推理仓库到 VAE / 训练研究入口</title>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["\\(", "\\)"], ["$", "$"]],
+        displayMath: [["\\[", "\\]"]]
+      },
+      svg: { fontCache: "global" }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.min.js"></script>
+  <style>
+    :root {
+      --bg: #efe6d8;
+      --bg-strong: #e3d3bc;
+      --paper: rgba(255, 251, 245, 0.9);
+      --ink: #201916;
+      --muted: #675b53;
+      --line: #d8cab9;
+      --accent: #8b391f;
+      --accent-soft: #f1d3c1;
+      --teal: #1e5f59;
+      --teal-soft: #dcefea;
+      --warn: #6f4c1b;
+      --shadow: 0 16px 40px rgba(58, 42, 34, 0.1);
+      --radius: 24px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "PingFang SC", "Noto Serif SC", "Songti SC", "STSong", serif;
+      line-height: 1.76;
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.8) 0, transparent 26%),
+        radial-gradient(circle at top right, rgba(255,248,236,0.8) 0, transparent 32%),
+        linear-gradient(180deg, #f8f1e6 0%, var(--bg) 100%);
+    }
+    a {
+      color: var(--teal);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(30, 95, 89, 0.35);
+    }
+    code {
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      font-size: 0.92em;
+      padding: 0.08rem 0.28rem;
+      border-radius: 7px;
+      background: rgba(32, 25, 22, 0.06);
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 24px;
+      width: min(1420px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 96px;
+    }
+    .main {
+      min-width: 0;
+    }
+    .side {
+      position: sticky;
+      top: 18px;
+      align-self: start;
+    }
+    .hero,
+    .card,
+    .section,
+    .appendix,
+    .side-panel {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .hero {
+      overflow: hidden;
+      margin-bottom: 22px;
+    }
+    .hero-top {
+      padding: 34px 34px 20px;
+      background:
+        linear-gradient(140deg, rgba(139,57,31,0.08), rgba(30,95,89,0.06)),
+        linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.15));
+    }
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--accent);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 0.82rem;
+    }
+    h1, h2, h3 {
+      line-height: 1.16;
+      margin: 0 0 14px;
+      font-weight: 650;
+    }
+    h1 { font-size: clamp(2.5rem, 5vw, 4.5rem); }
+    h2 { font-size: clamp(1.6rem, 2.5vw, 2.15rem); margin-top: 0; }
+    h3 { font-size: 1.18rem; }
+    .hero p,
+    .section p,
+    .section li,
+    .card p,
+    .card li,
+    .side-panel li { font-size: 1.05rem; }
+    .lede {
+      max-width: 67ch;
+      color: var(--muted);
+      font-size: 1.18rem;
+      margin: 0 0 18px;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      padding: 0 34px 34px;
+    }
+    .meta-box {
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.65);
+      border: 1px solid rgba(216, 202, 185, 0.9);
+    }
+    .meta-box strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--accent);
+    }
+    .rail {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      margin-top: 18px;
+    }
+    .rail-step {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid rgba(216, 202, 185, 0.95);
+    }
+    .rail-step span {
+      display: inline-block;
+      color: var(--teal);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .section {
+      padding: 28px 30px;
+      margin-bottom: 22px;
+    }
+    .callout {
+      margin: 16px 0 0;
+      padding: 16px 18px;
+      border-left: 5px solid var(--teal);
+      border-radius: 18px;
+      background: rgba(30, 95, 89, 0.08);
+    }
+    .evidence-box {
+      margin: 16px 0 0;
+      padding: 16px 18px;
+      border-left: 5px solid var(--accent);
+      border-radius: 18px;
+      background: rgba(139, 57, 31, 0.08);
+    }
+    .two-col,
+    .three-col {
+      display: grid;
+      gap: 16px;
+      margin-top: 18px;
+    }
+    .two-col { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .three-col { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .card {
+      padding: 18px;
+      background: rgba(255,255,255,0.55);
+    }
+    .card.good { border-color: rgba(30,95,89,0.35); }
+    .card.warn { border-color: rgba(139,57,31,0.35); }
+    .big-table-wrap {
+      overflow-x: auto;
+      margin-top: 18px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.54);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+    th, td {
+      padding: 14px 14px;
+      text-align: left;
+      vertical-align: top;
+      border-top: 1px solid rgba(216, 202, 185, 0.9);
+    }
+    thead th {
+      border-top: 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .formula {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 20px;
+      background: rgba(30, 95, 89, 0.06);
+      border: 1px solid rgba(30, 95, 89, 0.18);
+    }
+    .formula .math {
+      overflow-x: auto;
+      font-size: 1.08rem;
+    }
+    .formula p:last-child { margin-bottom: 0; }
+    .viz-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 260px;
+      gap: 18px;
+      align-items: stretch;
+      margin-top: 18px;
+    }
+    #system-viz {
+      min-height: 360px;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(30, 95, 89, 0.22);
+      background: linear-gradient(180deg, #fdf9f1 0%, #e9efe7 100%);
+      position: relative;
+    }
+    #system-viz canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      opacity: 0.44;
+      pointer-events: none;
+    }
+    .viz-controls {
+      display: grid;
+      gap: 12px;
+    }
+    .viz-button {
+      border: 1px solid rgba(139, 57, 31, 0.25);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.72);
+      padding: 14px 16px;
+      cursor: pointer;
+      text-align: left;
+      font: inherit;
+      color: inherit;
+    }
+    .viz-button:hover,
+    .viz-button.active {
+      border-color: rgba(30, 95, 89, 0.45);
+      background: rgba(220, 239, 234, 0.75);
+    }
+    .viz-fallback {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .viz-node,
+    .viz-core,
+    .viz-wire {
+      position: absolute;
+    }
+    .viz-node {
+      width: clamp(150px, 24vw, 206px);
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(216, 202, 185, 0.96);
+      box-shadow: 0 10px 22px rgba(58, 42, 34, 0.12);
+      transition: transform 180ms ease, opacity 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+    .viz-node strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 1rem;
+    }
+    .viz-node span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+    .viz-node.active {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 28px rgba(58, 42, 34, 0.16);
+      border-color: rgba(30, 95, 89, 0.35);
+      opacity: 1;
+    }
+    .viz-node.dim {
+      opacity: 0.52;
+      transform: scale(0.98);
+    }
+    .node-text {
+      top: 8%;
+      left: 5%;
+    }
+    .node-transformer {
+      top: 32%;
+      left: 31%;
+      width: clamp(180px, 28vw, 250px);
+      border-color: rgba(30, 95, 89, 0.32);
+    }
+    .node-sampler {
+      top: 10%;
+      right: 5%;
+    }
+    .node-ae {
+      left: 36%;
+      bottom: 10%;
+      width: clamp(190px, 30vw, 252px);
+    }
+    .viz-core {
+      left: 34%;
+      top: 18%;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(30, 95, 89, 0.1);
+      border: 1px solid rgba(30, 95, 89, 0.18);
+      color: var(--teal);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      box-shadow: 0 8px 20px rgba(58, 42, 34, 0.08);
+    }
+    .viz-wire {
+      height: 2px;
+      background: linear-gradient(90deg, rgba(103, 91, 83, 0.2), rgba(103, 91, 83, 0.65), rgba(103, 91, 83, 0.2));
+      transform-origin: left center;
+      border-radius: 999px;
+      opacity: 0.74;
+    }
+    .wire-text {
+      top: 26%;
+      left: 20%;
+      width: 22%;
+      transform: rotate(16deg);
+    }
+    .wire-sampler {
+      top: 31%;
+      left: 55%;
+      width: 20%;
+      transform: rotate(-17deg);
+    }
+    .wire-ae {
+      top: 57%;
+      left: 47%;
+      width: 2px;
+      height: 16%;
+      background: linear-gradient(180deg, rgba(103, 91, 83, 0.2), rgba(103, 91, 83, 0.7), rgba(103, 91, 83, 0.2));
+    }
+    .knowledge-check {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(139, 57, 31, 0.06);
+      border: 1px solid rgba(139, 57, 31, 0.15);
+    }
+    .appendix details {
+      border-top: 1px solid rgba(216, 202, 185, 0.9);
+      padding: 14px 0 0;
+      margin-top: 14px;
+    }
+    .appendix summary {
+      cursor: pointer;
+      color: var(--teal);
+      font-weight: 650;
+      list-style: none;
+    }
+    .appendix summary::-webkit-details-marker { display: none; }
+    .appendix ul { margin: 14px 0 0; }
+    .side-panel {
+      padding: 18px;
+    }
+    .side-panel h3 {
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+    .side-panel ol,
+    .side-panel ul { padding-left: 20px; margin: 0; }
+    .side-panel li { margin-bottom: 10px; }
+    .side-panel + .side-panel { margin-top: 16px; }
+    .mini-note {
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(216, 202, 185, 0.95);
+      font-size: 0.94rem;
+    }
+    @media (max-width: 1180px) {
+      .layout { grid-template-columns: 1fr; }
+      .side { position: static; }
+    }
+    @media (max-width: 860px) {
+      .viz-shell { grid-template-columns: 1fr; }
+      .hero-top, .meta-grid, .section { padding-left: 20px; padding-right: 20px; }
+      .viz-node {
+        width: auto;
+        max-width: 76%;
+      }
+      .node-text { top: 6%; left: 4%; }
+      .node-transformer { top: 34%; left: 18%; max-width: 64%; }
+      .node-sampler { top: 11%; right: 4%; max-width: 48%; }
+      .node-ae { left: 18%; bottom: 8%; max-width: 64%; }
+      .viz-core { left: 24%; top: 22%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <main class="main">
+      <section class="hero" id="top">
+        <div class="hero-top">
+          <p class="eyebrow">旗舰总览大课</p>
+          <h1>FLUX.2 全局总课</h1>
+          <p class="lede">
+            这不是一张“快速看完就走”的备忘单，而是一页会带你把官方 FLUX.2 仓库读成一张完整地图的总课。
+            目标不是背术语，而是让你真正知道：这个仓库是什么、它不是什么、为什么 latent contract 是研究起点，以及当你想做 VAE / 训练研究时，第一步该踩在哪里。
+          </p>
+          <div class="tag-row">
+            <span class="tag">中文</span>
+            <span class="tag">从浅入深</span>
+            <span class="tag">系统理解 + 论文讲解</span>
+            <span class="tag">2D 主讲 + 局部 3D</span>
+            <span class="tag">源码证据下沉附录</span>
+          </div>
+          <div class="rail">
+            <div class="rail-step">
+              <span>停靠点 1</span>
+              先知道这到底是什么仓库，不再把它误认成训练仓库。
+            </div>
+            <div class="rail-step">
+              <span>停靠点 2</span>
+              看懂四大部件如何接起来，建立系统级心智模型。
+            </div>
+            <div class="rail-step">
+              <span>停靠点 3</span>
+              吃透 latent contract，知道什么能局部改，什么必须联动改。
+            </div>
+            <div class="rail-step">
+              <span>停靠点 4</span>
+              回到研究准备：该从哪个模型起步，为什么不是直接上 trainer。
+            </div>
+          </div>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-box">
+            <strong>你读完应会什么</strong>
+            至少能独立判断：`base` 和 distilled 的差异、为什么当前仓库不是训练栈、以及只做 VAE 时最小安全切入点在哪里。
+          </div>
+          <div class="meta-box">
+            <strong>你现在不需要什么</strong>
+            你不需要一上来读完整仓库源码，也不需要先把论文全部推导完。正文会先给判断，再给结构，再给公式。
+          </div>
+          <div class="meta-box">
+            <strong>什么时候看附录</strong>
+            当你已经理解正文，想确认“这句话到底来自哪一层实现”时，再展开每节底部的源码附录。
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>开始前先带走这四句话</h2>
+        <div class="two-col">
+          <article class="card good">
+            <h3>记住什么</h3>
+            <ul>
+              <li>这不是训练仓库，而是最小推理仓库。</li>
+              <li>最硬的东西不是某个脚本，而是 latent contract。</li>
+              <li>`base` 和 distilled 不能混着理解。</li>
+              <li>“先看 <code>klein-base-4b</code>”是研究起步建议，不是官方硬规定。</li>
+            </ul>
+          </article>
+          <article class="card warn">
+            <h3>为什么重要</h3>
+            <p>
+              这页是整个教学包的主入口。如果这里把仓库身份、模型家族和研究建议混在一起，后面所有机制课都会在错误前提上展开。
+            </p>
+            <div class="evidence-box">
+              <strong>可见证据：</strong>
+              “最小推理仓库”“`dev` 32B”“Base 更像研究入口”等判断，分别有官方 README、官方 docs、公开 model card 和本地注册表支撑。
+              <strong>边界：</strong>
+              其中“通常先看 <code>klein-base-4b</code>”属于课程重构后的工程迁移建议，不是官方逐字表述。
+              <strong>置信度：</strong> 仓库身份与家族事实为高；研究入口推荐为中高。
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="boundary">
+        <h2>一、先抓住一句话：这是什么仓库</h2>
+        <div class="card good">
+          <h3>如果你现在只记三句话，先记这三句</h3>
+          <ul>
+            <li><strong>第一句：</strong>这不是训练仓库，而是把公开权重跑起来的最小推理仓库。</li>
+            <li><strong>第二句：</strong>它最值得你研究的，不是“训练技巧”，而是整个系统共同依赖的 latent contract。</li>
+            <li><strong>第三句：</strong>如果你现在是为 VAE / 训练研究做准备，默认先从不破契约的入口开始，通常先看 <code>klein-base-4b</code>，不要一上来就造 trainer。</li>
+          </ul>
+        </div>
+        <p>
+          先别急着看公式。你第一步只需要记住一句话：
+          <strong>官方 `flux2` 仓库是一个最小推理仓库。</strong>
+          它负责把已经训练好的 FLUX.2 开放权重跑起来，完成图像生成、单参考编辑和多参考编辑。
+          它擅长的是“把 checkpoint 接成一个可运行系统”，而不是“把训练流程完整公开给你”。
+        </p>
+        <div class="two-col">
+          <article class="card good">
+            <h3>它能帮你做什么</h3>
+            <ul>
+              <li>确认真实入口在哪里</li>
+              <li>看懂 autoencoder、sampler、transformer、text encoder 如何接起来</li>
+              <li>判断 latent contract 到底固定了哪些条件</li>
+              <li>分清 `klein`、`base`、`dev` 的研究含义</li>
+            </ul>
+          </article>
+          <article class="card warn">
+            <h3>它不能直接替你做什么</h3>
+            <ul>
+              <li>不会替你提供 dataset 管线</li>
+              <li>不会替你提供 optimizer / scheduler / loss loop</li>
+              <li>不会替你提供 checkpoint 保存与恢复系统</li>
+              <li>不会自动变成可训练的 VAE / DiT 研究框架</li>
+            </ul>
+          </article>
+        </div>
+        <div class="callout">
+          <strong>你现在只要会做的判断：</strong>
+          如果一个仓库的主闭环是“加载权重 -> 采样 -> 解码 -> 保存图片”，那它的重心就是推理，不是训练。
+        </div>
+        <div class="callout">
+          <strong>为什么这件事会直接影响你的研究路线：</strong>
+          因为一旦你接受“它不是训练仓库”，你就不会再幻想只靠在这里补几段脚本就能自然长出完整 trainer。
+          你会更现实地把这里当成<strong>契约地图</strong>，然后决定哪些研究能在这张地图里先做，哪些研究必须去另起训练向代码库。
+        </div>
+      </section>
+
+      <section class="section" id="overview">
+        <h2>二、系统总览：四大部件是怎么协作的</h2>
+        <p>
+          你可以先把 FLUX.2 想成四个必须同时站住的部件：
+          <strong>文本侧</strong>负责把 prompt 变成模型能用的上下文，
+          <strong>transformer</strong>负责在 latent 空间里逐步更新图像表示，
+          <strong>sampler</strong>负责决定每一步怎么往前走，
+          <strong>autoencoder</strong>负责把像素世界和 latent 世界接起来。
+        </p>
+        <div class="viz-shell">
+          <div id="system-viz">
+            <div class="viz-fallback" aria-hidden="true">
+              <div class="viz-wire wire-text"></div>
+              <div class="viz-wire wire-sampler"></div>
+              <div class="viz-wire wire-ae"></div>
+              <div class="viz-core">共同工作区：latent 空间</div>
+              <div class="viz-node node-text active" data-node="text">
+                <strong>文本编码器</strong>
+                <span>把 prompt 压成模型可用的上下文条件。</span>
+              </div>
+              <div class="viz-node node-transformer active" data-node="transformer">
+                <strong>FLUX.2 Transformer</strong>
+                <span>在 latent 空间里逐步把噪声推向目标图像。</span>
+              </div>
+              <div class="viz-node node-sampler active" data-node="sampler">
+                <strong>Sampler</strong>
+                <span>决定时间步、guidance 和每一步怎么往前走。</span>
+              </div>
+              <div class="viz-node node-ae active" data-node="ae">
+                <strong>Autoencoder</strong>
+                <span>连接像素世界与 latent 世界，负责编码与解码。</span>
+              </div>
+            </div>
+          </div>
+          <div class="viz-controls">
+            <button class="viz-button active" data-focus="all">整体关系：先建立全局图</button>
+            <button class="viz-button" data-focus="text">看文本侧：prompt 是怎么进来的</button>
+            <button class="viz-button" data-focus="transformer">看核心：谁在 latent 里做更新</button>
+            <button class="viz-button" data-focus="ae">看边界：像素世界和 latent 世界怎么接</button>
+            <div class="card">
+              <h3>怎么看这张图</h3>
+              <p class="mini-note">
+                这只是一个帮助你建立空间感的局部 3D 模块。真正的学习主线仍然在正文。你完全可以先忽略它，等读完整节再回来确认关系。
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="big-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>部件</th>
+                <th>它负责什么</th>
+                <th>如果你动它，会影响哪类研究判断</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Text encoder</td>
+                <td>把 prompt 变成上下文表示；不同模型家族用的文本编码器并不一样。</td>
+                <td>影响文本侧契约与 prompt 理解质量，不一定会动 latent 几何。</td>
+              </tr>
+              <tr>
+                <td>Transformer</td>
+                <td>在 latent 空间里逐步把噪声推向目标图像。</td>
+                <td>一旦 latent 通道数或 token 组织改了，它通常会被迫联动。</td>
+              </tr>
+              <tr>
+                <td>Sampler</td>
+                <td>定义每一步更新顺序、时间步、CFG 或 distilled guidance 的行为。</td>
+                <td>影响推理路径，也影响你对“哪个模型更像训练起点”的判断。</td>
+              </tr>
+              <tr>
+                <td>Autoencoder</td>
+                <td>负责像素与 latent 的往返映射。</td>
+                <td>是 VAE 研究最自然的切口，但只有不破坏契约时才可能局部推进。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="families">
+        <h2>三、模型家族：为什么 `base` 和 distilled 不能混着理解</h2>
+        <p>
+          初学时最容易犯的错，是把 `klein`、`base`、`dev` 当成“只是大小不同的 checkpoint”。
+          这会直接导致研究路线判断失真。你真正要看的不是参数量本身，而是：
+          <strong>它是更像推理产物，还是更像训练起点？</strong>
+        </p>
+        <div class="big-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>家族</th>
+                <th>直觉定位</th>
+                <th>推理特征</th>
+                <th>对训练研究意味着什么</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>distilled klein</strong></td>
+                <td>实时、轻、为“很快跑出来”服务</td>
+                <td>固定 4-step，固定 guidance 行为</td>
+                <td>非常适合看推理成品，但不是最干净的训练思维起点</td>
+              </tr>
+              <tr>
+                <td><strong>klein base</strong></td>
+                <td>保留 base 路径的较小模型家族</td>
+                <td>50-step，约束更少</td>
+                <td>更像训练准备入口，尤其是 `klein-base-4b`</td>
+              </tr>
+              <tr>
+                <td><strong>flux.2-dev</strong></td>
+                <td>官方 32B 旗舰参考</td>
+                <td>质量高、硬件重、文本侧不同</td>
+                <td>是强参考，不是低摩擦首站</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="knowledge-check">
+          <strong>停一下，自己复述：</strong>
+          如果你的目标是“先为训练研究做准备，而不是先做最快推理”，那你脑中更自然的默认起点应该是谁？
+          这节课希望你答出：<strong>`klein-base-4b` 往往是更稳的第一站</strong>，因为它既保留了 base 路径，又把体量压在更能承受的范围里。
+        </div>
+        <div class="evidence-box">
+          <strong>可见证据：</strong>
+          当前仓库注册表把 Base 路线和 distilled 路线的 sampler 合约明确分开；官方 docs 和公开 model card 也把 Base 变体定位为 fine-tuning、LoRA、研究和自定义 pipeline。
+          <strong>边界：</strong>
+          “更稳的第一站”是面向当前教学任务的工程迁移判断，不代表其他路线必然错误。
+          <strong>置信度：</strong> 中高。
+        </div>
+      </section>
+
+      <section class="section" id="latent">
+        <h2>四、为什么 latent contract 是整页最重要的概念</h2>
+        <p>
+          当你说“我想研究 VAE”时，你真正要问的不是“能不能改 autoencoder”，而是：
+          <strong>我改动之后，还保不保持整个系统对 latent 的共同约定？</strong>
+          这就是 latent contract。
+        </p>
+        <div class="three-col">
+          <article class="card">
+            <h3>通道数契约</h3>
+            <p>
+              当前系统把 latent 当成 128 通道来理解。只要这个数字变了，transformer 的输入假设就会跟着出事。
+            </p>
+          </article>
+          <article class="card">
+            <h3>空间缩放契约</h3>
+            <p>
+              当前 latent 网格和输入宽高之间有稳定的缩放关系。你若打破它，sampler 的噪声形状也必须跟着变。
+            </p>
+          </article>
+          <article class="card">
+            <h3>token 组织契约</h3>
+            <p>
+              参考图 token、文本 token、图像 token 的组织方式不是随便排的。它们决定了编辑、多参考、KV cache 等路径能否成立。
+            </p>
+          </article>
+        </div>
+
+        <div class="knowledge-check">
+          <strong>第一次读到这里，先停一下。</strong>
+          你此刻只需要带走三件事：
+          <ul>
+            <li>只要保持 128 通道、网格关系和 token 组织不动，你更可能还在局部改动范围里。</li>
+            <li>一旦动到这三层契约，问题就不再只是“改一下 AE”。</li>
+            <li>如果你还没法顺口复述这三层契约，就不要急着进入训练向 fork。</li>
+          </ul>
+        </div>
+
+        <details>
+          <summary>第二遍再读：token 组织例子、最短术语和三个公式</summary>
+          <div class="card good">
+            <h3>一个具体例子：为什么 token 组织契约不是抽象口号</h3>
+            <p>
+              以“单参考图编辑”为例，系统至少要同时处理三类东西：
+              <strong>文本条件</strong>、<strong>参考图表示</strong>、<strong>待更新的目标图像 latent</strong>。
+              它们不是随便堆在一起，而是按约定的角色和顺序进入同一条推理路径。
+            </p>
+            <div class="three-col">
+              <article class="card">
+                <h3>第 1 步：文本先给方向</h3>
+                <p>
+                  prompt 先告诉系统你想往什么方向改图，它提供的是“语义目标”。
+                </p>
+              </article>
+              <article class="card">
+                <h3>第 2 步：参考图给约束</h3>
+                <p>
+                  参考图编码后的 token 提供“你要保留或借用什么”的图像条件，它不是普通噪声。
+                </p>
+              </article>
+              <article class="card">
+                <h3>第 3 步：目标 latent 才是被更新对象</h3>
+                <p>
+                  真正在去噪过程中被一步步改写的是目标图像 latent；如果你把前两类 token 的位置、数量或缓存方式打乱，编辑路径就可能直接失效。
+                </p>
+              </article>
+            </div>
+            <p>
+              所以“token 组织契约”真正保护的，不只是一个形状，而是
+              <strong>谁在提供条件、谁在提供参考、谁才是被更新对象</strong>。
+              这也是为什么它会影响多参考编辑和 KV cache 路径。
+            </p>
+          </div>
+
+          <div class="knowledge-check">
+            <strong>别被这些词先吓到。</strong>
+            当前阶段你只需要抓住下面这 4 句最短解释：
+            <ul>
+              <li><strong>CFG</strong>：一种把结果往条件方向拉近的推理机制。</li>
+              <li><strong>KV cache</strong>：把已经算过的注意力结果缓存起来，减少重复计算。</li>
+              <li><strong>distilled guidance</strong>：蒸馏模型里被一并固化进去的 guidance 行为。</li>
+              <li><strong>Qwen3 / Mistral</strong>：这里只是不同模型家族所依赖的文本侧路线，不是你此刻必须深挖的主线。</li>
+            </ul>
+          </div>
+
+          <div class="formula">
+            <h3>公式 1：为什么会出现 128 通道</h3>
+            <div class="math">\[
+            z = \mathrm{rearrange}\left(\mu,\; c \times (i \cdot p_i) \times (j \cdot p_j) \rightarrow (c \cdot p_i \cdot p_j) \times i \times j\right)
+            \]</div>
+            <p>
+              白话解释：autoencoder 会先得到一个 latent mean，然后把空间维的一部分重新打包进通道维。
+              在当前实现里，基础 latent 通道是 32，而重排因子是 \(2 \times 2\)，所以最后进入主系统的通道数是
+              \(32 \times 2 \times 2 = 128\)。
+            </p>
+            <p>
+              这对研究的含义是：如果你只改 AE 内部细节，但最后仍然吐出同样的 128 通道与相同网格关系，你的改动更可能停留在局部；一旦这个数字变了，就进入联动改造。
+            </p>
+          </div>
+
+          <div class="formula">
+            <h3>公式 2：采样每一步在做什么</h3>
+            <div class="math">\[
+            x_{t_{\text{prev}}} = x_{t_{\text{curr}}} + (t_{\text{prev}} - t_{\text{curr}})\,\hat{\epsilon}_\theta(x, t, c)
+            \]</div>
+            <p>
+              白话解释：sampler 并不是“一次生成整张图”，而是在 latent 空间里按时间步一点点更新图像表示。
+              所谓 `num_steps`，就是你给这种更新多少次机会。
+            </p>
+            <p>
+              这对研究的含义是：distilled 模型把这个路径压得更短、更固定，所以它更像“为推理打磨后的成品”；base 模型保留的自由度更像训练思维。
+            </p>
+          </div>
+
+          <div class="formula">
+            <h3>公式 3：CFG 的直觉</h3>
+            <div class="math">\[
+            \hat{\epsilon}_{\text{cfg}} = \hat{\epsilon}_{u} + s \cdot (\hat{\epsilon}_{c} - \hat{\epsilon}_{u})
+            \]</div>
+            <p>
+              这里的 \(\hat{\epsilon}_u\) 是无条件预测，\(\hat{\epsilon}_c\) 是有条件预测，\(s\) 是 guidance 强度。
+              你不用先背它的推导，只需要记住：
+              <strong>这代表一种“把模型往条件方向拉近”的机制。</strong>
+            </p>
+            <p>
+              这也解释了为什么“guidance 固定住了没有”会成为区分 base 与 distilled 的重要线索。
+            </p>
+          </div>
+        </details>
+      </section>
+
+      <section class="section" id="training-gap">
+        <h2>五、为什么这个仓库不能直接当训练仓库</h2>
+        <p>
+          讲到这里，你应该已经能看懂系统的主要部件了。下一步最重要的不是更深入推理，而是防止自己产生幻觉：
+          <strong>“既然这里有 model、sampler、autoencoder，那是不是离 trainer 就差一点？”</strong>
+          不是。
+        </p>
+        <div class="big-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>训练系统必须有的东西</th>
+                <th>为什么它重要</th>
+                <th>当前官方仓库的状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>数据管线</td>
+                <td>没有数据读入、清洗、批处理，就没有训练入口。</td>
+                <td>没有提供公开的数据训练入口。</td>
+              </tr>
+              <tr>
+                <td>优化器 / scheduler</td>
+                <td>没有参数更新机制，训练不会发生。</td>
+                <td>当前重心是加载现成权重，并未暴露训练循环。</td>
+              </tr>
+              <tr>
+                <td>loss loop</td>
+                <td>没有 forward-loss-backward-step 的持续过程，就不是 trainer。</td>
+                <td>当前闭环是推理、采样、解码、保存图片。</td>
+              </tr>
+              <tr>
+                <td>checkpoint 管理</td>
+                <td>研究需要保存、恢复、比较不同阶段。</td>
+                <td>这里只有下载与加载公开权重的路径。</td>
+              </tr>
+              <tr>
+                <td>验证与评测</td>
+                <td>没有指标，就无法判断改动究竟变好还是变坏。</td>
+                <td>仓库没有公开训练验证框架。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout">
+          <strong>你现在只要会说这句话就够了：</strong>
+          “这个仓库非常适合确认契约与推理耦合点，但如果我要做真正训练研究，我还需要另一个训练向代码库，或者一个很重的 fork。”
+        </div>
+      </section>
+
+      <section class="section" id="research-start">
+        <h2>六、读完这里，立刻选下一页</h2>
+        <p>
+          到这里先不要在本页继续展开路线细节。第一次读时，你只需要完成一个分流：
+          你现在最缺的是<strong>第一次选路</strong>、<strong>进一步吃透契约</strong>，还是<strong>把训练缺口列清楚</strong>？
+        </p>
+        <div class="three-col">
+          <article class="card good">
+            <h3>如果你最缺“第一次选路”</h3>
+            <p>
+              去读 <a href="./0004-pick-your-first-research-path.html">0004</a>。那页只做一件事：帮你决定先保契约、直接训练向 fork，还是暂时别急着打破契约。
+            </p>
+          </article>
+          <article class="card">
+            <h3>如果你最缺“进一步吃透契约”</h3>
+            <p>
+              去读 <a href="./0001-find-the-latent-contract.html">0001</a>。那页会把 latent contract 单独拆出来，不要求你同时处理总览和迁移问题。
+            </p>
+          </article>
+          <article class="card warn">
+            <h3>如果你最缺“训练缺口清单”</h3>
+            <p>
+              先去读 <a href="./0002-map-the-training-gaps.html">0002</a>。那页会先把“它不是训练仓库”拆成结构化缺口；等你在 <a href="./0004-pick-your-first-research-path.html">0004</a> 选完路，再进 <a href="./0012-from-repo-understanding-to-training-fork.html">0012</a> 做迁移动作。
+            </p>
+          </article>
+        </div>
+        <div class="evidence-box">
+          <strong>可见证据：</strong>
+          这里不再展开路线 A / B / C 的完整说服，是因为首次读者最主要的负担来自“入口、机制、选路”三件事同时出现。
+          <strong>边界：</strong>
+          “通常先看 <code>0004</code> 再进 <code>0012</code>”是本课程的阅读压缩策略，不是官方仓库章节顺序。
+          <strong>置信度：</strong> 中高。
+        </div>
+      </section>
+
+      <section class="section" id="checkpoints">
+        <h2>七、第一次读到这里就够了</h2>
+        <ol>
+          <li>你能一句话说出：`flux2` 是最小推理仓库，不是公开训练栈。</li>
+          <li>你知道四大部件各自做什么，以及 latent contract 至少有三层约束。</li>
+          <li>你知道下一页应该去哪里，而不是继续在这页硬扛更多细节。</li>
+        </ol>
+        <div class="callout">
+          <strong>如果你现在还说不顺这 3 句，没关系。</strong>
+          回到侧边栏的阅读路线，从“先定边界”重新走一遍。第一次阅读的目标不是全懂，而是把主线和下一步走稳。
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>八、主资料与下一步</h2>
+        <div class="two-col">
+          <article class="card good">
+            <h3>这页的主资料</h3>
+            <p>
+              如果你这轮只选一份外部材料，优先读
+              <a href="https://bfl.ai/blog/flux2-klein-towards-interactive-visual-intelligence">BFL 的 FLUX.2 klein 发布说明</a>。
+              它最直接地解释了为什么官方同时保留 base 与 distilled 两类角色，也最贴近“研究准备从哪里起步”这个决策背景。
+            </p>
+          </article>
+          <article class="card">
+            <h3>读完后最好的下一步</h3>
+            <p>
+              如果你还没做第一次选路，去读 <a href="./0004-pick-your-first-research-path.html">0004</a>。
+              如果你已经选完路线，直接去 <a href="./0012-from-repo-understanding-to-training-fork.html">0012</a> 把它翻成迁移动作和缺口清单。
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section appendix" id="appendix">
+        <h2>可跳过的源码附录：第一次读请直接略过</h2>
+        <p class="mini-note">
+          下面这些入口是给已经读懂正文、想回到实现层确认细节的人准备的。你完全可以不看它们，也不影响理解这页主线；如果你现在只是第一次建立全局图，请停在上一节就够了。
+        </p>
+        <details>
+          <summary>这页主要依赖了哪些本地文件</summary>
+          <ul>
+            <li><code>README.md</code>：模型家族、仓库定位、官方推荐使用方式</li>
+            <li><code>src/flux2/util.py</code>：模型注册表、`base` / distilled 的默认参数</li>
+            <li><code>src/flux2/autoencoder.py</code>：latent 打包与解包</li>
+            <li><code>src/flux2/sampling.py</code>：时间步、CFG、KV cache 路径</li>
+            <li><code>docs/flux2_klein_kv_cache.md</code>：KV cache 的官方说明</li>
+            <li><code>docs/flux2_with_prompt_upsampling.md</code>：prompt upsampling 的官方说明</li>
+          </ul>
+        </details>
+        <details>
+          <summary>关键实现锚点</summary>
+          <ul>
+            <li><code>src/flux2/util.py:15-87</code>：`FLUX2_MODEL_INFO` 定义模型家族与默认参数</li>
+            <li><code>src/flux2/autoencoder.py:314-335</code>：encode / decode 的通道重排</li>
+            <li><code>src/flux2/model.py:10-49</code>：各模型的 `in_channels = 128`</li>
+            <li><code>scripts/cli.py:437-440</code>：按 <code>height // 16</code> / <code>width // 16</code> 分配噪声</li>
+            <li><code>src/flux2/sampling.py:269-410</code>：`denoise`、`denoise_cached`、`denoise_cfg`</li>
+          </ul>
+        </details>
+        <details>
+          <summary>这页正文主要引用的一手外部资料</summary>
+          <ul>
+            <li><a href="https://github.com/black-forest-labs/flux2">官方 GitHub 仓库</a></li>
+            <li><a href="https://bfl.ai/blog/flux2-klein-towards-interactive-visual-intelligence">BFL 的 FLUX.2 klein 发布说明</a></li>
+            <li><a href="https://bfl.ai/research/representation-comparison">BFL 的 representation comparison</a></li>
+            <li><a href="https://huggingface.co/black-forest-labs/FLUX.2-dev">FLUX.2-dev model card</a></li>
+            <li><a href="https://huggingface.co/blog/flux-2">Hugging Face 的 FLUX.2 diffusers 指南</a></li>
+          </ul>
+        </details>
+      </section>
+    </main>
+
+    <aside class="side">
+      <section class="side-panel">
+        <h3>阅读路线</h3>
+        <ol>
+          <li><a href="#boundary">先定边界</a></li>
+          <li><a href="#overview">再看四大部件</a></li>
+          <li><a href="#families">再分模型家族</a></li>
+          <li><a href="#latent">抓住 latent contract</a></li>
+          <li><a href="#training-gap">确认训练缺口</a></li>
+          <li><a href="#research-start">最后只选下一页</a></li>
+        </ol>
+      </section>
+      <section class="side-panel">
+        <h3>首轮配套页</h3>
+        <ul>
+          <li><a href="./0004-pick-your-first-research-path.html">0004：先做第一次选路</a></li>
+          <li><a href="./0001-find-the-latent-contract.html">0001：只讲 latent contract</a></li>
+          <li><a href="./0002-map-the-training-gaps.html">0002：只讲训练缺口</a></li>
+          <li><a href="../reference/0006-research-route-decision-tree.html">0006：一页式决策树</a></li>
+        </ul>
+      </section>
+      <section class="side-panel">
+        <h3>你现在不需要焦虑的事</h3>
+        <ul>
+          <li>不需要先读源码</li>
+          <li>不需要先读完整论文</li>
+          <li>不需要一开始就决定训练路线</li>
+          <li>先抓住一个判断，再进下一层</li>
+        </ul>
+      </section>
+    </aside>
+  </div>
+
+  <script>
+    (() => {
+      const container = document.getElementById("system-viz");
+      const nodeEls = {
+        text: document.querySelector('[data-node="text"]'),
+        transformer: document.querySelector('[data-node="transformer"]'),
+        sampler: document.querySelector('[data-node="sampler"]'),
+        ae: document.querySelector('[data-node="ae"]')
+      };
+      const focusHighlights = {
+        all: ["text", "transformer", "sampler", "ae"],
+        text: ["text", "transformer"],
+        transformer: ["transformer", "sampler"],
+        ae: ["ae", "transformer"]
+      };
+      const applyFocusVisuals = (focus) => {
+        const active = new Set(focusHighlights[focus] || focusHighlights.all);
+        Object.entries(nodeEls).forEach(([name, el]) => {
+          if (!el) return;
+          el.classList.toggle("active", active.has(name));
+          el.classList.toggle("dim", !active.has(name));
+        });
+      };
+
+      let focus = "all";
+      document.querySelectorAll(".viz-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          focus = button.dataset.focus;
+          document.querySelectorAll(".viz-button").forEach((btn) => btn.classList.remove("active"));
+          button.classList.add("active");
+          applyFocusVisuals(focus);
+          if (!window.THREE) return;
+          targetPos.set(...focusConfig[focus].pos);
+          targetLook.set(...focusConfig[focus].look);
+        });
+      });
+      applyFocusVisuals(focus);
+
+      if (!container || !window.THREE) return;
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+      camera.position.set(0, 1.8, 9);
+
+      const ambient = new THREE.AmbientLight(0xffffff, 1.5);
+      scene.add(ambient);
+      const point = new THREE.PointLight(0xfaf5ec, 1.6);
+      point.position.set(5, 6, 6);
+      scene.add(point);
+
+      const root = new THREE.Group();
+      scene.add(root);
+
+      const blocks = [];
+
+      const makeBlock = (name, color, pos, size) => {
+        const mesh = new THREE.Mesh(
+          new THREE.BoxGeometry(size[0], size[1], size[2]),
+          new THREE.MeshStandardMaterial({
+            color,
+            roughness: 0.35,
+            metalness: 0.08
+          })
+        );
+        mesh.position.set(...pos);
+        mesh.userData.name = name;
+        root.add(mesh);
+        blocks.push(mesh);
+        return mesh;
+      };
+
+      makeBlock("text", 0xc8694f, [-2.8, 1.3, 0], [1.6, 1.2, 1.1]);
+      makeBlock("transformer", 0x2e7d73, [0, 0, 0], [3.1, 1.8, 1.6]);
+      makeBlock("sampler", 0xd49a38, [2.6, 1.45, 0.25], [1.5, 1.1, 1.0]);
+      makeBlock("ae", 0x5d718d, [0, -2.05, 0], [2.4, 1.1, 1.2]);
+
+      const arrows = new THREE.Group();
+      root.add(arrows);
+      const arrowMaterial = new THREE.MeshStandardMaterial({ color: 0x6d645f, roughness: 0.65 });
+      const addArrow = (from, to) => {
+        const dir = new THREE.Vector3().subVectors(to, from);
+        const len = dir.length();
+        const shaft = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.05, 0.05, len, 10),
+          arrowMaterial
+        );
+        shaft.position.copy(from).add(to).multiplyScalar(0.5);
+        shaft.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+        arrows.add(shaft);
+      };
+      addArrow(new THREE.Vector3(-2.0, 1.0, 0), new THREE.Vector3(-0.9, 0.4, 0));
+      addArrow(new THREE.Vector3(1.55, 0.65, 0.1), new THREE.Vector3(2.0, 1.05, 0.15));
+      addArrow(new THREE.Vector3(0, -0.95, 0), new THREE.Vector3(0, -1.48, 0));
+
+      const fit = () => {
+        const rect = container.getBoundingClientRect();
+        renderer.setSize(rect.width, rect.height);
+        camera.aspect = rect.width / rect.height;
+        camera.updateProjectionMatrix();
+      };
+      fit();
+      window.addEventListener("resize", fit);
+
+      const focusConfig = {
+        all: { pos: [0, 1.8, 9], look: [0, 0, 0] },
+        text: { pos: [-3.5, 2.0, 6.2], look: [-2.7, 1.2, 0] },
+        transformer: { pos: [0, 1.2, 6.4], look: [0, 0, 0] },
+        ae: { pos: [0.4, -0.3, 6.4], look: [0, -2.0, 0] }
+      };
+      const targetPos = new THREE.Vector3(...focusConfig.all.pos);
+      const targetLook = new THREE.Vector3(...focusConfig.all.look);
+
+      const animate = () => {
+        requestAnimationFrame(animate);
+        root.rotation.y += 0.0032;
+        camera.position.lerp(targetPos, 0.06);
+        camera.lookAt(targetLook);
+        renderer.render(scene, camera);
+      };
+      animate();
+    })();
+  </script>
+</body>
+</html>

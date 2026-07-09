@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课程 0002：把训练缺口画出来</title>
+  <style>
+    :root {
+      --bg: #f4eee4;
+      --panel: rgba(255, 251, 245, 0.88);
+      --ink: #221c19;
+      --muted: #665c54;
+      --line: #d9ccbe;
+      --accent: #7a341d;
+      --accent-2: #1c5d52;
+      --good: #155d3a;
+      --bad: #8e2f2f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "PingFang SC", "Noto Serif SC", "Songti SC", "STSong", serif;
+      background:
+        radial-gradient(circle at top left, #fff9f0 0, transparent 30%),
+        linear-gradient(180deg, #f8f2e8 0%, var(--bg) 100%);
+      line-height: 1.68;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 44px 24px 80px;
+    }
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.8rem;
+      color: var(--accent);
+      margin: 0 0 12px;
+    }
+    h1, h2, h3 { line-height: 1.15; margin: 0 0 14px; }
+    h1 { font-size: clamp(2.4rem, 5vw, 4rem); }
+    h2 { margin-top: 34px; font-size: 1.48rem; }
+    h3 { font-size: 1.1rem; }
+    p, li { font-size: 1.03rem; }
+    .lede {
+      font-size: 1.16rem;
+      color: var(--muted);
+      max-width: 63ch;
+    }
+    nav {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 22px 0 28px;
+    }
+    nav a, a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(122, 52, 29, 0.35);
+    }
+    .callout, .quiz, .panel, .practice, .grid-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: 0 14px 34px rgba(54, 40, 33, 0.08);
+    }
+    .callout, .panel, .practice {
+      padding: 18px 18px 16px;
+      margin-top: 18px;
+    }
+    .panel strong, .callout strong { color: var(--accent-2); }
+    code {
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      font-size: 0.92em;
+      background: rgba(31, 26, 23, 0.06);
+      padding: 0.08rem 0.3rem;
+      border-radius: 6px;
+    }
+    ul, ol { padding-left: 22px; }
+    .triptych {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .grid-card {
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.45);
+    }
+    .quiz {
+      padding: 18px;
+      margin-top: 18px;
+    }
+    .choices {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    button {
+      width: 100%;
+      text-align: left;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fffaf5;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+    button:hover {
+      transform: translateY(-1px);
+      border-color: #c9b09c;
+      background: #fffdf9;
+    }
+    .feedback {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      display: none;
+    }
+    .feedback.good {
+      display: block;
+      background: rgba(20, 95, 61, 0.10);
+      color: var(--good);
+      border: 1px solid rgba(20, 95, 61, 0.25);
+    }
+    .feedback.bad {
+      display: block;
+      background: rgba(143, 45, 45, 0.10);
+      color: var(--bad);
+      border: 1px solid rgba(143, 45, 45, 0.25);
+    }
+    .next {
+      margin-top: 30px;
+      padding: 18px;
+      border-left: 4px solid var(--accent-2);
+      background: rgba(28, 93, 82, 0.06);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">课程 0002</p>
+    <h1>把训练缺口画出来</h1>
+    <p class="lede">
+      这节课的目标不是教你怎么训练 FLUX.2，而是让你不再把“最小推理仓库”误读成“差一点就能训练的仓库”。
+      这是做 VAE / 训练研究准备时第二个必须过的关。
+    </p>
+
+    <nav>
+      <a href="../course-map.html">课程总地图</a>
+      <a href="./0003-flux2-system-masterclass.html">返回总览大课</a>
+      <a href="../reference/0003-training-gap-checklist.html">训练缺口清单</a>
+      <a href="./0001-find-the-latent-contract.html">课程 0001</a>
+    </nav>
+
+    <section class="callout">
+      <strong>和使命的关系：</strong>
+      你现在不是要立刻写 trainer，而是要先知道 trainer 缺了哪些骨头。只有这样，后面才不会把时间浪费在“这个仓库里明明根本没有的东西”上。
+    </section>
+
+    <section>
+      <h2>这节课只学一个技能</h2>
+      <p>
+        学会用“文件树 + 入口脚本 + 运行闭环”三板斧，快速判断一个仓库到底是推理仓库、训练仓库，还是两者兼有。
+      </p>
+      <div class="triptych">
+        <article class="grid-card">
+          <h3>看文件树</h3>
+          <p>
+            当前仓库公开出来的主体实现几乎都围绕“加载模型、采样、解码、保存图片”这条推理闭环展开，没有成型的 dataset、trainer、checkpoint manager 一类模块。
+          </p>
+        </article>
+        <article class="grid-card">
+          <h3>看入口脚本</h3>
+          <p>
+            CLI 的主线是“加载模型 -> 采样 -> 解码 -> 保存图片”，而不是“取 batch -> 算 loss -> backward -> step”。
+          </p>
+        </article>
+        <article class="grid-card">
+          <h3>看运行闭环</h3>
+          <p>
+            这个仓库的闭环产物是一张生成图，而不是训练 checkpoint、训练日志或验证指标。
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="practice">
+      <h2>实操：用三步排除幻觉</h2>
+      <ol>
+        <li>从仓库根目录往下看，确认有没有和 dataset / trainer / checkpoint 直接相关的模块目录。</li>
+        <li>在本页底部源码附录里找到“命令入口”的那组证据，确认它的结束动作是不是“保存图片”。</li>
+        <li>再找到“模型注册与权重加载”的那组证据，确认它解决的是“如何拿到并加载权重”，而不是“如何训练并保存新权重”。</li>
+      </ol>
+      <div class="panel">
+        <strong>检查点：</strong> 如果一个仓库没有训练入口、没有训练循环、没有训练状态管理，那它就不是“只差一点”的训练系统。
+      </div>
+    </section>
+
+    <section>
+      <h2>你现在应该形成的判断</h2>
+      <ul>
+        <li><code>flux2</code> 的价值在于帮你确认契约和推理耦合点。</li>
+        <li>真正的训练工程，至少还需要数据、优化器、训练循环、checkpoint 管理、验证与指标。</li>
+        <li>对你的使命来说，最合理的动作不是盲写 trainer，而是先选研究起点，再决定要不要另起代码库或重 fork。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>快速小测</h2>
+
+      <div class="quiz">
+        <h3>1. 下面哪一项最能直接说明“这个仓库不是训练仓库”？</h3>
+        <div class="choices">
+          <button data-target="q1" data-correct="yes" data-msg="对。主入口没有训练循环，只有推理和保存图片的闭环。">缺少循环</button>
+          <button data-target="q1" data-msg="不对。README 长短不能说明是不是训练仓库。">README长短</button>
+          <button data-target="q1" data-msg="不对。图片资产多少不是关键证据。">图片数量</button>
+          <button data-target="q1" data-msg="不对。许可证类型不是训练与否的核心判断。">许可证型</button>
+        </div>
+        <div id="q1" class="feedback"></div>
+      </div>
+
+      <div class="quiz">
+        <h3>2. 如果你要尽量少踩联动面，哪个起点更适合先做训练准备？</h3>
+        <div class="choices">
+          <button data-target="q2" data-correct="yes" data-msg="对。klein-base-4b 体量更小，同时保留 base 路径，是更干净的训练准备起点。">4b-base起</button>
+          <button data-target="q2" data-msg="不优先。distilled klein 更像推理优化结果，不是首选训练准备入口。">4b-dist起</button>
+          <button data-target="q2" data-msg="太重。dev 很强，但不是最低摩擦的第一站。">dev直接起</button>
+          <button data-target="q2" data-msg="不对。OpenRouter 只跟 prompt upsampling 相关。">router先起</button>
+        </div>
+        <div id="q2" class="feedback"></div>
+      </div>
+
+      <div class="quiz">
+        <h3>3. 下列哪一项最可能必须在仓库外补齐？</h3>
+        <div class="choices">
+          <button data-target="q3" data-correct="yes" data-msg="对。数据管线是训练系统的地基，而这个仓库没有提供。">数据管线</button>
+          <button data-target="q3" data-msg="不对。模型注册表这一层在仓库里已经有。">模型注册</button>
+          <button data-target="q3" data-msg="不对。AE 编解码代码已经在仓库里。">AE编解码</button>
+          <button data-target="q3" data-msg="不对。采样逻辑这一层在仓库里已经存在。">采样逻辑</button>
+        </div>
+        <div id="q3" class="feedback"></div>
+      </div>
+    </section>
+
+    <section class="next">
+      <strong>下一份主资料：</strong>
+      先回头精读官方仓库根目录和 <a href="https://github.com/black-forest-labs/flux2">GitHub 仓库</a>，然后对照
+      <a href="https://huggingface.co/blog/flux-2">Hugging Face 的 FLUX.2 diffusers 指南</a>。
+      带着一个问题读：哪些“为了跑起来”加入的工程补丁，并不能替代真实训练基础设施？
+    </section>
+
+    <section class="next">
+      <strong>继续问我。</strong>
+      很适合接着问的问题有：
+      “如果我要起一个最小训练 fork，目录应该怎么切？”
+      “为什么 `klein-base-4b` 比 `flux.2-dev` 更适合作为第一站？”
+      “如果我只想研究 VAE，哪些模块可以暂时不碰？”
+    </section>
+
+    <section class="next">
+      <details>
+        <summary><strong>源码附录：想核对实现层时再展开</strong></summary>
+        <ul>
+          <li><code>scripts/cli.py</code>：主闭环是加载、采样、解码、保存图片</li>
+          <li><code>src/flux2/util.py:15-87</code>：模型注册表与默认参数</li>
+          <li><code>README.md</code>：官方公开定位就是 minimal inference code</li>
+          <li><code>docs/flux2_dev_hf.md</code>：展示的是部署与量化路径，不是训练基础设施</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+
+  <script>
+    document.querySelectorAll("button[data-target]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const target = document.getElementById(button.dataset.target);
+        const correct = button.dataset.correct === "yes";
+        target.textContent = button.dataset.msg;
+        target.className = "feedback " + (correct ? "good" : "bad");
+      });
+    });
+  </script>
+</body>
+</html>

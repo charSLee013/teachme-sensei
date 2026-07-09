@@ -14,6 +14,8 @@
   --ideo-soft: rgba(165, 74, 42, 0.1);
   --anima: #6b5b95;
   --anima-soft: rgba(107, 91, 149, 0.11);
+  --flux2: #7a4b2f;
+  --flux2-soft: rgba(122, 75, 47, 0.12);
   --ok: #136e52;
   --shadow: 0 18px 44px rgba(23, 32, 42, 0.08);
   --display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
@@ -228,7 +230,7 @@ body[data-lang="en"] .lang-zh {
 
 .courses {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -254,6 +256,10 @@ body[data-lang="en"] .lang-zh {
 
 .course-panel.anima {
   border-top: 4px solid var(--anima);
+}
+
+.course-panel.flux2 {
+  border-top: 4px solid var(--flux2);
 }
 
 .panel-top {
@@ -299,6 +305,12 @@ body[data-lang="en"] .lang-zh {
   background: var(--anima-soft);
   color: var(--anima);
   border-color: rgba(107, 91, 149, 0.18);
+}
+
+.badge.flux2 {
+  background: var(--flux2-soft);
+  color: var(--flux2);
+  border-color: rgba(122, 75, 47, 0.2);
 }
 
 .badge.ok {
@@ -407,6 +419,12 @@ body[data-lang="en"] .lang-zh {
   color: #fff;
 }
 
+.button.primary.flux2 {
+  background: var(--flux2);
+  border-color: var(--flux2);
+  color: #fff;
+}
+
 .button:hover {
   text-decoration: none;
 }
@@ -441,6 +459,10 @@ body[data-lang="en"] .lang-zh {
   grid-template-columns: 180px repeat(3, minmax(0, 1fr));
 }
 
+.compare.four {
+  grid-template-columns: 180px repeat(4, minmax(0, 1fr));
+}
+
 .compare div {
   padding: 14px 16px;
   border-right: 1px solid var(--line);
@@ -459,6 +481,18 @@ body[data-lang="en"] .lang-zh {
   border-right: 0;
 }
 
+.compare.four div:nth-child(3n) {
+  border-right: 1px solid var(--line);
+}
+
+.compare.four div:nth-child(4n) {
+  border-right: 1px solid var(--line);
+}
+
+.compare.four div:nth-child(5n) {
+  border-right: 0;
+}
+
 .compare div:last-child,
 .compare div:nth-last-child(2),
 .compare div:nth-last-child(3) {
@@ -466,6 +500,11 @@ body[data-lang="en"] .lang-zh {
 }
 
 .compare.three div:nth-last-child(4) {
+  border-bottom: 0;
+}
+
+.compare.four div:nth-last-child(4),
+.compare.four div:nth-last-child(5) {
   border-bottom: 0;
 }
 

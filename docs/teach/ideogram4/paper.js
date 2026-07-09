@@ -11,8 +11,8 @@ function mountPaperChrome(active) {
     ["05-transformer-architecture.html", "transformer", "Transformer 架构"],
     ["06-json-caption-protocol.html", "json_caption", "JSON Caption 协议"],
     ["07-training-public-record.html", "training_record", "公开训练信息"],
-    ["appendix/module-index.html", "module_index", "系统模块索引"],
-    ["appendix/evidence.html", "evidence", "依据说明"]
+    ["appendix/module-index.html", "module_index", "源码系统地图"],
+    ["appendix/evidence.html", "evidence", "怎么判断依据"]
   ];
   const links = nav.map(([href, key, label]) => {
     const current = key === active ? ' aria-current="page"' : "";

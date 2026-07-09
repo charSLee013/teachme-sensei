@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考 0004：模型家族与许可矩阵</title>
+  <style>
+    body { margin:0; background:#f5efe6; color:#221b18; font-family:"PingFang SC","Noto Serif SC","Songti SC",serif; line-height:1.68; }
+    main { width:min(1080px,calc(100vw - 28px)); margin:0 auto; padding:34px 0 70px; }
+    .panel { background:rgba(255,251,245,.95); border:1px solid #dbcec0; border-radius:20px; box-shadow:0 14px 34px rgba(58,43,34,.08); padding:24px 26px; margin-bottom:20px; }
+    h1,h2 { line-height:1.14; margin:0 0 14px; } h1 { font-size:clamp(2rem,4vw,3.2rem); } h2 { font-size:1.45rem; }
+    .eyebrow { text-transform:uppercase; letter-spacing:.12em; color:#8c3a21; font-size:.82rem; margin:0 0 10px; } .lede { color:#655b52; font-size:1.1rem; max-width:70ch; }
+    .table-wrap { overflow-x:auto; border:1px solid #dbcec0; border-radius:18px; background:rgba(255,255,255,.55); }
+    table { width:100%; border-collapse:collapse; min-width:860px; } th,td { text-align:left; vertical-align:top; padding:12px 13px; border-top:1px solid rgba(219,207,193,.8); } thead th { border-top:0; color:#655b52; font-size:.84rem; text-transform:uppercase; }
+    a { color:#1a615b; text-decoration:none; border-bottom:1px solid rgba(26,97,91,.35); }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <p class="eyebrow">参考 0004</p>
+      <h1>模型家族与许可矩阵</h1>
+      <p class="lede">这页只做一件事：把模型、定位、许可、gated 状态和推荐用途放到一张表里。它适合查，不适合当主线课读。</p>
+    </section>
+    <section class="panel">
+      <h2>矩阵</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>模型</th><th>名义参数量</th><th>定位</th><th>许可</th><th>gated</th><th>推荐用途</th></tr></thead>
+          <tbody>
+            <tr><td>`FLUX.2 [klein] 4B`</td><td>4B</td><td>最快、消费级 GPU、本地部署</td><td>Apache 2.0</td><td>否</td><td>实时应用、开放权重实验</td></tr>
+            <tr><td>`FLUX.2 [klein] 9B`</td><td>9B</td><td>小模型旗舰</td><td>FLUX NCL</td><td>是</td><td>高质量推理、研究参考</td></tr>
+            <tr><td>`FLUX.2 [klein] 9B KV`</td><td>9B</td><td>KV cache 分支</td><td>FLUX NCL</td><td>是</td><td>多参考编辑性能路线</td></tr>
+            <tr><td>`FLUX.2 [klein] Base 4B`</td><td>4B</td><td>undistilled foundation model</td><td>Apache 2.0</td><td>否</td><td>fine-tuning、LoRA、训练准备首站</td></tr>
+            <tr><td>`FLUX.2 [klein] Base 9B`</td><td>9B</td><td>更高质量 Base 路线</td><td>FLUX NCL</td><td>是</td><td>高质量研究起点</td></tr>
+            <tr><td>`FLUX.2 [dev]`</td><td>32B</td><td>更重的研究 / 开发路线</td><td>FLUX NCL</td><td>是</td><td>高质量本地研究</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>进一步说明请回到 <a href="../lessons/0010-model-family-licenses-and-boundaries.html">0010 主课</a>。</p>
+    </section>
+  </main>
+</body>
+</html>

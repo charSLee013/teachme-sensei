@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课程 0007：AE 与 latent 表示</title>
+  <style>
+    :root { --bg:#f5efe6; --paper:rgba(255,251,245,.95); --ink:#221b18; --muted:#655b52; --line:#dbcec0; --accent:#8c3a21; --teal:#1a615b; }
+    * { box-sizing:border-box; } body { margin:0; background:linear-gradient(180deg,#faf6ee 0%,var(--bg) 100%); color:var(--ink); font-family:"PingFang SC","Noto Serif SC","Songti SC",serif; line-height:1.72; }
+    main { width:min(980px,calc(100vw - 28px)); margin:0 auto; padding:38px 0 78px; } .panel,.card,.note { background:var(--paper); border:1px solid var(--line); border-radius:20px; box-shadow:0 14px 34px rgba(58,43,34,.08); }
+    .panel { padding:26px 28px; margin-bottom:20px; } .card { padding:18px; } .note { padding:16px 18px; margin-top:18px; border-left:4px solid var(--teal); } .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); margin-top:16px; }
+    h1,h2,h3 { line-height:1.14; margin:0 0 14px; } h1 { font-size:clamp(2.2rem,5vw,3.8rem); } h2 { font-size:1.6rem; } h3 { font-size:1.12rem; }
+    .eyebrow { text-transform:uppercase; letter-spacing:.12em; color:var(--accent); font-size:.82rem; margin:0 0 10px; } .lede { color:var(--muted); font-size:1.12rem; max-width:68ch; }
+    a { color:var(--teal); text-decoration:none; border-bottom:1px solid rgba(26,97,91,.35); } code { font-family:Menlo,Consolas,monospace; background:rgba(34,27,24,.06); border-radius:6px; padding:.08rem .3rem; }
+    .evidence { background:rgba(26,97,91,.08); border-left:4px solid var(--teal); border-radius:16px; padding:14px 16px; margin-top:16px; } details { margin-top:18px; } summary { cursor:pointer; color:var(--accent); font-weight:700; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <p class="eyebrow">课程 0007</p>
+      <h1>AE 与 latent 表示</h1>
+      <p class="lede">如果你的研究目标和 VAE 有关，这一课是整个教学包里最关键的机制课。它会把“AE 不只是压缩一下图片”这句话讲清楚。</p>
+      <div class="note"><strong>课程位置：</strong>这是从四对象进入表示层的第一课。它把 <a href="./0001-find-the-latent-contract.html">0001</a> 的契约警告展开成具体机制。</div>
+    </section>
+
+    <section class="panel">
+      <h2>记住什么</h2>
+      <ul>
+        <li>AE 决定的不只是重建质量，还决定 downstream 模块要接受怎样的 latent 表示。</li>
+        <li>当前仓库里的 128 通道不是一个随意数字，而是由 AE 参数与重排规则共同产生的。</li>
+        <li>如果你修改 latent 表示，最先动手的是 AE，但最先出问题的不一定只在 AE 内部。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>AE 在当前仓库里做了三件事</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>1. 压缩到基础 latent</h3>
+          <p>encoder 输出的是更基础的空间表示，尚未等于后面主干直接消费的最终 latent 形状。</p>
+        </article>
+        <article class="card">
+          <h3>2. 重新打包通道</h3>
+          <p><code>encode()</code> 会把基础表示按固定 patch 规则重排，这一步把 <code>z_channels=32</code> 变成后续需要的 128 通道。</p>
+        </article>
+        <article class="card">
+          <h3>3. 归一化 / 反归一化</h3>
+          <p>AE 不只是编码和解码，中间还有 BatchNorm 统计参与的 normalize / inv_normalize 约定。</p>
+        </article>
+      </div>
+      <div class="evidence"><strong>可见证据：</strong>本课的关键事实来自 <code>AutoEncoder.encode()</code> 与 <code>decode()</code> 的实现，以及参数中的 <code>z_channels=32</code> 与 <code>ps=[2,2]</code>。<strong>边界：</strong>“它因此会联动整个系统”属于迁移判断，不是 AE 文件单独直接宣称。</div>
+    </section>
+
+    <section class="panel">
+      <h2>为什么 VAE 改动会外溢</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>改通道数</h3>
+          <p>如果最终 latent 通道不再是 128，transformer 的输入投影就会首先失去匹配。</p>
+        </article>
+        <article class="card">
+          <h3>改空间缩放</h3>
+          <p>如果像素到 latent 的缩放比例不再与 /16 对齐，CLI 构造噪声与 reference image 路径都会错位。</p>
+        </article>
+        <article class="card">
+          <h3>改归一化统计</h3>
+          <p>哪怕通道数和网格大小不变，latent 分布改变也会影响采样时的稳定性与主干期望。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>研究迁移：什么时候可以把改动视为“局部”</h2>
+      <ol>
+        <li>最终 latent 仍保持 128 通道。</li>
+        <li>像素到 latent 的总缩放仍与 CLI 假设兼容。</li>
+        <li>token 化前的网格组织仍能被当前 sampler 正确展平。</li>
+      </ol>
+      <div class="note"><strong>一个安全启发：</strong>如果你此刻的研究重点是“先验证表示学习方向值不值得”，优先找“不破契约”的改动入口，而不是一上来就重定义 latent 形状。</div>
+    </section>
+
+    <section class="panel">
+      <h2>练习与检索</h2>
+      <ol>
+        <li>不用看源码，说清 128 通道是怎样由更基础 latent 通过重排得到的。</li>
+        <li>判断一个改动：如果你只换 AE 的 loss，但最终 latent 形状、缩放和归一化接口都不变，这更像局部改动还是联动改动？</li>
+        <li>判断另一个改动：如果你把 latent 通道改成 192，即便重建质量更好，为什么也不能说“我只改了 VAE”？</li>
+      </ol>
+      <div class="note"><strong>下一步：</strong>去读 <a href="./0008-sampler-schedule-and-cfg.html">0008</a>，看看 latent 一旦离开 AE，采样层如何继续把这套表示当成既定事实。</div>
+    </section>
+
+    <section class="panel">
+      <h2>证据附录</h2>
+      <details>
+        <summary>展开实现锚点</summary>
+        <ul>
+          <li><code>src/flux2/autoencoder.py</code>：`AutoEncoderParams`、`encode()`、`decode()`、`normalize()`、`inv_normalize()`。</li>
+          <li><code>scripts/cli.py</code>：噪声 shape 与 AE decode 的入口使用方式。</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FLUX.2 Latent 契约图</title>
+  <style>
+    :root {
+      --bg: #f2ecdf;
+      --panel: rgba(255, 250, 242, 0.85);
+      --ink: #221b18;
+      --muted: #66594f;
+      --line: #d9cbbb;
+      --accent: #1f6a5d;
+      --accent-soft: #d8ece6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, #f8f2e9 0%, var(--bg) 100%);
+      line-height: 1.65;
+    }
+    main {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 44px 24px 72px;
+    }
+    h1, h2, h3 { line-height: 1.15; }
+    h1 { font-size: clamp(2.2rem, 5vw, 3.7rem); margin: 0 0 12px; }
+    h2 { margin-top: 34px; font-size: 1.4rem; }
+    .lede { max-width: 65ch; color: var(--muted); font-size: 1.13rem; }
+    nav {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 24px 0 30px;
+    }
+    nav a, a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(31, 106, 93, 0.35); }
+    .flow, .table, .box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 14px 34px rgba(63, 51, 42, 0.08);
+    }
+    .flow {
+      padding: 20px;
+      overflow-x: auto;
+      white-space: pre;
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      font-size: 0.95rem;
+      margin-top: 16px;
+    }
+    .box {
+      padding: 18px 18px 16px;
+      margin-top: 18px;
+    }
+    .twocol {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+    }
+    th, td {
+      padding: 12px 10px;
+      border-top: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      font-size: 0.84rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    code {
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      font-size: 0.92em;
+      background: rgba(34, 27, 24, 0.06);
+      padding: 0.08rem 0.3rem;
+      border-radius: 6px;
+    }
+    ul { padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>FLUX.2 Latent 契约图</h1>
+    <p class="lede">
+      当你需要最短、但又不失真的答案来回答这个问题时，请看这页：
+      “如果我改 autoencoder，或者开始规划训练路线，这个仓库里还有哪些部分跟着被绑住了？”
+    </p>
+
+    <nav>
+      <a href="../course-map.html">课程总地图</a>
+      <a href="../lessons/0003-flux2-system-masterclass.html">总览大课</a>
+      <a href="../lessons/0001-find-the-latent-contract.html">课程 0001</a>
+      <a href="./0001-flux2-training-glossary.html">术语表</a>
+      <a href="./0003-training-gap-checklist.html">训练缺口清单</a>
+    </nav>
+
+    <section>
+      <h2>自顶向下的执行路径</h2>
+      <div class="flow">prompt / 输入图
+  -> 命令入口
+     -> 准备文本条件
+     -> 加载主模型与图像编解码器
+     -> 若有参考图，先编码成参考表示
+     -> 生成时间步与采样计划
+     -> 在 latent 空间里逐步去噪
+     -> 把 latent 解码回像素图
+     -> 输出最终图像</div>
+      <div class="box">
+        <strong>研究含义：</strong> 这个仓库的重心是推理编排，不是训练系统。它没有数据集代码、优化器配置、checkpoint 保存策略、评测循环，也没有分布式训练 plumbing。
+      </div>
+    </section>
+
+    <section>
+      <h2>当前被固定住的东西</h2>
+      <div class="twocol">
+        <article class="box">
+          <h3>Latent 形状假设</h3>
+          <ul>
+            <li><code>AutoEncoder.encode()</code> 会把 <code>z_channels=32</code> 的 latent 按 <code>ps=[2,2]</code> 重新打包。</li>
+            <li>这样一来，重排后的通道数就是 128。</li>
+            <li>CLI 也按 <code>(1, 128, height // 16, width // 16)</code> 分配初始噪声。</li>
+            <li>输入在编码前会先裁成 16 的倍数。</li>
+          </ul>
+        </article>
+        <article class="box">
+          <h3>模型侧期待</h3>
+          <ul>
+            <li>这个仓库里的每个模型参数 dataclass 都把 <code>in_channels = 128</code> 写死了。</li>
+            <li><code>img_in</code> 就是直接按这个契约搭出来的。</li>
+            <li>所以你一旦改 latent 通道数，面对的是联动模型手术，而不只是单独替换 AE。</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>模型家族选择会改变什么</h2>
+      <div class="table box">
+        <table>
+          <thead>
+            <tr>
+              <th>家族</th>
+              <th>为什么可能从这里起步</th>
+              <th>为什么它又不是“中性起点”</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>flux.2-klein-base-4b</code></td>
+              <td>官方仓库里最小的、还保留 base 路径的训练向起点。</td>
+              <td>它仍然继承 128 通道 latent 契约和 Qwen3 文本侧。</td>
+            </tr>
+            <tr>
+              <td><code>flux.2-klein-base-9b</code></td>
+              <td>更大的研究目标，同时保留 base 模型的灵活性。</td>
+              <td>硬件成本更高，但并不会自动补上这个仓库缺 trainer 的问题。</td>
+            </tr>
+            <tr>
+              <td><code>flux.2-dev</code></td>
+              <td>官方 32B 旗舰，也是最强参考 checkpoint。</td>
+              <td>硬件要求重，而且文本编码器分支换成了 Mistral。</td>
+            </tr>
+            <tr>
+              <td>Distilled <code>klein</code></td>
+              <td>非常适合做快速推理实验。</td>
+              <td>固定 4-step / fixed-guidance 的行为，使它更像推理产物，而不是训练研究首站。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>这个仓库没有提供什么</h2>
+      <div class="twocol">
+        <article class="box">
+          <h3>缺失的训练栈</h3>
+          <ul>
+            <li>没有 dataset loader</li>
+            <li>没有 optimizer 或 scheduler 配置</li>
+            <li>没有 gradient accumulation 或分布式启动器</li>
+            <li>没有 checkpoint 保存 / 恢复循环</li>
+            <li>没有验证或 benchmark harness</li>
+          </ul>
+        </article>
+        <article class="box">
+          <h3>这对研究意味着什么</h3>
+          <ul>
+            <li>你可以用它来找契约和推理耦合点。</li>
+            <li>但不能把它误认成一个现成的 VAE 或 DiT 训练框架。</li>
+            <li>大多数严肃训练工作都需要第二个代码库，或一个很重的 fork。</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>一手资料</h2>
+      <ul>
+        <li><a href="https://github.com/black-forest-labs/flux2">官方 FLUX.2 仓库</a></li>
+        <li><a href="https://bfl.ai/blog/flux2-klein-towards-interactive-visual-intelligence">BFL klein 发布说明</a></li>
+        <li><a href="https://bfl.ai/research/representation-comparison">BFL representation comparison</a></li>
+        <li><a href="https://huggingface.co/blog/flux-2">Hugging Face 的 FLUX.2 diffusers 指南</a></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>下一步</h2>
+      <div class="box">
+        如果你想把契约图翻成“仓库到底缺了什么”，下一页去 <a href="./0003-training-gap-checklist.html">0003 训练缺口清单</a>。
+        如果你已经准备决定研究起点，回到 <a href="../lessons/0004-pick-your-first-research-path.html">0004 选路课</a>。
+      </div>
+    </section>
+
+    <section class="box">
+      <details>
+        <summary><strong>源码附录：想把图和实现对齐时再展开</strong></summary>
+        <ul>
+          <li><code>src/flux2/autoencoder.py:293-325</code>：latent 通道与重排</li>
+          <li><code>src/flux2/model.py:10-49</code> 与 <code>src/flux2/model.py:56-70</code>：主模型的输入假设</li>
+          <li><code>scripts/cli.py:437-440</code>：噪声形状</li>
+          <li><code>src/flux2/sampling.py:159-175</code>：16 倍数裁切</li>
+          <li><code>src/flux2/util.py:15-87</code>：模型家族与默认参数</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

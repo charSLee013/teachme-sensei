@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FLUX.2 教学包总地图</title>
+  <style>
+    :root {
+      --bg: #f4efe6;
+      --paper: rgba(255, 251, 245, 0.94);
+      --ink: #221b18;
+      --muted: #62584f;
+      --line: #dbcfc1;
+      --accent: #8a3a22;
+      --teal: #175f59;
+      --teal-soft: #dff0eb;
+      --sand: #f8f1e7;
+      --shadow: 0 16px 38px rgba(64, 49, 39, 0.08);
+      --radius: 22px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.72), transparent 28%),
+        linear-gradient(180deg, #fbf6ef 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: "PingFang SC", "Noto Serif SC", "Songti SC", serif;
+      line-height: 1.72;
+    }
+    main {
+      width: min(1180px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 34px 0 80px;
+    }
+    .hero, .section, .card, .route, .note {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .hero { padding: 30px 30px 26px; margin-bottom: 22px; }
+    .section { padding: 26px 28px; margin-bottom: 22px; }
+    .eyebrow {
+      margin: 0 0 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--accent);
+      font-size: 0.82rem;
+    }
+    h1, h2, h3 { line-height: 1.14; margin: 0 0 14px; }
+    h1 { font-size: clamp(2.4rem, 5vw, 4.2rem); }
+    h2 { font-size: clamp(1.5rem, 3vw, 2.1rem); }
+    h3 { font-size: 1.15rem; }
+    .lede { color: var(--muted); font-size: 1.15rem; max-width: 68ch; }
+    .grid, .routes, .meta-grid {
+      display: grid;
+      gap: 16px;
+      margin-top: 18px;
+    }
+    .grid { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+    .routes { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .meta-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .card, .route, .note { padding: 18px; }
+    .route { background: rgba(255,255,255,0.72); }
+    .route strong, .card strong { color: var(--teal); }
+    a { color: var(--teal); text-decoration: none; border-bottom: 1px solid rgba(23,95,89,0.33); }
+    code {
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      background: rgba(34, 27, 24, 0.06);
+      border-radius: 6px;
+      padding: 0.08rem 0.28rem;
+      font-size: 0.92em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      min-width: 720px;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.55);
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 13px 14px;
+      border-top: 1px solid rgba(219, 207, 193, 0.8);
+    }
+    thead th {
+      border-top: 0;
+      color: var(--muted);
+      font-size: 0.84rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .remember {
+      margin-top: 18px;
+      padding: 16px 18px;
+      border-left: 4px solid var(--teal);
+      background: rgba(23,95,89,0.07);
+      border-radius: 16px;
+    }
+    .next {
+      margin-top: 18px;
+      padding: 16px 18px;
+      border-left: 4px solid var(--accent);
+      background: rgba(138,58,34,0.06);
+      border-radius: 16px;
+    }
+    .evidence {
+      margin-top: 18px;
+      padding: 16px 18px;
+      border-left: 4px solid var(--teal);
+      background: rgba(23,95,89,0.08);
+      border-radius: 16px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">FLUX.2 Teaching Pack</p>
+      <h1>FLUX.2 教学包总地图</h1>
+      <p class="lede">
+        这不是“读完几个 HTML 就算结束”的速读包，而是一套从仓库真相出发、最终过渡到 VAE / 训练研究准备的课程系统。
+        你可以把它当作一条中文学习主线：先看清仓库是什么，再弄懂契约和对象，最后决定研究起点与迁移方向。
+      </p>
+      <div class="remember">
+        <strong>先记住：</strong>
+        如果你现在只想带走一句话，那就是：<strong>这个仓库最值得学的不是某个脚本，而是把 AE、sampler、transformer 绑在一起的契约</strong>。
+      </div>
+      <div class="evidence">
+        <strong>记住什么：</strong>
+        这张地图的任务不是替代主课，而是告诉你“从哪里进、为什么这样进”。
+        <strong>为什么重要：</strong>
+        如果入口页没有把阅读路线和证据边界讲清楚，读者很容易在第一步就把产品家族、仓库身份和研究路线混成一团。
+        <strong>可见证据：</strong>
+        当前路线设计同时参考了公开资料、本地实现核对，以及多轮读者阅读后的误解集中点。
+        <strong>边界：</strong>
+        这里的三条路线是课程设计，不是官方仓库原生章节。
+      </div>
+      <div class="meta-grid">
+        <div class="card"><strong>学习节奏</strong><br>先建立总图，再深入机制，最后迁移到研究准备</div>
+        <div class="card"><strong>目标读者</strong><br>中文研究型读者；源码耐受低，但目标高</div>
+        <div class="card"><strong>课程原则</strong><br>对象先于文件树，证据边界先于判断</div>
+        <div class="card"><strong>最终结果</strong><br>能选研究起点、识别契约、理解仓库边界</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>三条阅读路线</h2>
+      <p>你不必一次读完全部内容。按你的当前任务进入最合适的路线。</p>
+      <div class="routes">
+        <article class="route">
+          <h3>路线 A：先建立全局图</h3>
+          <p><strong>适合：</strong>刚进入项目、容易被细节压垮的读者。</p>
+          <p><strong>顺序：</strong><a href="lessons/0003-flux2-system-masterclass.html">0003 入口总课</a> -> <a href="lessons/0001-find-the-latent-contract.html">0001 Latent Contract</a> -> <a href="lessons/0002-map-the-training-gaps.html">0002 训练缺口</a> -> <a href="lessons/0004-pick-your-first-research-path.html">0004 单决策页</a></p>
+        </article>
+        <article class="route">
+          <h3>路线 B：深入机制层</h3>
+          <p><strong>适合：</strong>你已经知道目标是 VAE / 训练研究，想先搞清仓库运行机制。</p>
+          <p><strong>顺序：</strong><a href="lessons/0005-cli-and-end-to-end-flow.html">0005 CLI 主流程</a> -> <a href="lessons/0006-four-core-objects.html">0006 四大对象</a> -> <a href="lessons/0007-autoencoder-and-latent-representation.html">0007 AE 与 latent</a> -> <a href="lessons/0008-sampler-schedule-and-cfg.html">0008 sampler</a> -> <a href="lessons/0009-transformer-streams-and-kv-cache.html">0009 transformer / KV</a></p>
+        </article>
+        <article class="route">
+          <h3>路线 C：迁移到研究决策</h3>
+          <p><strong>适合：</strong>你已经理解仓库大致结构，准备决定从哪个模型和哪种 fork 路线开始。</p>
+          <p><strong>顺序：</strong><a href="lessons/0010-model-family-licenses-and-boundaries.html">0010 模型家族与许可</a> -> <a href="lessons/0011-evidence-boundaries.html">0011 证据边界</a> -> <a href="lessons/0012-from-repo-understanding-to-training-fork.html">0012 迁移与缺口页</a> -> <a href="reference/0006-research-route-decision-tree.html">研究路线决策树</a></p>
+        </article>
+      </div>
+      <div class="next">
+        <strong>下一步：</strong> 如果你不确定从哪里开始，默认先读 <a href="lessons/0003-flux2-system-masterclass.html">0003</a>。
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>课程对象，而不是文件树</h2>
+      <p>本课程按教学对象组织，而不是按仓库目录组织。这样做的原因是：新读者真正要掌握的是“对象、契约、流程、边界和迁移”，不是背文件路径。</p>
+      <div class="grid">
+        <article class="card"><strong>仓库身份</strong><br>它是什么、它不是什么、为什么不能把 README 误读成训练系统说明。</article>
+        <article class="card"><strong>模型家族</strong><br>`klein`、`Base`、`dev` 与官方产品家族的关系。</article>
+        <article class="card"><strong>四大对象</strong><br>text encoder、autoencoder、sampler、transformer 的职责边界。</article>
+        <article class="card"><strong>共享契约</strong><br>latent 通道数、缩放倍率、token 组织、sampler 合约。</article>
+        <article class="card"><strong>运行过程</strong><br>从 prompt 到 output image 的完整闭环。</article>
+        <article class="card"><strong>研究迁移</strong><br>训练缺口、起点选择、fork 路线。</article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>章节总表</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>编号</th>
+              <th>标题</th>
+              <th>解决的问题</th>
+              <th>默认读者动作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>0001</td><td><a href="lessons/0001-find-the-latent-contract.html">找到 Latent Contract</a></td><td>什么是最硬的共享契约</td><td>判断一个改动是局部还是联动</td></tr>
+            <tr><td>0002</td><td><a href="lessons/0002-map-the-training-gaps.html">把训练缺口画出来</a></td><td>为什么它不是训练仓库</td><td>识别必须在仓库外补齐的层</td></tr>
+            <tr><td>0003</td><td><a href="lessons/0003-flux2-system-masterclass.html">FLUX.2 全局总课</a></td><td>先建立总图，再决定下一页</td><td>完成首次入口分流</td></tr>
+            <tr><td>0004</td><td><a href="lessons/0004-pick-your-first-research-path.html">选出第一条研究路径</a></td><td>从哪个模型和路线起步</td><td>做第一次研究决策</td></tr>
+            <tr><td>0005</td><td><a href="lessons/0005-cli-and-end-to-end-flow.html">CLI 与端到端主流程</a></td><td>入口脚本如何编排整个闭环</td><td>画出从输入到输出的流程图</td></tr>
+            <tr><td>0006</td><td><a href="lessons/0006-four-core-objects.html">四大核心对象</a></td><td>仓库到底由哪四个对象共同构成</td><td>用对象语言复述系统</td></tr>
+            <tr><td>0007</td><td><a href="lessons/0007-autoencoder-and-latent-representation.html">AE 与 latent 表示</a></td><td>VAE 改动为什么会外溢</td><td>检查你的改动会不会破契约</td></tr>
+            <tr><td>0008</td><td><a href="lessons/0008-sampler-schedule-and-cfg.html">Sampler、schedule 与 CFG</a></td><td>采样层怎样把条件组织起来</td><td>解释 denoising loop 在做什么</td></tr>
+            <tr><td>0009</td><td><a href="lessons/0009-transformer-streams-and-kv-cache.html">Transformer、双流与 KV cache</a></td><td>9B KV 为什么不是小优化</td><td>说清 reference token 如何进入主干</td></tr>
+            <tr><td>0010</td><td><a href="lessons/0010-model-family-licenses-and-boundaries.html">模型家族、许可与边界</a></td><td>产品叙事和本地实现之间有哪些边界</td><td>按需求选模型，不按名字猜</td></tr>
+            <tr><td>0011</td><td><a href="lessons/0011-evidence-boundaries.html">证据边界</a></td><td>哪些话是官方事实，哪些是课程重构</td><td>学会不把推断当事实</td></tr>
+            <tr><td>0012</td><td><a href="lessons/0012-from-repo-understanding-to-training-fork.html">从仓库理解到训练 fork</a></td><td>怎么把已选路线迁移成研究计划</td><td>列出你的训练向缺口清单</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>参考页</h2>
+      <div class="grid">
+        <article class="card"><strong><a href="reference/0001-flux2-training-glossary.html">0001 术语表</a></strong><br>给读者稳住名词，不让他们在第二次出现时就丢线。</article>
+        <article class="card"><strong><a href="reference/0002-flux2-latent-contract-map.html">0002 契约图</a></strong><br>让 latent contract 变成可视对象，而不只是口头警告。</article>
+        <article class="card"><strong><a href="reference/0003-training-gap-checklist.html">0003 缺口清单</a></strong><br>把“仓库没给你什么”结构化列出来。</article>
+        <article class="card"><strong><a href="reference/0004-model-family-and-license-matrix.html">0004 模型与许可矩阵</a></strong><br>把家族、gated、公开能力与许可放到一张表里。</article>
+        <article class="card"><strong><a href="reference/0005-object-and-contract-quick-reference.html">0005 对象速查</a></strong><br>四大对象、关键契约、最常见失效面。</article>
+        <article class="card"><strong><a href="reference/0006-research-route-decision-tree.html">0006 决策树</a></strong><br>按研究目标选择起点，而不是按直觉拍板。</article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

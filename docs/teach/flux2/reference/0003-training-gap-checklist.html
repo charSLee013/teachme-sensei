@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FLUX.2 训练缺口清单</title>
+  <style>
+    :root {
+      --bg: #f2ede3;
+      --panel: rgba(255, 251, 245, 0.88);
+      --ink: #221c19;
+      --muted: #6a5c54;
+      --line: #d6c9bb;
+      --accent: #2d5b84;
+      --warn: #8f3c1f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Noto Serif SC", "Songti SC", "STSong", serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #faf5ec 0%, var(--bg) 100%);
+      line-height: 1.68;
+    }
+    main {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 44px 24px 80px;
+    }
+    h1, h2, h3 { line-height: 1.15; }
+    h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); margin: 0 0 12px; }
+    h2 { margin-top: 34px; font-size: 1.42rem; }
+    .lede { color: var(--muted); max-width: 64ch; font-size: 1.12rem; }
+    nav {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 22px 0 28px;
+    }
+    nav a, a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(45, 91, 132, 0.35);
+    }
+    .panel, .table {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 14px 34px rgba(61, 48, 38, 0.08);
+      padding: 18px;
+      margin-top: 18px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border-top: 1px solid var(--line);
+      padding: 12px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      font-size: 0.84rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    code {
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      font-size: 0.92em;
+      background: rgba(34, 28, 25, 0.06);
+      padding: 0.08rem 0.3rem;
+      border-radius: 6px;
+    }
+    ul { padding-left: 20px; }
+    .warn { color: var(--warn); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>FLUX.2 训练缺口清单</h1>
+    <p class="lede">
+      这页不是讲“训练应该怎么做”，而是讲“你不能把什么当成已经有了”。
+      目的很简单：在规划 VAE 或训练研究之前，先把官方最小推理仓库和真实训练工程分开。
+    </p>
+
+    <nav>
+      <a href="../lessons/0003-flux2-system-masterclass.html">总览大课</a>
+      <a href="../lessons/0002-map-the-training-gaps.html">课程 0002</a>
+      <a href="../lessons/0001-find-the-latent-contract.html">课程 0001</a>
+      <a href="./0002-flux2-latent-contract-map.html">Latent 契约图</a>
+    </nav>
+
+    <section class="panel">
+      <strong>一句话版本：</strong>
+      这个仓库能告诉你“推理时契约如何连接”，但它不能直接告诉你“训练作业如何启动、如何喂数据、如何保存恢复、如何评估收敛”。
+    </section>
+
+    <section class="table">
+      <h2>训练工程最常见的五类缺口</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>缺口</th>
+            <th>为什么重要</th>
+            <th>在本仓库里的证据</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>数据管线</td>
+            <td>没有数据读入、清洗、采样、批处理，就没有训练入口。</td>
+            <td>仓库公开出来的主体实现几乎都围绕推理闭环展开，看不到成型的数据读入与批处理层。</td>
+          </tr>
+          <tr>
+            <td>优化器与调度器</td>
+            <td>没有优化器、学习率调度器，就没有参数更新过程。</td>
+            <td>公开入口和依赖侧都看不到典型的参数更新机制，说明它并不是一个已打开的训练作业。</td>
+          </tr>
+          <tr>
+            <td>训练循环</td>
+            <td>没有 forward-loss-backward-step 的循环，就没有训练系统。</td>
+            <td>CLI 只做推理：加载模型、采样、解码、保存图片。</td>
+          </tr>
+          <tr>
+            <td>checkpoint 管理</td>
+            <td>没有保存 / 恢复机制，研究无法稳定复现。</td>
+            <td>仓库只有 Hugging Face 权重下载逻辑，没有训练中间状态保存逻辑。</td>
+          </tr>
+          <tr>
+            <td>验证与评测</td>
+            <td>没有验证集和指标，无法判断 VAE 或训练改动到底有没有变好。</td>
+            <td>仓库没有 tests、benchmarks、validation harness，只有最小推理脚本和展示文档。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>研究上最容易踩的认知坑</h2>
+      <ul>
+        <li><span class="warn">坑 1：</span> 把 <code>base</code> 模型误认为“已经附带训练脚本”。实际上它只是更适合作为训练研究起点的 checkpoint 类型。</li>
+        <li><span class="warn">坑 2：</span> 把 diffusers 文档里的量化 / remote encoder 路线误认为“训练基础设施”。那是部署 workaround，不是 trainer。</li>
+        <li><span class="warn">坑 3：</span> 看到 autoencoder 代码就默认“VAE 微调很快能落地”。事实上只要 latent contract 一变，联动面就会迅速扩大。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>对你当前使命最有用的判断</h2>
+      <ul>
+        <li>如果你的目标是“先做准备”，这个仓库最适合拿来确认契约和起点，而不是直接拿来训练。</li>
+        <li>如果你的目标是“尽快上手训练相关实验”，更现实的路径往往是：保留这里的契约理解，另起一个训练向代码库或大 fork。</li>
+        <li>如果你想尽量少动联动面，优先考虑从 <code>flux.2-klein-base-4b</code> 出发，而不是先碰 distilled klein。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>下一步</h2>
+      <p>如果你已经接受“当前仓库不是训练栈”，下一页去 <a href="../lessons/0004-pick-your-first-research-path.html">0004 选出第一条研究路径</a>。如果你已经选过路线，直接去 <a href="../lessons/0012-from-repo-understanding-to-training-fork.html">0012</a> 把它翻成迁移动作。</p>
+    </section>
+
+    <section class="panel">
+      <details>
+        <summary><strong>源码附录：想核对“缺口判断”时再展开</strong></summary>
+        <ul>
+          <li><code>README.md</code>：官方自述是 minimal inference code</li>
+          <li><code>scripts/cli.py</code>：主闭环是推理而不是训练</li>
+          <li><code>src/flux2/util.py</code>：负责模型注册与加载，不负责训练状态管理</li>
+          <li><code>docs/flux2_dev_hf.md</code>：展示的是部署与量化路线，而不是训练栈</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

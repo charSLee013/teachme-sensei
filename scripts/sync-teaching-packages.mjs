@@ -10,6 +10,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { dirname, extname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -47,6 +48,22 @@ const packages = [
       "appendix/",
     ],
   },
+  {
+    label: "FLUX.2 course",
+    source: "/private/tmp/flux2",
+    target: resolve(teachRoot, "flux2"),
+    include: [
+      "course-map.html",
+      "lessons/",
+      "reference/0001-flux2-training-glossary.html",
+      "reference/0002-flux2-latent-contract-map.html",
+      "reference/0003-training-gap-checklist.html",
+      "reference/0004-model-family-and-license-matrix.html",
+      "reference/0005-object-and-contract-quick-reference.html",
+      "reference/0006-research-route-decision-tree.html",
+      "assets/",
+    ],
+  },
 ];
 
 const excludedNames = new Set([
@@ -72,6 +89,17 @@ function cleanDir(path) {
   mkdirSync(path, { recursive: true });
 }
 
+function runCommandOrThrow(command, args, label) {
+  const result = spawnSync(command, args, { encoding: "utf8" });
+  if (result.status !== 0) {
+    const output = [result.stdout, result.stderr].filter(Boolean).join("\n").trim();
+    throw new Error(`${label} failed${output ? `\n${output}` : ""}`);
+  }
+  if (result.stdout.trim()) {
+    console.log(result.stdout.trim());
+  }
+}
+
 function copySelected({ label, source, target, include }) {
   assertExists(source, label);
   cleanDir(target);
@@ -85,6 +113,18 @@ function copySelected({ label, source, target, include }) {
   }
 
   console.log(`[sync] ${label}: copied course whitelist`);
+}
+
+function verifyFlux2LearnerHtml(source) {
+  runCommandOrThrow(
+    "python3",
+    [resolve(source, "scripts/verify_learner_html.py"), "--root", source],
+    "FLUX.2 learner HTML gate",
+  );
+}
+
+function createFlux2EntryAlias(target) {
+  copyFileSync(resolve(target, "course-map.html"), resolve(target, "index.html"));
 }
 
 function escapeHtml(value) {
@@ -426,11 +466,23 @@ function syncAnima() {
   console.log(`[sync] ${label}: rendered ${files.length} course markdown files`);
 }
 
+function syncFlux2() {
+  const pkg = packages.find((entry) => entry.label === "FLUX.2 course");
+  if (!pkg) {
+    throw new Error("FLUX.2 package definition is missing");
+  }
+  verifyFlux2LearnerHtml(pkg.source);
+  copySelected(pkg);
+  createFlux2EntryAlias(pkg.target);
+}
+
 for (const item of packages) {
+  if (item.label === "FLUX.2 course") continue;
   copySelected(item);
 }
 
 syncAnima();
+syncFlux2();
 
 rmSync(resolve(docsRoot, "assets"), { recursive: true, force: true });
 mkdirSync(resolve(teachRoot, "assets"), { recursive: true });

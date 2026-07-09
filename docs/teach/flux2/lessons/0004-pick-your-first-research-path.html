@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课程 0004：选出你的第一条研究路径</title>
+  <style>
+    :root {
+      --bg: #f3ede3;
+      --panel: rgba(255, 251, 246, 0.9);
+      --ink: #211b18;
+      --muted: #675c54;
+      --line: #d7cabd;
+      --accent: #7f341d;
+      --accent-2: #195f54;
+      --good: #145c39;
+      --bad: #8c3131;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "PingFang SC", "Noto Serif SC", "Songti SC", "STSong", serif;
+      line-height: 1.7;
+      background:
+        radial-gradient(circle at top left, #fff8f0 0, transparent 30%),
+        linear-gradient(180deg, #f9f3ea 0%, var(--bg) 100%);
+    }
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 44px 24px 84px;
+    }
+    .eyebrow {
+      margin: 0 0 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.8rem;
+      color: var(--accent);
+    }
+    h1, h2, h3 {
+      line-height: 1.16;
+      margin: 0 0 14px;
+    }
+    h1 { font-size: clamp(2.2rem, 5vw, 3.8rem); }
+    h2 { margin-top: 34px; font-size: 1.5rem; }
+    h3 { font-size: 1.08rem; }
+    p, li { font-size: 1.03rem; }
+    .lede {
+      font-size: 1.16rem;
+      color: var(--muted);
+      max-width: 62ch;
+    }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 22px 0 28px;
+    }
+    nav a, a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(127, 52, 29, 0.35);
+    }
+    .panel, .quiz, .route {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: 0 14px 34px rgba(58, 43, 34, 0.08);
+    }
+    .panel, .quiz {
+      padding: 18px;
+      margin-top: 18px;
+    }
+    .route-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+    .route {
+      padding: 16px;
+      background: rgba(255,255,255,0.55);
+    }
+    .route strong {
+      color: var(--accent-2);
+    }
+    .choices {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    button {
+      width: 100%;
+      text-align: left;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fffaf6;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+    button:hover {
+      transform: translateY(-1px);
+      border-color: #c7af9a;
+      background: #fffdf9;
+    }
+    .feedback {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      display: none;
+    }
+    .feedback.good {
+      display: block;
+      background: rgba(20, 92, 57, 0.1);
+      color: var(--good);
+      border: 1px solid rgba(20, 92, 57, 0.22);
+    }
+    .feedback.bad {
+      display: block;
+      background: rgba(140, 49, 49, 0.1);
+      color: var(--bad);
+      border: 1px solid rgba(140, 49, 49, 0.22);
+    }
+    .next {
+      margin-top: 30px;
+      padding: 18px;
+      border-left: 4px solid var(--accent-2);
+      background: rgba(25, 95, 84, 0.06);
+    }
+    .evidence {
+      margin-top: 18px;
+      padding: 16px 18px;
+      border-left: 4px solid var(--accent-2);
+      background: rgba(25, 95, 84, 0.08);
+      border-radius: 16px;
+    }
+    .table-wrap {
+      margin-top: 18px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.6);
+    }
+    table {
+      width: 100%;
+      min-width: 720px;
+      border-collapse: collapse;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 13px 14px;
+      border-top: 1px solid rgba(215, 202, 189, 0.85);
+    }
+    thead th {
+      border-top: 0;
+      color: var(--muted);
+      font-size: 0.84rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    details {
+      margin-top: 18px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.55);
+      padding: 14px 16px;
+    }
+    summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    summary::-webkit-details-marker { display: none; }
+    code {
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      font-size: 0.92em;
+      background: rgba(33, 27, 24, 0.06);
+      padding: 0.08rem 0.3rem;
+      border-radius: 6px;
+    }
+    ul, ol { padding-left: 22px; }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">课程 0004</p>
+    <h1>选出你的第一条研究路径</h1>
+    <p class="lede">
+      这节课只解决一个实际决策：如果你已经知道 FLUX.2 不是训练仓库，那么你的第一站到底该是
+      “先稳住 VAE 契约”，还是“直接准备训练向 fork”？
+    </p>
+
+    <nav>
+      <a href="../course-map.html">课程总地图</a>
+      <a href="./0003-flux2-system-masterclass.html">返回总览大课</a>
+      <a href="./0001-find-the-latent-contract.html">课程 0001</a>
+      <a href="./0002-map-the-training-gaps.html">课程 0002</a>
+      <a href="../reference/0003-training-gap-checklist.html">训练缺口清单</a>
+    </nav>
+
+    <section class="panel">
+      <strong>和使命的关系：</strong>
+      你不是为了“懂了就结束”，而是为了把后续实验路线选对。路线一旦选错，后面几周都会浪费在错误摩擦上。
+    </section>
+
+    <section class="panel">
+      <h2>记住什么</h2>
+      <ul>
+        <li>这页给出的默认路线是“通常更稳”，不是“唯一正确”。</li>
+        <li>路线选择首先取决于你想不想保住 latent contract，而不是只看参数量大小。</li>
+        <li>一旦你决定直接打破契约，问题就会升级成系统级 fork。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>为什么重要</h2>
+      <p>
+        这页的重要性不在于它告诉你一个抽象观点，而在于它会直接影响你接下来几周的工程摩擦和实验设计路径。
+      </p>
+      <div class="evidence">
+        <strong>可见证据：</strong>
+        当前仓库把 Base 路线和 distilled 路线的 sampler 合约明确分开；官方 docs 与公开 model card 也把 Base 变体定位成 fine-tuning、LoRA、研究与自定义 pipeline。
+        <strong>边界：</strong>
+        “第一站经常先看 <code>klein-base-4b</code>”是课程重构后的工程迁移建议，不是官方唯一推荐。
+        <strong>置信度：</strong> 中高。
+      </div>
+    </section>
+
+    <section>
+      <h2>这节课只拿走一个结果</h2>
+      <p>
+        在当前工作区的使命下，最稳的默认起点通常不是“立刻造 trainer”，而是：
+        <strong>先围绕 <code>flux.2-klein-base-4b</code> 做不破契约的研究准备。</strong>
+      </p>
+      <div class="route-grid">
+        <article class="route">
+          <h3>路线 A：先稳住契约</h3>
+          <p>
+            保持 128 通道、保持网格关系、保持 token 组织。适合先验证你对系统边界的理解是否真的稳定。
+          </p>
+          <strong>适合现在的你：</strong>
+          <p>想先做 VAE 相关研究准备，不想立刻卷入多模块联动工程。</p>
+        </article>
+        <article class="route">
+          <h3>路线 B：直接训练向 fork</h3>
+          <p>
+            接受数据、优化器、训练循环、checkpoint、验证框架都要自己补，换来更高自由度。
+          </p>
+          <strong>适合什么情况：</strong>
+          <p>你已经明确要做完整训练研究，而不是先确认契约边界。</p>
+        </article>
+        <article class="route">
+          <h3>路线 C：一开始就打破契约</h3>
+          <p>
+            直接改 latent 宽度、缩放或 token 组织。代价最高，因为会把 AE、sampler、transformer 一起拉进来。
+          </p>
+          <strong>当前不推荐：</strong>
+          <p>除非你已经非常清楚自己为什么必须这么做。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>什么时候不该默认从 <code>4B</code> 起步</h2>
+      <p>
+        默认起点是 <code>klein-base-4b</code>，但默认值只服务于“先压低摩擦、先保住契约”的读者。
+        如果你的真实目标已经不是这个，就不该机械套用。
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>你此刻更在意什么</th>
+              <th>更自然的入口</th>
+              <th>为什么不是默认 4B</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>最低硬件摩擦，先保契约做研究准备</td>
+              <td><code>klein-base-4b</code></td>
+              <td>这就是本页默认情况。</td>
+            </tr>
+            <tr>
+              <td>接受更高算力，换更强的 base 起点</td>
+              <td><code>klein-base-9b</code></td>
+              <td>你已经不是在追求最低摩擦，而是在追求更高质量的 base 参考。</td>
+            </tr>
+            <tr>
+              <td>明确要看重型研究参考，而不是低摩擦入口</td>
+              <td><code>flux.2-dev</code></td>
+              <td>你的任务已经更接近重型研究路线，不再是“先稳住开局”。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="evidence">
+        <strong>边界提醒：</strong>
+        这里说的是“更自然的第一站”，不是“最终必须停留的模型”。只要你的目标变成更高质量参考或更完整训练路线，升级就是合理动作。
+      </div>
+    </section>
+
+    <section class="quiz">
+      <h2>可选自测</h2>
+      <h3>如果你此刻最怕的是“一动 VAE 就引发全系统联动”，第一站更应该是哪条路线？</h3>
+      <div class="choices">
+        <button data-target="q1" data-correct="yes" data-msg="对。先稳住契约，先做不破 128 通道 / 网格 / token 组织的研究准备。">先稳住契约</button>
+        <button data-target="q1" data-msg="不优先。你还没先确认边界，直接造 trainer 会把摩擦放大。">直接造 trainer</button>
+        <button data-target="q1" data-msg="不优先。直接打破契约是代价最高的开局。">直接破契约</button>
+        <button data-target="q1" data-msg="不对。部署优化不是这轮研究准备的主线。">先做部署优化</button>
+      </div>
+      <div id="q1" class="feedback"></div>
+    </section>
+
+    <section class="panel">
+      <h2>读完后你应能立刻说出的话</h2>
+      <ul>
+        <li>“我现在默认先走不破契约的研究准备，而不是马上造 trainer。”</li>
+        <li>“如果我要直接打破 latent 契约，那已经不是只改 VAE。”</li>
+        <li>“如果我追求的是更高质量参考或重型研究路线，就不该机械停在 <code>4B</code>。”</li>
+      </ul>
+    </section>
+
+    <section class="next">
+      <strong>唯一下一步：</strong>
+      如果你已经选定“先保契约”，继续去读 <a href="./0012-from-repo-understanding-to-training-fork.html">0012</a>，把这条路线转成真正的训练缺口清单。
+      如果你仍拿不准系统边界，回到 <a href="./0003-flux2-system-masterclass.html">0003</a> 重新走入口主线；如果你只想看一页式分流，打开
+      <a href="../reference/0006-research-route-decision-tree.html">0006 决策树</a>。
+    </section>
+
+    <section class="panel">
+      <h2>延伸阅读</h2>
+      <details>
+        <summary><strong>外部资料、社区入口与证据附录</strong></summary>
+        <p>
+          如果你想再核对一次为什么官方同时保留 base 和 distilled 两种角色，优先读
+          <a href="https://bfl.ai/blog/flux2-klein-towards-interactive-visual-intelligence">BFL 的 FLUX.2 klein 发布说明</a>。
+        </p>
+        <p>
+          如果你想拿真实世界的问题校验自己的判断，可以去看
+          <a href="https://github.com/black-forest-labs/flux2/issues">官方 Issues</a>
+          和
+          <a href="https://github.com/huggingface/diffusers/discussions">Diffusers Discussions</a>，
+          对照观察别人遇到的是“推理摩擦”，还是“训练基础设施缺口”。
+        </p>
+        <p>
+          很适合接着追问的问题有：
+          “如果我只做 VAE 研究准备，第一周最该确认哪三个接口？”
+          “我什么时候才该从 <code>klein-base-4b</code> 升到更大的目标？”
+          “什么信号说明我已经该另起训练向代码库？”
+        </p>
+        <ul>
+          <li><code>src/flux2/util.py:15-87</code>：模型家族、<code>base</code> / distilled 默认参数与角色差异</li>
+          <li><code>src/flux2/model.py:10-49</code>：主模型把 128 通道视为输入前提</li>
+          <li><code>src/flux2/autoencoder.py:314-335</code>：encode / decode 的通道重排仍然围绕固定契约</li>
+          <li><code>README.md</code>：官方对仓库的定位是最小推理代码，而不是训练栈</li>
+          <li><a href="https://bfl.ai/blog/flux2-klein-towards-interactive-visual-intelligence">BFL 的 FLUX.2 klein 发布说明</a>：为什么同时保留 <code>base</code> 与 distilled 两种角色</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+
+  <script>
+    document.querySelectorAll("button[data-target]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const target = document.getElementById(button.dataset.target);
+        const correct = button.dataset.correct === "yes";
+        target.textContent = button.dataset.msg;
+        target.className = "feedback " + (correct ? "good" : "bad");
+      });
+    });
+  </script>
+</body>
+</html>

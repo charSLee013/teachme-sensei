@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课程 0005：CLI 与端到端主流程</title>
+  <style>
+    :root { --bg:#f5efe6; --paper:rgba(255,251,245,.95); --ink:#221b18; --muted:#655b52; --line:#dbcec0; --accent:#8c3a21; --teal:#1a615b; }
+    * { box-sizing:border-box; } body { margin:0; background:linear-gradient(180deg,#faf6ee 0%,var(--bg) 100%); color:var(--ink); font-family:"PingFang SC","Noto Serif SC","Songti SC",serif; line-height:1.72; }
+    main { width:min(980px,calc(100vw - 28px)); margin:0 auto; padding:38px 0 78px; }
+    .panel,.note,.box { background:var(--paper); border:1px solid var(--line); border-radius:20px; box-shadow:0 14px 34px rgba(58,43,34,.08); }
+    .panel { padding:26px 28px; margin-bottom:20px; } .box { padding:16px 18px; margin-top:16px; } .note { padding:16px 18px; margin-top:18px; border-left:4px solid var(--teal); }
+    h1,h2,h3 { line-height:1.14; margin:0 0 14px; } h1 { font-size:clamp(2.2rem,5vw,3.8rem); } h2 { font-size:1.6rem; margin-top:4px; } h3 { font-size:1.12rem; }
+    .eyebrow { text-transform:uppercase; letter-spacing:.12em; color:var(--accent); font-size:.82rem; margin:0 0 10px; } .lede { color:var(--muted); font-size:1.12rem; max-width:68ch; }
+    .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); margin-top:16px; }
+    .step { padding:16px; border:1px solid var(--line); border-radius:18px; background:rgba(255,255,255,.7); }
+    a { color:var(--teal); text-decoration:none; border-bottom:1px solid rgba(26,97,91,.35); } code { font-family:Menlo,Consolas,monospace; background:rgba(34,27,24,.06); border-radius:6px; padding:.08rem .3rem; }
+    .evidence { background:rgba(26,97,91,.08); border-left:4px solid var(--teal); border-radius:16px; padding:14px 16px; margin-top:16px; }
+    details { margin-top:18px; } summary { cursor:pointer; color:var(--accent); font-weight:700; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <p class="eyebrow">课程 0005</p>
+      <h1>CLI 与端到端主流程</h1>
+      <p class="lede">这一课只回答一个问题：当前仓库里，用户输入是怎样一路被编排成最终输出图像的。你应该从这里形成系统级时间顺序，而不是先扎进某个模块里。</p>
+      <div class="note"><strong>课程位置：</strong>这是机制层的第一课，介于总览入口与四大对象之间。读完后你应该能画出推理闭环。</div>
+    </section>
+
+    <section class="panel">
+      <h2>记住什么</h2>
+      <ul>
+        <li>真正把仓库串起来的是 <code>scripts/cli.py</code>，不是某个 model 文件。</li>
+        <li>CLI 的职责不是“顺手跑一下模型”，而是协调模型选择、权重加载、文本编码、参考图编码、采样、解码和保存。</li>
+        <li>如果你以后要做训练向 fork，CLI 里的很多判断会迁移成更正式的 pipeline 组织层。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>主流程时间线</h2>
+      <div class="grid">
+        <div class="step"><strong>1. 选择模型</strong><br>从注册表里选 `klein / base / dev` 路线，并据此决定默认 steps、guidance、文本编码器与是否有 KV cache 分支。</div>
+        <div class="step"><strong>2. 加载组件</strong><br>分别加载 text encoder、flow model、AE。这里已经把“系统”拆成三个不同重量级组件。</div>
+        <div class="step"><strong>3. 解析输入</strong><br>解析 prompt、尺寸、输入图、match size、upsampling 选项与 seed。</div>
+        <div class="step"><strong>4. 文本编码</strong><br>把 prompt 变成条件表示。对 Base 路线，还要组织空 prompt 和正向 prompt 的 CFG 双路条件。</div>
+        <div class="step"><strong>5. 参考图编码</strong><br>若有输入图，先经 AE 编码，再打包成 reference tokens 与对应位置 ID。</div>
+        <div class="step"><strong>6. 构造噪声 latent</strong><br>按 <code>(1, 128, height // 16, width // 16)</code> 直接分配初始噪声。</div>
+        <div class="step"><strong>7. 进入 denoising loop</strong><br>根据模型家族选择 `denoise` / `denoise_cached` / `denoise_cfg`。</div>
+        <div class="step"><strong>8. 解码与保存</strong><br>把最终 latent reshape 回网格，经 AE decode 得到图像，再做输出检查与 EXIF 保存。</div>
+      </div>
+      <div class="evidence"><strong>可见证据：</strong>这是对入口脚本行为的教学重构。直接证据来自 <code>scripts/cli.py</code> 中的组件加载、ctx 构造、噪声分配、denoise 分流与 AE decode。<strong>边界：</strong>这描述的是当前 CLI 主入口，不是官方全部部署系统。</div>
+    </section>
+
+    <section class="panel">
+      <h2>为什么这一层对研究准备很重要</h2>
+      <div class="box">
+        <h3>它告诉你“哪里是组织层”</h3>
+        <p>很多读者一开始会误以为训练向 fork 的主要工作是去改 transformer 主干。实际上，真正先要学会的是：哪些判断属于 orchestration 层，哪些才属于模型层。</p>
+      </div>
+      <div class="box">
+        <h3>它暴露了跨模块依赖</h3>
+        <p>比如 latent 形状不是只在 AE 内部出现。它会同时出现在入口噪声分配、reference image 编码、token 化和主干输入里。</p>
+      </div>
+      <div class="box">
+        <h3>它决定“训练栈缺口”怎么被识别</h3>
+        <p>你一旦能画出当前推理闭环，就会更容易看到真正缺失的是数据、loss、优化器、评估和实验编排，而不是“再多几个 helper function”。</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>练习与检索</h2>
+      <ol>
+        <li>不用看源码，尝试复述“从 prompt 到 output image”的 8 步时间线。</li>
+        <li>指出其中哪一步第一次显式暴露了 latent 的 128 通道契约。</li>
+        <li>指出哪一步开始分化出 `distilled / base / KV cached` 三条不同路径。</li>
+      </ol>
+      <div class="note"><strong>下一步：</strong>去读 <a href="./0006-four-core-objects.html">0006 四大核心对象</a>。这会把你刚刚看到的时间线拆成稳定对象，而不是一条临时流程。</div>
+    </section>
+
+    <section class="panel">
+      <h2>证据附录</h2>
+      <details>
+        <summary>展开实现锚点</summary>
+        <ul>
+          <li><code>scripts/cli.py</code>：模型选择、配置解析、组件加载、prompt upsampling、ctx 构造、噪声分配、denoise 分流、AE decode、保存输出。</li>
+          <li><code>src/flux2/util.py</code>：`FLUX2_MODEL_INFO`、`load_flow_model()`、`load_text_encoder()`、`load_ae()`。</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+</body>
+</html>
