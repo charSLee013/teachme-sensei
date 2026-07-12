@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>File Map</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+</head>
+<body>
+<main>
+  <article class="page">
+    <h1>File Map</h1>
+    <p class="meta">本页按概念映射文件，而不是复述目录树。</p>
+
+    <table>
+      <thead><tr><th>概念</th><th>主要文件</th><th>阅读目的</th></tr></thead>
+      <tbody>
+        <tr><td>公开 CLI</td><td>`scripts/inference.py`</td><td>理解入口为何很薄，以及默认 backend 如何注入。</td></tr>
+        <tr><td>Backend 解析</td><td>`lingbot_video/inference_backend.py`</td><td>理解 diffusers/sglang/fallback 和 negative JSON 加载。</td></tr>
+        <tr><td>推理编排</td><td>`lingbot_video/runner.py`</td><td>理解参数、模型加载、并行、refiner 和保存输出。</td></tr>
+        <tr><td>模型路径</td><td>`lingbot_video/model_paths.py`</td><td>理解 component 目录和 refiner root 解析。</td></tr>
+        <tr><td>基础 Pipeline</td><td>`lingbot_video/pipeline_lingbot_video.py`</td><td>理解 prompt encode、latent、scheduler、CFG、VAE decode。</td></tr>
+        <tr><td>TI2V Pipeline</td><td>`lingbot_video/pipeline_lingbot_video_i2v.py`</td><td>理解首帧图像和 clean latent prefix。</td></tr>
+        <tr><td>Transformer</td><td>`lingbot_video/transformer_lingbot_video.py`</td><td>理解 single-stream DiT、3D RoPE、MoE。</td></tr>
+        <tr><td>Scheduler</td><td>`lingbot_video/scheduling_flow_unipc.py`</td><td>理解 FlowUniPC timesteps 和 step 接口。</td></tr>
+        <tr><td>Utils</td><td>`lingbot_video/utils.py`</td><td>理解帧数、refiner sigmas、视频读取、batch CFG。</td></tr>
+        <tr><td>FSDP</td><td>`lingbot_video/fsdp_inference.py`</td><td>理解 inference-time sharding。</td></tr>
+        <tr><td>SGLang adapter</td><td>`lingbot_video/native_backend.py`、`sglang_moe_shim.py`</td><td>理解 native wrapper 和 MoE fused kernel shim。</td></tr>
+        <tr><td>Prompt 重写</td><td>`rewriter/inference.py`、`rewriter/rewriter_core.py`、`rewriter/system_prompts.py`</td><td>理解两阶段 rewrite。</td></tr>
+        <tr><td>Auto Negative</td><td>`rewriter/auto_negative.py`</td><td>理解 delete-only negative pruning。</td></tr>
+      </tbody>
+    </table>
+  </article>
+</main>
+</body>
+</html>

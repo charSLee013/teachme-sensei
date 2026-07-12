@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>03 Prompt Rewriter And Auto Negative</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left:'$$',right:'$$',display:true},
+        {left:'$',right:'$',display:false}
+      ]
+    });"></script>
+</head>
+<body data-course-page="03-prompt-rewriter-and-negative">
+<main>
+  <article class="page">
+    <h1>03 Prompt Rewriter And Auto Negative</h1>
+    <p class="meta">本章从数学上说明 rewriter 的两阶段设计:为什么同一份 base 权重靠开关 LoRA adapter 就能扮演两个角色;以及 auto-negative 的 delete-only 剪枝为何在集合论上必须是"严格子集"约束。</p>
+
+    <section class="remember">
+      <h2>Remember Now</h2>
+      <ul>
+        <li>rewriter 两阶段共用<b>同一份 base VLM 权重</b>:step1 EXPAND 关掉 LoRA(<code>use_lora=False</code>),step2 MAP 开启 LoRA(<code>use_lora=True</code>)。</li>
+        <li>LoRA 是低秩增量:$W' = W + \frac{\alpha}{r}BA$,其中 $B\in\mathbb{R}^{d\times r}$、$A\in\mathbb{R}^{r\times k}$、$r\ll\min(d,k)$。</li>
+        <li>关 adapter 等价于令增量为零:$\Delta W=0 \Rightarrow W'=W$——这就是 <code>disable_adapter()</code> 的数学含义,不是加载第二个模型。</li>
+        <li>auto-negative 是 delete-only:输出 negative 必须满足 $N_{\text{out}}\subseteq N_{\text{default}}$(默认集合的子集),不允许新增或改写。</li>
+        <li>最终 negative = 默认集合减去有正当理由删除的项:$N_{\text{final}} = N_{\text{default}}\setminus D$,且 $D\subseteq N_{\text{default}}$。</li>
+      </ul>
+    </section>
+
+    <h2>数学基础:一份权重,两个角色</h2>
+
+    <p>初学者最容易误解的是"两阶段=两个模型"。实际上两阶段共享同一份冻结的 base VLM,差别只在于<b>是否叠加一个低秩增量</b>。理解 LoRA 的代数结构就理解了整个 rewriter。</p>
+
+    <h3>LoRA 低秩分解</h3>
+    <p>一个线性层的权重 $W\in\mathbb{R}^{d\times k}$ 全参数微调需要更新 $d\times k$ 个参数。LoRA 的观察是:微调引起的权重变化 $\Delta W$ 往往是<b>低秩</b>的,于是把它分解成两个瘦矩阵的乘积:</p>
+    <div class="math-block">
+      $$ W' = W + \Delta W = W + \frac{\alpha}{r}\,B\,A,\qquad B\in\mathbb{R}^{d\times r},\ A\in\mathbb{R}^{r\times k},\ r\ll\min(d,k) $$
+    </div>
+    <p>其中 $r$ 是秩(rank),$\alpha$ 是缩放系数。可训练参数从 $d\cdot k$ 降到 $r(d+k)$。例如 $d=k=4096$、$r=16$:全参数是 $1.6\times10^7$,LoRA 只有 $1.3\times10^5$——约 1% 。前向传播时:</p>
+    <div class="math-block">
+      $$ h = W'x = Wx + \frac{\alpha}{r}B(Ax) $$
+    </div>
+    <p>注意 $Ax$ 先把输入压到 $r$ 维,再由 $B$ 升回 $d$ 维,增量分支的计算量极小。</p>
+
+    <h3>disable_adapter 的代数含义</h3>
+    <p>rewriter 的 <code>TransformersBackend.generate</code> 里有一行决定角色切换(inference.py:66):</p>
+    <div class="math-block">
+      $$ \texttt{adapter\_ctx} = \begin{cases} \texttt{nullcontext()} & \text{if } \texttt{use\_lora=True}\\[4pt] \texttt{model.disable\_adapter()} & \text{if } \texttt{use\_lora=False} \end{cases} $$
+    </div>
+    <p>当 <code>disable_adapter()</code> 生效,增量分支被旁路,等价于令 $\alpha=0$:</p>
+    <div class="math-block">
+      $$ \alpha=0 \ \Rightarrow\ \Delta W = \tfrac{0}{r}BA = 0 \ \Rightarrow\ W' = W $$
+    </div>
+    <p>所以 step1 EXPAND 用的是<b>纯 base VLM</b>(通用改写能力,把短 prompt 扩成动作中心的 caption);step2 MAP 打开 LoRA 增量(专门学过"映射到 structured JSON 格式"这一窄任务)。一份权重、一次加载、靠 context manager 开关,省掉了维护两个 checkpoint 的成本。</p>
+
+    <div class="design-note">
+      <strong>为什么 EXPAND 不用 LoRA、MAP 才用?</strong>
+      EXPAND 需要的是宽泛的语言理解与世界知识(把"一只猫跳上桌子"扩写成富含动作、外观、镜头的描述)——这正是 base VLM 预训练时最强的能力,叠加窄任务 LoRA 反而可能损害泛化。MAP 需要的是把自由文本严格塞进训练时的 structured schema(固定字段、JSON 合法性),这是一个<b>格式对齐</b>的窄任务,恰好适合 LoRA 这种小增量专门化。用一个开关切换,本质是"通才模式 vs 专才模式"的切换。
+    </div>
+
+    <h2>数学基础:delete-only 剪枝的集合约束</h2>
+
+    <p>auto-negative 要解决的问题:系统有一份默认 negative prompt 集合 $N_{\text{default}}$(比如"模糊、低质量、畸变的手"等),但某些用户意图会与默认项冲突——用户想要"暗光电影感",而默认 negative 里有"黑暗、欠曝"。这时需要删掉冲突项,但<b>绝不能让模型自由发挥新增内容</b>,否则会引入不可控的生成偏置。</p>
+
+    <p>形式化:设默认集合 $N_{\text{default}}$,模型给出的剪枝建议产生删除集合 $D$。约束是:</p>
+    <div class="math-block">
+      $$ N_{\text{final}} = N_{\text{default}}\setminus D,\qquad \text{约束}\ D\subseteq N_{\text{default}} \ \Longleftrightarrow\ N_{\text{final}}\subseteq N_{\text{default}} $$
+    </div>
+    <p>换句话说,输出永远是默认集合的<b>子集</b>——只减不增、只减不改。代码用三道防线强制这个不变量:</p>
+    <table>
+      <thead>
+        <tr><th>函数</th><th>作用</th><th>数学对应</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>_enforce_delete_only</code>(auto_negative.py:153)</td><td>强制 pruned ⊆ default,任何新增/改写项被剔除</td><td>投影到 $N_{\text{default}}$ 的幂集 $2^{N_{\text{default}}}$</td></tr>
+        <tr><td><code>_restore_unjustified_block_deletions</code>(211)</td><td>把"无正当理由"的整块删除恢复回去</td><td>收缩 $D$:删掉 $D$ 中无依据的元素</td></tr>
+        <tr><td><code>_apply_caption_pruning_hints</code>(223)</td><td>基于 caption 的确定性提示决定哪些该删</td><td>用 caption 构造合法的 $D$</td></tr>
+      </tbody>
+    </table>
+    <p>另外,<code>edit()</code> 阶段用 <code>use_lora=False</code>(auto_negative.py:270)——即 auto-negative 的判断跑在 <b>zero-shot base 模型</b>上,不叠加 rewriter 的 MAP LoRA,因为这里的任务是"判断冲突",不是"格式映射"。</p>
+
+
+
+    <h2>两阶段重写数据流</h2>
+<div data-course-diagram="0"></div>
+
+    <h2>设计选择</h2>
+
+    <div class="design-note">
+      <strong>为什么用 structured JSON 而不是自由文本 prompt?</strong>
+      论文 data 章节说明训练侧用 dense structured caption(含 camera tags、prominent elements、时间戳动作等字段)。训练与推理的 prompt 分布若不一致,会造成 train-inference gap。rewriter 的两阶段本质是一个<b>分布对齐器</b>:把用户的 out-of-distribution 短 prompt 拉回训练时的 caption 分布。这是 caption-based 生成模型(DALL-E 3 的 recaptioning、PixArt 的 dense caption)共享的思路。
+    </div>
+
+    <div class="design-note">
+      <strong>为什么 auto-negative 要 delete-only 而不是自由生成?</strong>
+      让 LLM 自由生成 negative prompt 看似更灵活,但会引入两个风险:(1)不可复现——同一输入产生不同 negative,破坏实验对照;(2)分布漂移——模型可能生成训练时从未见过的 negative 概念,导致 CFG 引导方向失控。把操作限制成"从一个受控默认集合里删除",就把自由度压到最小可控范围:$N_{\text{final}}$ 的搜索空间从"所有可能字符串"缩小到 $N_{\text{default}}$ 的 $2^{|N_{\text{default}}|}$ 个子集,且每个子集都由人工审核过的项组成。这是安全性与灵活性的工程折中。
+    </div>
+
+    <section class="warning">
+      <h2>证据边界与工程风险</h2>
+      <ul>
+        <li>LoRA 公式 $W'=W+\frac{\alpha}{r}BA$ 是 <b>lineage_context</b>(Hu et al. 2021 的通用 LoRA 定义);本仓库代码事实是 <code>PeftModel.from_pretrained</code> + <code>disable_adapter()</code> 的开关逻辑(inference.py:53,66),PEFT 内部确实以低秩 adapter 实现。</li>
+        <li>"EXPAND 用通才、MAP 用专才"的角色解读是 course_reconstruction(教学重构);代码事实只是两次 <code>generate</code> 调用的 <code>use_lora</code> 取值不同。</li>
+        <li><b>工程风险(code_fact):</b> <code>parse_json</code> 失败返回 <code>None</code>,而 <code>save_caption</code> 仍可能写出 <code>{"caption": null}</code>——这会把无效 prompt 传给 DiT runner。生产应 fail-fast。</li>
+        <li>当前环境缺 <code>transformers/peft</code>,无法实跑 rewriter;剪枝纯函数 <code>_enforce_delete_only</code> 可离线单测。</li>
+      </ul>
+    </section>
+
+    <section class="evidence">
+      <h2>Evidence</h2>
+      <p>代码事实来自 <code>rewriter/inference.py</code>:<code>PeftModel.from_pretrained(model, adapter)</code>(:53),<code>adapter_ctx = contextlib.nullcontext() if use_lora else self.model.disable_adapter()</code>(:66);<code>rewriter/rewriter_core.py</code> 的两阶段(step1 EXPAND use_lora=False,step2 MAP use_lora=True);<code>rewriter/auto_negative.py</code>:<code>_enforce_delete_only</code>(:153)、<code>_restore_unjustified_block_deletions</code>(:211)、<code>_apply_caption_pruning_hints</code>(:223)、<code>edit()</code> use_lora=False(:270)。文献谱系:LoRA(Hu et al. 2021)、classifier-free guidance 的 negative prompt 机制、DALL-E 3 recaptioning。</p>
+    </section>
+
+    <h2>Retrieval Prompts</h2>
+    <ol>
+      <li>写出 LoRA 的前向公式 $h=W'x$,并说明 <code>disable_adapter()</code> 在代数上等价于令哪个量为零、为什么因此 $W'=W$。</li>
+      <li>估算:$d=k=4096$、$r=16$ 时,LoRA 可训练参数占全参数微调的百分比是多少?给出 $r(d+k)/(dk)$ 的计算。</li>
+      <li>为什么 EXPAND 阶段关掉 LoRA、MAP 阶段才打开?从"通才 vs 专才任务"角度论证。</li>
+      <li>用集合论写出 delete-only 的不变量,并解释若允许模型自由新增 negative 项会破坏哪两个性质。</li>
+      <li><code>parse_json</code> 返回 <code>None</code> 时当前代码会发生什么?你会如何改成 fail-fast?</li>
+    </ol>
+
+    <section class="next">
+      <h2>Next Action</h2>
+      <p>进入 <a href="04-runner-orchestration.html">Lesson 04</a>,追踪 structured prompt JSON 如何被 runner 解析、backend/engine 如何解析、并行拓扑如何分解成 pipeline 调用参数。</p>
+    </section>
+  </article>
+</main>
+
+<script type="module" src="../assets/course-runtime.js"></script>
+</body>
+</html>

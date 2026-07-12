@@ -16,6 +16,8 @@
   --anima-soft: rgba(107, 91, 149, 0.11);
   --flux2: #7a4b2f;
   --flux2-soft: rgba(122, 75, 47, 0.12);
+  --lingbot: #2f7d6b;
+  --lingbot-soft: rgba(47, 125, 107, 0.11);
   --ok: #136e52;
   --shadow: 0 18px 44px rgba(23, 32, 42, 0.08);
   --display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
@@ -262,6 +264,10 @@ body[data-lang="en"] .lang-zh {
   border-top: 4px solid var(--flux2);
 }
 
+.course-panel.lingbot {
+  border-top: 4px solid var(--lingbot);
+}
+
 .panel-top {
   display: flex;
   justify-content: space-between;
@@ -311,6 +317,12 @@ body[data-lang="en"] .lang-zh {
   background: var(--flux2-soft);
   color: var(--flux2);
   border-color: rgba(122, 75, 47, 0.2);
+}
+
+.badge.lingbot {
+  background: var(--lingbot-soft);
+  color: var(--lingbot);
+  border-color: rgba(47, 125, 107, 0.18);
 }
 
 .badge.ok {
@@ -425,6 +437,12 @@ body[data-lang="en"] .lang-zh {
   color: #fff;
 }
 
+.button.primary.lingbot {
+  background: var(--lingbot);
+  border-color: var(--lingbot);
+  color: #fff;
+}
+
 .button:hover {
   text-decoration: none;
 }
@@ -463,6 +481,10 @@ body[data-lang="en"] .lang-zh {
   grid-template-columns: 180px repeat(4, minmax(0, 1fr));
 }
 
+.compare.five {
+  grid-template-columns: 180px repeat(5, minmax(0, 1fr));
+}
+
 .compare div {
   padding: 14px 16px;
   border-right: 1px solid var(--line);
@@ -493,6 +515,16 @@ body[data-lang="en"] .lang-zh {
   border-right: 0;
 }
 
+.compare.five div:nth-child(3n),
+.compare.five div:nth-child(4n),
+.compare.five div:nth-child(5n) {
+  border-right: 1px solid var(--line);
+}
+
+.compare.five div:nth-child(6n) {
+  border-right: 0;
+}
+
 .compare div:last-child,
 .compare div:nth-last-child(2),
 .compare div:nth-last-child(3) {
@@ -505,6 +537,12 @@ body[data-lang="en"] .lang-zh {
 
 .compare.four div:nth-last-child(4),
 .compare.four div:nth-last-child(5) {
+  border-bottom: 0;
+}
+
+.compare.five div:nth-last-child(4),
+.compare.five div:nth-last-child(5),
+.compare.five div:nth-last-child(6) {
   border-bottom: 0;
 }
 
@@ -559,7 +597,10 @@ code {
     grid-template-columns: 1fr;
   }
 
-  .compare {
+  .compare,
+  .compare.three,
+  .compare.four,
+  .compare.five {
     grid-template-columns: 1fr;
   }
 
@@ -567,9 +608,18 @@ code {
     border-right: 0;
   }
 
+  .compare.three div:nth-child(n),
+  .compare.four div:nth-child(n),
+  .compare.five div:nth-child(n) {
+    border-right: 0;
+  }
+
   .compare div:nth-last-child(2),
   .compare div:nth-last-child(3),
-  .compare.three div:nth-last-child(4) {
+  .compare.three div:nth-last-child(4),
+  .compare.five div:nth-last-child(4),
+  .compare.five div:nth-last-child(5),
+  .compare.five div:nth-last-child(6) {
     border-bottom: 1px solid var(--line);
   }
 }

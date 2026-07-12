@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>11 Debugging And Validation</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left:'$$',right:'$$',display:true},
+        {left:'$',right:'$',display:false}
+      ]
+    });"></script>
+</head>
+<body data-course-page="11-debugging-and-validation">
+<main>
+  <article class="page">
+    <h1>11 Debugging And Validation</h1>
+    <p class="meta">本章把学习转成维护能力，并给验证一个形式化骨架：哪些属性是<b>静态可判定</b>的（不需要权重就能证伪），哪些属性只能靠<b>运行时观测</b>（需要权重和 GPU）。理解这条分界线，是在缺依赖环境里依然产出可信证据的关键。</p>
+
+    <section class="remember">
+      <h2>Remember Now</h2>
+      <ul>
+        <li>验证属性分两类：<b>静态可判定</b> $P_{\text{static}}$（语法、JSON、纯函数输入输出、资产引用）与 <b>运行时属性</b> $P_{\text{runtime}}$（数值正确性、吞吐、显存、分布式收敛）。缺权重只能覆盖前者。</li>
+        <li>纯函数是验证的黄金地带：无副作用、确定性，满足 $f(x)=y$ 可用有限样例直接断言，无需模型。</li>
+        <li>smoke test 必须按<b>复杂度递增</b>排序：Dense T2I → T2V/TI2V → MoE → refiner → 多卡，让失败尽早、在最小系统里暴露。</li>
+        <li>可测性是分层的：越靠近 runner/utils/rewriter 边界越可测，越靠近 pipeline/transformer/MoE kernel 越需要权重与硬件。</li>
+        <li>当前环境缺 diffusers/transformers/peft/decord/json_repair/sglang，有 torch/triton——所以本课程的证据严格限于 $P_{\text{static}}$。</li>
+      </ul>
+    </section>
+
+    <h2>数学基础：验证属性的可判定性分层</h2>
+
+    <p>把"验证"想成对某个属性 $P$ 求真值。对一个软件系统 $S$，我们关心的属性集合可以按"确定它需要什么"来分层。定义系统状态依赖：</p>
+    <div class="math-block">
+      $$ S = \langle\, \text{Code},\ \text{Deps},\ \text{Weights},\ \text{Hardware} \,\rangle $$
+    </div>
+    <p>一个属性 $P$ 的<b>验证成本</b>取决于它依赖 $S$ 的哪几个分量。据此把属性分成两大类：</p>
+
+    <div class="math-block">
+      $$ P_{\text{static}}:\ \text{只依赖 Code}\ (\pm \text{轻量 Deps});\qquad
+         P_{\text{runtime}}:\ \text{额外依赖 Weights 和/或 Hardware} $$
+    </div>
+
+    <p>关键洞察：$P_{\text{static}}$ 可以在缺权重、缺重依赖的环境里<b>被证伪或被确认</b>，因为它的真值完全由源码决定。例如"帧数函数对任意合法 duration 都输出 $4n+1$"是一个纯函数性质，不需要跑模型就能验证。</p>
+
+    <h3>纯函数：可判定性最强的子集</h3>
+    <p>一个纯函数 $f$ 满足无副作用 + 确定性：相同输入必得相同输出。于是验证退化为对有限样例断言相等：</p>
+    <div class="math-block">
+      $$ \forall\, x_i \in X_{\text{test}}:\quad f(x_i) \stackrel{?}{=} y_i^{\text{expected}} $$
+    </div>
+    <p>本仓库有一批这样的纯函数，它们是缺权重环境里唯一能"证明正确"（而非只"证明能解析"）的对象：</p>
+    <div class="math-block">
+      $$ \big\{\ \texttt{num\_frames\_from\_duration},\ \texttt{validate\_refiner\_sigmas},\ \texttt{resolve\_backend\_engine},$$
+      $$ \texttt{resolve\_negative\_prompt\_arg},\ \texttt{\_enforce\_delete\_only}\ \big\} $$
+    </div>
+    <p>举例，帧数函数（见 <a href="02-public-workflow.html">Lesson 02</a>）$g(d,\text{fps}) = (\lfloor (\lfloor d\cdot\text{fps}\rfloor - 1)/4\rfloor + 1)\cdot 4 + 1$，可断言其陪域恒满足 $g \equiv 1 \pmod 4$，且单调不减——这两条性质用有限样例 + 归纳即可确认，完全不碰模型。</p>
+
+    <div class="design-note">
+      <strong>为什么"能解析"弱于"能证明正确"？</strong>
+      <code>python -m py_compile</code>、<code>bash -n</code>、JSON parse 只确认<b>语法层</b>无误（属性："可被解释器接受"），它们不保证语义正确。纯函数断言更强：它检查<b>输入输出关系</b>。两者都属 $P_{\text{static}}$，但可信度不同——课程必须诚实区分"已解析通过"与"已验证行为正确"，不能把前者伪装成后者。
+    </div>
+
+
+
+    <h2>无权重验证清单</h2>
+    <table>
+      <thead>
+        <tr><th>检查</th><th>属性类别</th><th>目的</th><th>状态</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Python <code>py_compile</code></td><td>$P_{\text{static}}$ 语法</td><td>源码可解析</td><td>已通过</td></tr>
+        <tr><td>Shell <code>bash -n</code></td><td>$P_{\text{static}}$ 语法</td><td>示例脚本语法有效</td><td>已通过</td></tr>
+        <tr><td>JSON parse</td><td>$P_{\text{static}}$ 结构</td><td>prompt/negative 资源可解析</td><td>已通过</td></tr>
+        <tr><td>Script asset refs</td><td>$P_{\text{static}}$ 结构</td><td>默认 assets 路径存在</td><td>已通过</td></tr>
+        <tr><td><b>纯函数断言</b></td><td>$P_{\text{static}}$ <b>行为</b></td><td>帧数/sigmas/backend fallback/negative 互斥/子集剪枝</td><td>已通过（最强证据）</td></tr>
+        <tr><td>Dependency import</td><td>$P_{\text{runtime}}$ 前置</td><td>能否端到端运行</td><td>缺主要依赖，不能生成</td></tr>
+      </tbody>
+    </table>
+
+    <h2>有权重 smoke test：复杂度递增序</h2>
+    <p>smoke test 的排序不是随意的。设每一步引入的新风险面为 $R_i$，把步骤按 $R_i$ 单调递增排列，可让<b>首个失败点定位到最小系统</b>——若 Dense T2I 就挂了，问题必在最基础的加载/采样层，与 MoE、多卡无关。这是"二分定位"思想在集成测试上的应用。</p>
+<div data-course-diagram="0"></div>
+
+    <h2>常见失败定位</h2>
+    <table>
+      <thead>
+        <tr><th>症状</th><th>优先检查</th><th>关联章节</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>导入失败</td><td>依赖版本是否符合 <code>requirements.txt</code>，尤其 diffusers/transformers/peft</td><td>Lesson 02</td></tr>
+        <tr><td>模型加载失败</td><td>model root 是否含 <code>model_index.json</code>、scheduler、text_encoder、vae、transformer/refiner</td><td>Lesson 04</td></tr>
+        <tr><td>Prompt 异常</td><td><code>prompt.json</code> 是否含有效 <code>caption</code>；rewriter 是否输出 <code>null</code></td><td>Lesson 03</td></tr>
+        <tr><td>帧数/shape 错误</td><td><code>duration/fps/num_frames</code> 是否导致非 $4n+1$；H/W 是否 16 倍数</td><td>Lesson 02</td></tr>
+        <tr><td>TI2V/refiner 报错</td><td>是否传 <code>--image</code>；首帧路径是否存在</td><td>Lesson 06/09</td></tr>
+        <tr><td>SGLang 没生效</td><td>是否装 optional requirements；是否看到 fallback warning</td><td>Lesson 10</td></tr>
+        <tr><td>多卡 hang/拓扑错误</td><td><code>WORLD_SIZE</code> 是否 $= D_{\text{cfg}}\times D_{\text{cp}}$</td><td>Lesson 04/10</td></tr>
+      </tbody>
+    </table>
+
+    <div class="design-note">
+      <strong>修改项目时的回归策略</strong>
+      按可测性分层下手：先在 <b>runner/utils/rewriter</b> 这类含纯函数的边界建立回归测试（成本低、$P_{\text{static}}$ 可断言），再谨慎改 pipeline/transformer/MoE（$P_{\text{runtime}}$，需权重+GPU 验证）。例如改帧数逻辑，应先给 <code>num_frames_from_duration</code> 加 $4n+1$ 不变量测试，再动 runner 调用点——让最廉价的验证守住最容易回归的地方。
+    </div>
+
+    <section class="warning">
+      <h2>证据边界</h2>
+      <ul>
+        <li>本课程所有"已通过"仅覆盖 $P_{\text{static}}$。<b>数值正确性、生成质量、吞吐、显存峰值属 $P_{\text{runtime}}$，本环境未验证</b>——缺 diffusers/transformers/peft/decord/json_repair/sglang，无权重。</li>
+        <li>"复杂度递增可二分定位"是一个<b>工程启发式</b>（course_reconstruction），非形式化定理；真实故障可能跨层耦合。</li>
+        <li>smoke test 序列基于代码结构与文档推断，实际最优顺序应随你的硬件与模型变体调整。</li>
+      </ul>
+    </section>
+
+    <section class="evidence">
+      <h2>Evidence</h2>
+      <p>代码事实来自纯函数 <code>num_frames_from_duration</code>（utils.py:16）、<code>validate_refiner_sigmas</code>（utils.py:21）、<code>resolve_backend_engine</code>（inference_backend.py）、<code>resolve_negative_prompt_arg</code>（runner.py）、<code>_enforce_delete_only</code>（auto_negative.py:153）；模型目录组件检查来自 runner 的 refiner 组件探测；输入约束来自 <code>pipeline_lingbot_video.py</code> 的 check_inputs（num_frames∈{1,4n+1}、H/W%16）。静态验证边界见 <a href="../reference/evidence-boundaries.html">证据边界参考页</a>。方法论谱系：可判定性分层、纯函数属性测试（property-based testing，如 QuickCheck/Hypothesis）、集成测试的复杂度分级 smoke test。</p>
+    </section>
+
+    <h2>Retrieval Prompts</h2>
+    <ol>
+      <li>给出 $P_{\text{static}}$ 与 $P_{\text{runtime}}$ 的定义，并各举本仓库两个例子。为什么缺权重环境只能覆盖前者？</li>
+      <li>为什么"纯函数断言"比"<code>py_compile</code> 通过"是更强的证据？用副作用与确定性说明。</li>
+      <li>证明 <code>num_frames_from_duration</code> 的输出恒 $\equiv 1 \pmod 4$，并说明如何用有限样例 + 归纳验证。</li>
+      <li>smoke test 为何要按复杂度递增排序？若第 4 步（MoE）首次失败，故障域应限定在哪些维度？</li>
+      <li>要修改 runner 的 frame-count 行为，应先加哪一层回归测试？为什么不先改 transformer？</li>
+    </ol>
+
+    <section class="next">
+      <h2>Next Action</h2>
+      <p>回到 <a href="../index.html">课程地图</a> 复盘全链路。若已有模型权重，按本章复杂度递增序补充 $P_{\text{runtime}}$ 实机验证记录，把证据边界从 $P_{\text{static}}$ 向右推进。</p>
+    </section>
+  </article>
+</main>
+
+<script type="module" src="../assets/course-runtime.js"></script>
+</body>
+</html>

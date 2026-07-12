@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LingBot-Video Course Map</title>
+  <link rel="stylesheet" href="assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+</head>
+<body data-course-page="course-map">
+<main>
+  <article class="page">
+    <h1>LingBot-Video 课程地图</h1>
+    <p class="meta">课程模式：repo-course + deep-paper。语气规范：研究报告式、证据化、边界清晰。</p>
+
+    <section class="remember">
+      <h2>Remember Now</h2>
+      <ul>
+        <li>本课程把 LingBot-Video 作为一个"论文系统 + 公开推理仓库"来学习，而不是只按文件夹顺序阅读代码。</li>
+        <li>所有强结论被分为代码事实、论文事实、教学重构、工程建议和未知项。</li>
+        <li>主线是从研究动机进入公开推理链路，再进入 Pipeline、Transformer、MoE、Refiner 和多卡部署。</li>
+        <li>读者最终应能解释系统、运行 smoke test、定位失败点，并明确哪些结论尚未被本地验证。</li>
+      </ul>
+    </section>
+
+    <h2>全局叙事</h2>
+    <div data-course-diagram="0"></div>
+
+    <h2>三条学习线</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>使用线</h3>
+        <p>从 README、docs 和 scripts 出发，建立公开推理路径：安装、模型目录、prompt JSON、negative JSON、T2I/T2V/TI2V、single/multi GPU 脚本。</p>
+      </div>
+      <div class="card">
+        <h3>机制线</h3>
+        <p>解释 Pipeline 的 denoising loop、TI2V 首帧条件、single-stream Transformer、3D RoPE、MoE routing 和 Refiner latent trajectory。</p>
+      </div>
+      <div class="card">
+        <h3>系统线</h3>
+        <p>解释 backend fallback、SGLang native adapter、FSDP inference sharding、Context Parallel、CFG parallel 和无权重/有权重验证策略。</p>
+      </div>
+    </div>
+
+    <h2>章节顺序</h2>
+    <table>
+      <thead>
+        <tr><th>章节</th><th>核心问题</th><th>完成后能力</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><a href="lessons/01-system-map.html">01 System Map</a></td><td>仓库、论文和公开运行时如何分层？</td><td>复述项目主链路，并指出训练系统不在当前仓库中。</td></tr>
+        <tr><td><a href="lessons/02-public-workflow.html">02 Public Workflow</a></td><td>用户如何从输入到输出？</td><td>区分 T2I、T2V、TI2V 的输入、输出和帧数逻辑。</td></tr>
+        <tr><td><a href="lessons/03-prompt-rewriter-and-negative.html">03 Rewriter And Negative</a></td><td>为什么推理前需要 structured prompt？</td><td>解释两阶段 rewriter 和 delete-only auto negative。</td></tr>
+        <tr><td><a href="lessons/04-runner-orchestration.html">04 Runner Orchestration</a></td><td>CLI 参数如何变成 pipeline 调用？</td><td>从 <code>scripts/inference.py</code> 追踪到 runner 的 <code>call_kwargs</code>。</td></tr>
+        <tr><td><a href="lessons/05-diffusion-pipeline-loop.html">05 Pipeline Loop</a></td><td>扩散采样循环如何运行？</td><td>解释 prompt embedding、latent、scheduler、CFG 和 VAE decode。</td></tr>
+        <tr><td><a href="lessons/06-ti2v-conditioning.html">06 TI2V Conditioning</a></td><td>首帧如何约束生成？</td><td>解释首帧作为 VLM 图像条件和 clean latent prefix 的双重身份。</td></tr>
+        <tr><td><a href="lessons/07-transformer-single-stream.html">07 Single Stream</a></td><td>视觉 token 和条件 token 如何进入同一 Transformer？</td><td>解释 patchify、text projection、3D RoPE 和 block 结构。</td></tr>
+        <tr><td><a href="lessons/08-sparse-moe.html">08 Sparse MoE</a></td><td>MoE 如何提高容量并控制活跃计算？</td><td>解释 router、top-k experts、grouped execution 和 FP8 path。</td></tr>
+        <tr><td><a href="lessons/09-refiner.html">09 Refiner</a></td><td>二阶段细化如何与 base generation 连接？</td><td>解释低分辨率视频重读、VAE encode、t_thresh 和 clean first frame。</td></tr>
+        <tr><td><a href="lessons/10-serving-fsdp-sglang.html">10 Serving</a></td><td>部署和多卡路径解决什么瓶颈？</td><td>区分 diffusers、SGLang adapter、FSDP、CP 和 CFG parallel。</td></tr>
+        <tr><td><a href="lessons/11-debugging-and-validation.html">11 Validation</a></td><td>如何在不同资源条件下验证系统？</td><td>设计无权重静态检查和有权重 smoke test。</td></tr>
+      </tbody>
+    </table>
+
+    <h2>证据边界</h2>
+    <p>课程正文只使用已经归类的结论。仓库代码直接支持的内容称为代码事实；arXiv source 明确支持的内容称为论文事实；为了教学而组织的路径图称为教学重构；调试和维护建议称为工程迁移；缺少权重、GPU、训练数据或原始评测脚本的部分标为未知。</p>
+    <p>详细证据见 <a href="reference/model-and-paper-claims.html">model and paper claims</a>、<a href="reference/file-map.html">file map</a> 和 <a href="reference/evidence-boundaries.html">evidence boundaries</a>。</p>
+
+    <section class="next">
+      <h2>Next Action</h2>
+      <p>从 <a href="lessons/01-system-map.html">Lesson 01</a> 开始。不要先跳入 Transformer 细节；先建立仓库、论文和运行时之间的边界，否则后续机制会被误读为训练系统的完整复现。</p>
+    </section>
+  </article>
+</main>
+<script type="module" src="assets/course-runtime.js"></script>
+</body>
+</html>

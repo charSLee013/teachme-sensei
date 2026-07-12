@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Environment Variables Reference</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+</head>
+<body>
+<main>
+  <article class="page">
+    <h1>Environment Variables Reference</h1>
+    <p class="meta">本页汇总 README、脚本和代码中出现的主要环境变量。</p>
+
+    <table>
+      <thead><tr><th>变量</th><th>用途</th><th>边界</th></tr></thead>
+      <tbody>
+        <tr><td>`MODEL_DIR`</td><td>脚本读取的 DiT 模型根目录。</td><td>必须包含对应组件，否则加载失败或 refiner 被跳过。</td></tr>
+        <tr><td>`DENSE_MODEL_DIR`, `MOE_MODEL_DIR`</td><td>README 示例中区分 Dense/MoE 权重。</td><td>脚本通常最终传入 `MODEL_DIR`。</td></tr>
+        <tr><td>`REWRITER_BASE_MODEL`</td><td>rewriter base VLM 路径。</td><td>in-process transformers backend 必需。</td></tr>
+        <tr><td>`REWRITER_ADAPTER`</td><td>rewriter LoRA adapter 路径。</td><td>step2 Map 使用。</td></tr>
+        <tr><td>`PYTHON_BIN`</td><td>shell 脚本选择 Python 解释器。</td><td>默认 `python`。</td></tr>
+        <tr><td>`BACKEND`</td><td>脚本传给 `--backend`。</td><td>默认多为 `diffusers`。</td></tr>
+        <tr><td>`NPROC`, `CP`, `CFG`</td><td>多卡脚本的进程数、context parallel degree、CFG parallel degree。</td><td>`NPROC` 应匹配并行拓扑。</td></tr>
+        <tr><td>`DIFFUSERS_ATTN_BACKEND`</td><td>选择 Diffusers attention backend。</td><td>脚本常默认 `_native_flash`。</td></tr>
+        <tr><td>`HF_HUB_DISABLE_PROGRESS_BARS`</td><td>runner 在非 verbose 模式下默认设置为 `1`。</td><td>用于压制外部库进度条，不改变模型语义。</td></tr>
+        <tr><td>`TOKENIZERS_PARALLELISM`</td><td>runner 在非 verbose 模式下默认设置为 `false`。</td><td>用于减少 tokenizer 并行 warning。</td></tr>
+        <tr><td>`DIFFUSERS_VERBOSITY`, `TRANSFORMERS_VERBOSITY`</td><td>runner 在非 verbose 模式下默认设置为 `error`。</td><td>用于收敛日志噪声。</td></tr>
+        <tr><td>`LINGBOT_QWEN_ATTN_IMPLEMENTATION`</td><td>覆盖 Qwen3-VL `from_pretrained` 的 attention implementation，默认 `flash_attention_3`。</td><td>依赖 transformers 与对应 attention kernel 可用性。</td></tr>
+        <tr><td>`LINGBOT_FUSED_QKV_LINEAR`</td><td>为 transformer attention 启用 fused QKV linear 分支。</td><td>代码级实验开关；未在脚本中默认开启。</td></tr>
+        <tr><td>`LINGBOT_MOE_EXPERT_BACKEND`</td><td>选择 MoE expert 执行路径。</td><td>例如 `grouped_mm`、`sglang_triton_fp8`。</td></tr>
+        <tr><td>`LINGBOT_MOE_PAD_BACKEND`</td><td>选择 grouped token padding 实现。</td><td>例如 `loop` 或 `vectorized`。</td></tr>
+        <tr><td>`LINGBOT_MOE_REORDER_BACKEND`</td><td>选择 token reorder path。</td><td>例如 `sort` 或 `triton_pack`。</td></tr>
+        <tr><td>`LINGBOT_MOE_RESTORE_BACKEND`</td><td>选择 expert output restore path。</td><td>例如 `scatter`、`index_add`、`triton`。</td></tr>
+        <tr><td>`LINGBOT_MOE_RESTORE_CHUNK_SIZE`</td><td>控制 chunked scatter restore 的 chunk 大小。</td><td>必须为正整数。</td></tr>
+        <tr><td>`LINGBOT_QUIET_PROGRESS`</td><td>关闭进度输出。</td><td>也可通过 `--quiet_progress` 设置。</td></tr>
+        <tr><td>`LINGBOT_VERBOSE_LOGS`</td><td>保留更详细导入日志。</td><td>默认会压制部分外部进度条和 warning。</td></tr>
+        <tr><td>`SGLANG_OPT_SWIGLU_CLAMP_FUSION`</td><td>SGLang shim 暴露给 fused MoE runtime 的环境 flag。</td><td>只有走 SGLang MoE 相关路径时才有意义。</td></tr>
+        <tr><td>`SGLANG_EXPERIMENTAL_LORA_OPTI`</td><td>SGLang shim 暴露的 LoRA 优化实验 flag。</td><td>课程不把它解释为 DiT 质量参数。</td></tr>
+      </tbody>
+    </table>
+  </article>
+</main>
+</body>
+</html>

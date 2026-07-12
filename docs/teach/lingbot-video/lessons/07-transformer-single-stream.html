@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>07 Transformer Single Stream</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left:'$$',right:'$$',display:true},
+        {left:'$',right:'$',display:false}
+      ]
+    });"></script>
+</head>
+<body data-course-page="07-transformer-single-stream">
+<main>
+  <article class="page">
+    <h1>07 Transformer Single Stream</h1>
+    <p class="meta">本章把论文中的 task-unified single-stream DiT 与本地 Transformer 实现对齐：从 attention 数学、3D RoPE 坐标构造，到 single-stream 与 dual-stream 的架构权衡。</p>
+
+    <section class="remember">
+      <h2>Remember Now</h2>
+      <ul>
+        <li>single-stream 的核心是将视觉 latent patch tokens 与 condition tokens 投影到同一 hidden size 后放入<strong>同一序列</strong>，共享同一套 self-attention 参数。</li>
+        <li>代码中的 patchify 顺序是时空网格展开：$[B,C,T,H,W]$ 视频 latent 被切成 $T \cdot \frac{H}{p} \cdot \frac{W}{p}$ 个 patch token。</li>
+        <li>3D RoPE 使用时间、高度、宽度三个坐标轴；text token 与 visual token 使用<strong>非重叠</strong>的 temporal 坐标范围，避免位置混淆。</li>
+        <li>QK-Norm 对 query/key 做 RMSNorm，控制 attention logits 尺度，是长序列训练稳定的关键。</li>
+        <li>single-stream 相比 dual-stream 的效率收益来自论文论述；本地代码能验证的是结构存在和 forward 数据流。</li>
+      </ul>
+    </section>
+
+    <h2>自注意力的数学基础</h2>
+    <p>Transformer 的核心是缩放点积注意力。对一个长度为 $N$ 的 token 序列，每个 token 投影出 query、key、value，注意力权重由 query-key 内积经 softmax 归一化得到：</p>
+
+    <div class="math-block">
+      <p><strong>缩放点积注意力：</strong></p>
+      $$\text{Attn}(Q,K,V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V$$
+      <p>其中 $Q,K \in \mathbb{R}^{N \times d_k}$，$V \in \mathbb{R}^{N \times d_v}$，$\sqrt{d_k}$ 是防止内积随维度增大而饱和 softmax 的缩放因子。</p>
+    </div>
+
+    <p>在 single-stream 设计中，序列 $N = N_{\text{video}} + N_{\text{text}}$ 是视觉 token 与文本 token 的<strong>拼接总长</strong>。这意味着一次 attention 同时建模了「视觉-视觉」「文本-文本」和「视觉-文本」三类交互，无需额外的 cross-attention 层。</p>
+
+    <div class="math-block">
+      <p><strong>QK-Norm（LingBotVideoRMSNorm 作用于 q/k）：</strong></p>
+      $$\hat{q} = \frac{q}{\sqrt{\frac{1}{d}\sum_i q_i^2 + \epsilon}} \cdot \gamma, \quad \hat{k} = \frac{k}{\sqrt{\frac{1}{d}\sum_i k_i^2 + \epsilon}} \cdot \gamma$$
+      <p>归一化后 $\|\hat{q}\|,\|\hat{k}\|$ 被约束在稳定范围，使 $\hat{q}\hat{k}^\top$ 的尺度不随训练漂移，避免 attention logits 爆炸导致 softmax 饱和。</p>
+    </div>
+
+    <h2>Multi-Modal 3D RoPE 的数学</h2>
+    <p>旋转位置编码（RoPE）通过对 query/key 施加与位置相关的旋转，使注意力内积<strong>只依赖相对位置</strong>。一维 RoPE 对位置 $m$ 的向量施加旋转矩阵 $R_m$：</p>
+
+    <div class="math-block">
+      <p><strong>一维 RoPE 的相对位置性质：</strong></p>
+      $$\langle R_m q,\; R_n k \rangle = \langle q,\; R_{n-m} k \rangle$$
+      <p>旋转角频率：$\theta_j = \text{base}^{-2j/d}$，代码中 <code>rope_theta = 256.0</code>。</p>
+    </div>
+
+    <p>LingBot-Video 的 <strong>3D RoPE</strong> 把 head 维度切成三段，分别编码时间 $t$、高度 $h$、宽度 $w$ 坐标。每个 token 的位置是一个三元组 $(t, h, w)$。关键在于 <code>make_joint_position_ids</code> 如何为不同模态分配坐标：</p>
+
+    <div class="math-block">
+      <p><strong>坐标分配（代码 make_joint_position_ids）：</strong></p>
+      $$\text{text token } i:\quad (t,h,w) = (i+1,\; 0,\; 0), \quad i \in [0, L)$$
+      $$\text{video token }(t',h',w'):\quad (t' + L + 1,\; h',\; w')$$
+      <p>其中 $L$ 是文本长度。文本占据时间轴 $[1, L]$，视频时间轴从 $L+1$ 起始，两者<strong>非重叠</strong>。</p>
+    </div>
+
+    <div class="design-note">
+      <strong>为什么非重叠坐标至关重要</strong>
+      <p>若文本和视频共享同一时间坐标（例如都从 0 开始），RoPE 会让「第 3 个文本 token」与「第 3 帧视频 token」产生虚假的相对位置为零的强关联，模型无法区分「这是文本的第 3 位」还是「视频的第 3 帧」。非重叠设计让每个 token 的时空坐标全局唯一，attention 能正确解析跨模态的相对结构。文本的 $h=w=0$ 表示它没有空间展开，只有序列顺序。</p>
+    </div>
+
+
+
+    <h2>Token 组织（代码数据流）</h2>
+<div data-course-diagram="0"></div>
+
+    <h2>Block 内部的稳定机制</h2>
+    <table>
+      <thead>
+        <tr><th>机制</th><th>代码对象</th><th>数学作用</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>QK-Norm</td><td><code>LingBotVideoRMSNorm</code> on q/k</td><td>约束 $\|\hat q\|,\|\hat k\|$，控制 $\hat q\hat k^\top$ 尺度，防止 logits 爆炸。</td></tr>
+        <tr><td>AdaLN modulation</td><td><code>time_embedder</code>、<code>time_modulation</code></td><td>由 timestep $t$ 生成 $(\gamma,\beta,\alpha)$，对 norm 输出做 $\gamma \odot x + \beta$ 并对分支做门控 $\alpha$。</td></tr>
+        <tr><td>3D RoPE</td><td><code>LingBotVideoRotaryEmbedding</code></td><td>对 q/k 施加位置旋转，注意力只依赖相对时空位置。</td></tr>
+        <tr><td>Context parallel plan</td><td><code>_cp_plan</code></td><td>为长序列的 Ulysses 式并行切分提供计划（见 Lesson 10）。</td></tr>
+        <tr><td>FP32 保留模块</td><td><code>LINGBOT_VIDEO_FP32_MODULES</code></td><td>norm、router、scale-shift 等敏感参数保持 fp32，主体计算用 bf16。</td></tr>
+      </tbody>
+    </table>
+
+    <h2>设计选择：Single-Stream vs Dual-Stream</h2>
+
+    <div class="design-note">
+      <strong>Dual-Stream（MM-DiT / CogVideoX 风格）</strong>
+      <p>文本和视频各自维护<strong>独立</strong>的 attention/FFN 参数，通过 cross-attention 或 joint-attention 的部分层桥接。优势：每个模态可以有专用的表征空间；劣势：参数量近乎翻倍，且模态间信息交换受限于桥接层的位置和频率。</p>
+    </div>
+
+    <div class="design-note">
+      <strong>Single-Stream（LingBot-Video 采用）</strong>
+      <p>所有模态投影到同一 hidden size 后拼接，共享<strong>同一套</strong> self-attention 参数。优势：参数高效、跨模态交互在每一层每个 token 对之间充分发生、实现简洁（一个 attention 覆盖全部）；代价：联合序列长度 $N_{\text{video}}+N_{\text{text}}$ 更长，attention 计算量随 $O(N^2)$ 增长，对长视频需要 Context Parallel 缓解。</p>
+    </div>
+
+    <div class="design-note">
+      <strong>相关工作定位对比</strong>
+      <table>
+        <thead>
+          <tr><th>系统</th><th>文本-视频融合方式</th><th>attention 结构</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Sora（推测）</td><td>DiT + 时空 patch</td><td>未公开细节</td></tr>
+          <tr><td>CogVideoX</td><td>Expert Transformer（模态专用 FFN）</td><td>接近 dual-stream</td></tr>
+          <tr><td>Mochi-1</td><td>Asymmetric DiT</td><td>文本/视频独立 attention 参数</td></tr>
+          <tr><td>MM-DiT (SD3)</td><td>双流 + joint attention</td><td>模态独立投影，联合注意力</td></tr>
+          <tr><td><strong>LingBot-Video</strong></td><td>single-stream 拼接</td><td>全模态共享 self-attention</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:0.85rem;color:#8b949e;">注：以上竞品架构描述为 <code>lineage_context</code>（生态背景），非本仓库代码事实；用于帮助读者定位 LingBot-Video 在设计空间中的位置。</p>
+    </div>
+
+    <section class="evidence">
+      <h2>Evidence</h2>
+      <p>本章代码事实来自 <code>transformer_lingbot_video.py</code>（<code>make_joint_position_ids</code>、<code>LingBotVideoRotaryEmbedding</code>、<code>LingBotVideoRMSNorm</code>、<code>_cat_interleave</code>、<code>LINGBOT_VIDEO_FP32_MODULES</code>）。论文事实来自 method 章节的 Unified Input Formulation、Single-Stream Diffusion Transformer、Multi-Modal 3D RoPE、QK-Norm 和 AdaLN-Single Modulation 段落。RoPE 数学来自 Su et al. "RoFormer" (2021)；竞品对比为生态背景。</p>
+    </section>
+
+    <h2>Retrieval Prompts</h2>
+    <ol>
+      <li>写出缩放点积注意力公式，并解释 $\sqrt{d_k}$ 缩放的作用。</li>
+      <li>从 RoPE 的相对位置性质 $\langle R_m q, R_n k\rangle = \langle q, R_{n-m}k\rangle$ 出发，解释为什么文本和视频必须用非重叠的时间坐标。</li>
+      <li>single-stream 的 attention 计算量为什么是 $O((N_{\text{video}}+N_{\text{text}})^2)$？这如何影响长视频推理？</li>
+      <li>QK-Norm 解决了什么数值问题？为什么它对长序列尤其重要？</li>
+      <li>相比 CogVideoX 的 Expert Transformer，single-stream 在参数量和跨模态交互上各有什么权衡？</li>
+    </ol>
+
+    <section class="next">
+      <h2>Next Action</h2>
+      <p>进入 <a href="08-sparse-moe.html">Lesson 08</a>，研究 FFN 分支如何被 sparse MoE 替换，以及 routing 的数学与 token dispatch 的 3D 可视化。</p>
+    </section>
+  </article>
+</main>
+
+<script type="module" src="../assets/course-runtime.js"></script>
+</body>
+</html>

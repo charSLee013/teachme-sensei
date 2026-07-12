@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>09 Refiner</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left:'$$',right:'$$',display:true},
+        {left:'$',right:'$',display:false}
+      ]
+    });"></script>
+</head>
+<body data-course-page="09-refiner">
+<main>
+  <article class="page">
+    <h1>09 Refiner</h1>
+    <p class="meta">本章从数学上解释 LingBot-Video 的二阶段细化：为什么 refiner 不从纯噪声 $t=1$ 出发，而是从低噪声阈值 $t_{\text{thresh}}$ 起步；sigma 调度如何用 flow-shift 把采样步数集中到细节修复区间。</p>
+
+    <section class="remember">
+      <h2>Remember Now</h2>
+      <ul>
+        <li>Refiner 只支持视频模式（t2v/ti2v），T2I 禁用；且 refiner 内部始终以 <code>mode="t2v"</code> 运行（runner.py:840）。</li>
+        <li>起点不是纯噪声，而是 degraded latent 加少量噪声：$x_{t_{\text{thresh}}}=(1-t_{\text{thresh}})\,x_{\text{up}}+t_{\text{thresh}}\,\varepsilon$。</li>
+        <li>sigma 调度用 flow-shift 变换 $\sigma'=\dfrac{s\,\sigma}{1+(s-1)\sigma}$，$s>1$ 把更多步数推向高噪声端。</li>
+        <li>refiner 只取 $\sigma \le t_{\text{thresh}}$ 的那一段调度，且强制首元素恰为 $t_{\text{thresh}}$，把整段容量投入到 $[t_{\text{thresh}}\to 0]$ 的细节恢复。</li>
+        <li><code>validate_refiner_sigmas</code> 是硬校验：1D、非空、有限、$\in[0,1]$、严格降序、首元素 $==t_{\text{thresh}}$。</li>
+      </ul>
+    </section>
+
+    <h2>数学基础：低噪声起点</h2>
+
+    <p>标准视频生成从纯噪声 $t=1$（即 $x_1=\varepsilon$）一路去噪到 $t=0$（干净 latent $x_0$）。refiner 的任务不同：它已经有一段 base 输出 $x_{\text{up}}$（低分辨率、被上采样、细节退化的 latent），要做的是<b>局部细节恢复</b>，不是从零生成内容。所以它没必要走完整噪声区间。</p>
+
+    <p>在 Rectified Flow 的直线插值框架下（见 <a href="05-diffusion-pipeline-loop.html">Lesson 05</a>），任意时刻 $t$ 的带噪 latent 是干净信号与噪声的线性组合：</p>
+    <div class="math-block">
+      $$ x_t = (1-t)\,x_0 + t\,\varepsilon,\qquad \varepsilon\sim\mathcal{N}(0,I) $$
+    </div>
+    <p>refiner 把 degraded base latent $x_{\text{up}}$ 当作"近似干净信号"，注入到 $t=t_{\text{thresh}}$ 这个低噪声点上，这正是 <code>prepare_refiner_latent</code> 做的：</p>
+    <div class="math-block">
+      $$ x_{t_{\text{thresh}}} = (1-t_{\text{thresh}})\,x_{\text{up}} + t_{\text{thresh}}\,\varepsilon $$
+    </div>
+    <p>直观理解：$t_{\text{thresh}}$ 越小，起点越接近 $x_{\text{up}}$（保留更多 base 结构，改动更保守）；$t_{\text{thresh}}$ 越大，注入的噪声越多，refiner 有更大自由度重写细节（但可能偏离 base）。这是一个"忠实度 vs 修复力度"的旋钮。</p>
+
+    <h3>sigma 调度：flow-shift 变换</h3>
+    <p><code>compute_refiner_sigmas</code> 先在 $[\sigma_{\max},\sigma_{\min}]$ 上均匀取 $N{+}1$ 个点并丢掉末点，再对每个 $\sigma$ 施加 flow-shift：</p>
+    <div class="math-block">
+      $$ \sigma_{\text{base}} = \text{linspace}(\sigma_{\max},\sigma_{\min},N{+}1)[:-1],\qquad
+         \sigma' = \frac{s\cdot\sigma_{\text{base}}}{1+(s-1)\cdot\sigma_{\text{base}}} $$
+    </div>
+    <p>其中 $s$ 是 shift 参数。当 $s=1$ 时 $\sigma'=\sigma$（恒等）；当 $s>1$ 时，函数把中间值往上抬，等价于<b>把更多采样步数分配到高噪声区间</b>——这对视频这种高维信号有利，因为高噪声段的结构决策更需要密集步数。</p>
+
+    <div class="math-block">
+      $$ \text{保留 } \sigma' \le t_{\text{thresh}}+\epsilon,\qquad
+         \text{强制 } \sigma'_0 = t_{\text{thresh}},\qquad
+         \text{(可选) tail\_steps: 线性延伸至 } \sigma_{\min} $$
+    </div>
+    <p>过滤掉大于阈值的部分后，refiner 的整条调度都落在 $[t_{\text{thresh}}\to 0]$ 窗口内。首元素被钉成恰好 $t_{\text{thresh}}$，与 <code>prepare_refiner_latent</code> 的起点严格对齐——这就是 <code>validate_refiner_sigmas</code> 检查"首元素 $==t_{\text{thresh}}$"的原因。</p>
+
+
+
+    <h2>Refiner 运行路径</h2>
+<div data-course-diagram="0"></div>
+
+    <h2>设计选择</h2>
+
+    <div class="design-note">
+      <strong>为什么 refiner 不从纯噪声开始？</strong>
+      从 $t=1$ 重新生成会丢掉 base 阶段已经确定的全局结构（构图、运动、主体），既浪费算力又可能引入不一致。从 $t_{\text{thresh}}$ 出发意味着"信任 base 的低频结构，只重做高频细节"。数学上，起点 $x_{t_{\text{thresh}}}$ 里 $(1-t_{\text{thresh}})$ 比例的信号来自 $x_{\text{up}}$，天然携带 base 结构。这是 cascaded / SDEdit 类方法的核心思想：用噪声强度控制"改多少"。
+    </div>
+
+    <div class="design-note">
+      <strong>flow-shift 为什么偏向高噪声端？</strong>
+      在 Rectified Flow / EDM 类调度里，高噪声段决定大尺度结构，低噪声段只做精修。视频的 latent 维度极高，结构决策一旦错了后面救不回来，所以把步数密度往高噪声端倾斜（$s>1$）能提升结构稳定性。$\sigma'=s\sigma/(1{+}(s{-}1)\sigma)$ 是一个单调、把 $[0,1]$ 映回 $[0,1]$、在中段上凸的变换——$s$ 越大，弯曲越强。
+    </div>
+
+    <h3>与同类调度 / 细化方案的对比</h3>
+    <table>
+      <thead>
+        <tr><th>方案</th><th>起点</th><th>步数分配</th><th>谱系</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>LingBot-Video Refiner</b></td><td>$(1-t_{\text{thresh}})x_{\text{up}}+t_{\text{thresh}}\varepsilon$</td><td>flow-shift 偏高噪声 + 阈值裁剪</td><td>code_fact（本仓库）</td></tr>
+        <tr><td>SDEdit (Meng 2022)</td><td>输入图加噪到中间 $t_0$</td><td>标准调度</td><td>lineage_context</td></tr>
+        <tr><td>Cascaded Diffusion (Ho 2022)</td><td>低分辨率上采样 + 噪声条件增强</td><td>各级独立调度</td><td>lineage_context</td></tr>
+        <tr><td>Flow-shift (SD3 / Esser 2024)</td><td>纯噪声</td><td>resolution-aware shift</td><td>lineage_context</td></tr>
+        <tr><td>UniPC (Zhao 2023)</td><td>纯噪声</td><td>predictor-corrector 少步</td><td>lineage_context</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:0.85rem; color:#666;">对比行属 <b>lineage_context</b>（生态背景，非本仓库代码事实）。LingBot-Video 行经 <code>utils.py</code> 源码验证。</p>
+
+    <section class="warning">
+      <h2>证据边界</h2>
+      <ul>
+        <li>"论文把 refiner 描述为条件 rectified flow 的细化阶段"属 <b>paper_fact</b>，不等于本地端到端验证——当前环境缺 diffusers/decord 等依赖，无法实跑 refiner。</li>
+        <li>公式 $x_{t_{\text{thresh}}}$、$\sigma'$、阈值裁剪均为 <b>code_fact</b>，直接对应 <code>utils.py</code> 的 <code>prepare_refiner_latent</code>/<code>compute_refiner_sigmas</code>/<code>validate_refiner_sigmas</code>。</li>
+        <li>"flow-shift 偏向高噪声端有利于结构稳定"是对调度形状的 <b>course_reconstruction</b>（教学解释），非仓库注释原话。</li>
+      </ul>
+    </section>
+
+    <section class="evidence">
+      <h2>Evidence</h2>
+      <p>代码事实来自 <code>utils.py</code>：<code>compute_refiner_sigmas</code>(utils.py:39，linspace + flow-shift $s\sigma/(1{+}(s{-}1)\sigma)$ + 阈值过滤 + 首元素钉 $t_{\text{thresh}}$ + 可选 tail_steps)、<code>validate_refiner_sigmas</code>(utils.py:21，1D/非空/有限/$[0,1]$/严格降序/首元素$==t_{\text{thresh}}$)、<code>prepare_refiner_latent</code>(utils.py:75，<code>(1.0-t_thresh)*x_up + t_thresh*noise</code>)；<code>runner.py</code>：refiner 始终 <code>mode="t2v"</code>(840)、T2I 禁 refiner(1106-1107)、TI2V refiner 需 <code>--image</code>(1108-1110)、refiner 组件缺失则跳过。文献谱系：SDEdit(Meng 2022)、Cascaded Diffusion(Ho 2022)、SD3 flow-shift(Esser 2024)、UniPC(Zhao 2023)。</p>
+    </section>
+
+    <h2>Retrieval Prompts</h2>
+    <ol>
+      <li>写出 refiner 起点公式，并解释 $t_{\text{thresh}}$ 增大对"忠实度 vs 修复力度"的影响。</li>
+      <li>推导 flow-shift $\sigma'=s\sigma/(1{+}(s{-}1)\sigma)$ 在 $s=1$ 与 $s\to\infty$ 时的极限行为，说明它为何把步数推向高噪声端。</li>
+      <li>为什么 <code>validate_refiner_sigmas</code> 要检查"首元素 $==t_{\text{thresh}}$"？它和 <code>prepare_refiner_latent</code> 的起点如何耦合？</li>
+      <li>为什么 refiner 内部强制 <code>mode="t2v"</code>，即使外层是 ti2v？TI2V refiner 又为何仍需 <code>--image</code>？</li>
+      <li>如果把 refiner 起点改成纯噪声 $t=1$，会损失什么、又会付出什么额外算力代价？</li>
+    </ol>
+
+    <section class="next">
+      <h2>Next Action</h2>
+      <p>进入 <a href="10-serving-fsdp-sglang.html">Lesson 10</a>，理解多卡部署下 FSDP / Context Parallel / CFG Parallel 三个并行维度如何切分参数、序列与分支。</p>
+    </section>
+  </article>
+</main>
+
+<script type="module" src="../assets/course-runtime.js"></script>
+</body>
+</html>

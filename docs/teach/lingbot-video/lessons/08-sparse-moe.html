@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>08 Sparse MoE</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left:'$$',right:'$$',display:true},
+        {left:'$',right:'$',display:false}
+      ]
+    });"></script>
+</head>
+<body data-course-page="08-sparse-moe">
+<main>
+  <article class="page">
+    <h1>08 Sparse MoE</h1>
+    <p class="meta">本章解释 LingBot-Video 的 sparse MoE 分支：从 capacity-compute decoupling 的 FLOPs 数学，到 router 的选择-门控非对称性，再到 token dispatch 的 3D 可视化。</p>
+
+    <section class="remember">
+      <h2>Remember Now</h2>
+      <ul>
+        <li>MoE 的核心目标是<strong>解耦总参数容量与每 token 活跃计算</strong>：总参数 $\propto E$，激活计算 $\propto k$，其中 $k \ll E$。</li>
+        <li>router 先在 fp32 下算 affinity $\to$ 选 top-$k$ experts；<strong>选择用加 bias 的分数，门控权重用不加 bias 的原始分数</strong>——这个非对称性是代码显式保留的。</li>
+        <li>group-limited top-k 先按组打分（每组 top-2 之和）选出若干组，再在组内选 expert，减少通信与负载倾斜。</li>
+        <li>推理实现包含 loop fallback、grouped_mm、Triton pack/restore、SGLang fused 和 FP8 五条 expert path。</li>
+        <li>load balancing、训练 loss 和 scaling 结果是论文事实；本地仓库主要可验证推理结构。</li>
+      </ul>
+    </section>
+
+    <h2>为什么要 MoE？Capacity-Compute Decoupling 的数学</h2>
+    <p>一个 dense FFN 层对每个 token 都要过完整的前馈网络。若隐藏维 $d$、中间维 $d_{ff}$，则每 token 的 FFN FLOPs 约为：</p>
+
+    <div class="math-block">
+      <p><strong>Dense FFN 每 token 计算量：</strong></p>
+      $$C_{\text{dense}} \approx 2 \cdot 2 \cdot d \cdot d_{ff} = 4\,d\,d_{ff}$$
+      <p>（两个线性层 gate/up 与 down，每个矩阵乘约 $2\,d\,d_{ff}$ FLOPs。）</p>
+    </div>
+
+    <p>MoE 用 $E$ 个独立 expert（每个是一个 FFN）替换单个 FFN，但每个 token 只激活其中 $k$ 个。于是：</p>
+
+    <div class="math-block">
+      <p><strong>MoE 参数量 vs 激活计算量：</strong></p>
+      $$P_{\text{MoE}} \approx E \cdot P_{\text{expert}}, \qquad C_{\text{MoE}} \approx k \cdot C_{\text{expert}}$$
+      <p>参数容量随 $E$ 线性增长，而每 token 计算只随 $k$ 增长。当 $E=64, k=8$ 时，容量是 dense 的 $64\times$，计算却只有 $8\times$（相对单 expert）。</p>
+    </div>
+
+    <div class="design-note">
+      <strong>为什么这对视频生成尤其重要</strong>
+      <p>视频 DiT 的序列长度 $N = N_{\text{video}} + N_{\text{text}}$ 极长（一段 5 秒 720p 视频可达数万 token）。attention 已是 $O(N^2)$ 瓶颈，若再堆 dense FFN 容量，计算量不可承受。MoE 让模型在几乎不增加每 token FLOPs 的前提下扩大知识容量——这正是论文 "capacity-compute decoupling" 的论点。总激活参数（例如 30B-A3B 中的 A3B）决定推理成本，总参数（30B）决定模型能力上限。</p>
+    </div>
+
+    <h2>Router 的数学：选择与门控的非对称性</h2>
+    <p>router 的 forward（<code>LingBotVideoRouter.forward</code>）严格保留了一个容易被忽略但至关重要的非对称设计。以下每一步都对应源码：</p>
+
+    <div class="math-block">
+      <p><strong>1. fp32 affinity logits（禁用 autocast 保证数值稳定）：</strong></p>
+      $$\ell = W_r\, x, \quad W_r \in \mathbb{R}^{E \times d}$$
+
+      <p><strong>2. 归一化为分数（sigmoid 或 softmax）：</strong></p>
+      $$s = \sigma(\ell) \quad \text{或} \quad s = \text{softmax}(\ell)$$
+
+      <p><strong>3. 选择用「加 bias」的分数：</strong></p>
+      $$s_{\text{choice}} = s + b_e \quad (b_e = \text{e\_score\_correction\_bias})$$
+
+      <p><strong>4. 选出 top-$k$ 索引：</strong></p>
+      $$\mathcal{I} = \text{TopK}(s_{\text{choice}},\, k)$$
+
+      <p><strong>5. 门控权重从「不加 bias」的原始分数 gather：</strong></p>
+      $$g = s[\mathcal{I}] \quad \text{(注意：是 } s \text{ 而非 } s_{\text{choice}}\text{)}$$
+
+      <p><strong>6. 可选归一化并缩放：</strong></p>
+      $$g \leftarrow \frac{g}{\sum g + \varepsilon} \cdot \text{route\_scale}$$
+    </div>
+
+    <div class="design-note">
+      <strong>为什么 bias 只进选择、不进门控？</strong>
+      <p>correction bias $b_e$ 的唯一职责是<strong>均衡负载</strong>：训练中若某 expert 被过度选择，就调低它的 $b_e$，让它在下一批中不易被选。但这是一个「路由策略」的调节量，不代表该 expert 对当前 token 的真实亲和度。如果把 $b_e$ 也乘进最终输出的门控权重 $g$，就会用「负载均衡的人为偏置」污染「专家贡献的加权和」，破坏梯度估计的无偏性。因此代码从 $s$（无 bias）而非 $s_{\text{choice}}$（有 bias）gather 门控权重。这一设计与 DeepSeek-V3 的 auxiliary-loss-free load balancing 思路一致。</p>
+    </div>
+
+    <h2>Group-Limited Top-K</h2>
+    <p>朴素 top-$k$ 在全部 $E$ 个 expert 上选择。group-limited 版本先把 expert 分成 $n_{\text{group}}$ 组，做两级选择：</p>
+
+    <div class="math-block">
+      <p><strong>组打分（每组取 top-2 分数之和）：</strong></p>
+      $$\text{group\_score}_j = \sum_{\text{top-2}} s_{\text{choice}}[\text{group}_j]$$
+      <p><strong>选出 topk_group 个组，组外 expert 置 $-\infty$，再在存活 expert 上取 top-$k$：</strong></p>
+      $$\mathcal{I} = \text{TopK}\bigl(\text{mask}_{-\infty}(s_{\text{choice}}),\, k\bigr)$$
+    </div>
+
+    <div class="design-note">
+      <strong>为什么分组？</strong>
+      <p>在 expert 并行（EP）部署中，不同组的 expert 往往放在不同设备上。限制每个 token 只路由到少数几个组，就把 all-to-all 通信限制在少数设备之间，减少跨设备通信量。同时两级选择降低了「一个 token 的 top-k 分散到所有组」的概率，让负载更集中可控。这是 DeepSeek-MoE 系列引入的技术。</p>
+    </div>
+
+
+
+    <h2>MoE 数据流（代码路径）</h2>
+<div data-course-diagram="0"></div>
+
+    <h2>Expert 执行路径</h2>
+    <table>
+      <thead>
+        <tr><th>路径</th><th>触发条件</th><th>教学含义</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Loop fallback</td><td><code>torch._grouped_mm</code> 不可用时</td><td>最易理解，逐 expert 计算，正确性基准。</td></tr>
+        <tr><td>Grouped MM</td><td>默认质量路径，环境支持时</td><td>把同一 expert 的 token 分组后批量矩阵乘。</td></tr>
+        <tr><td>Triton pack/restore</td><td><code>LINGBOT_MOE_REORDER_BACKEND=triton_pack</code></td><td>自定义 kernel 优化 token 重排与恢复。</td></tr>
+        <tr><td>SGLang fused</td><td><code>LINGBOT_MOE_EXPERT_BACKEND=sglang_triton</code></td><td>使用 SGLang fused experts kernel。</td></tr>
+        <tr><td>SGLang FP8</td><td><code>sglang_triton_fp8</code></td><td>FP8 量化，速度优先，可能牺牲严格数值一致性。</td></tr>
+      </tbody>
+    </table>
+
+    <h2>设计选择：与其他 MoE 系统的对比</h2>
+    <div class="design-note">
+      <strong>相关工作定位</strong>
+      <table>
+        <thead>
+          <tr><th>系统</th><th>路由粒度</th><th>负载均衡机制</th><th>门控 bias</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Mixtral 8×7B</td><td>token-choice top-2</td><td>auxiliary load loss</td><td>无</td></tr>
+          <tr><td>DeepSeek-MoE</td><td>fine-grained + shared expert</td><td>group-limited + aux loss</td><td>无</td></tr>
+          <tr><td>DeepSeek-V3</td><td>fine-grained + shared</td><td>aux-loss-free（bias 调节）</td><td>选择用 bias</td></tr>
+          <tr><td><strong>LingBot-Video</strong></td><td>group-limited top-k + shared</td><td>correction bias（选择用）</td><td><strong>选择用，门控不用</strong></td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:0.85rem;color:#8b949e;">注：竞品架构描述为 <code>lineage_context</code>（生态背景），非本仓库代码事实。LingBot-Video 的 router 结构与 DeepSeek-V3 的 aux-loss-free 思路最为接近，这是从代码 <code>e_score_correction_bias</code> 的用法推断的。</p>
+    </div>
+
+    <section class="warning">
+      <h2>证据边界</h2>
+      <p>论文讨论 MoE recipe、expert scale、fine-grained routing 和 speed benchmark；这些是论文事实。当前本地环境缺 SGLang 和 diffusers，且没有权重，所以课程<strong>不能</strong>声称已经验证 MoE 速度或生成质量。上文 FLOPs 估算是数量级分析，非实测。</p>
+    </section>
+
+    <section class="evidence">
+      <h2>Evidence</h2>
+      <p>本章代码事实来自 <code>LingBotVideoRouter</code>（<code>forward</code>、<code>_group_limited_topk</code>、<code>e_score_correction_bias</code>）、<code>LingBotVideoSparseMoeBlock</code>、<code>LingBotVideoGroupedExperts</code>、<code>moe_pack_kernels.py</code>、<code>moe_restore_kernels.py</code>、<code>sglang_moe_shim.py</code>。论文事实来自 method 中 Sparse MoE、recipe 和 scaling 段落。MoE 数学与竞品对比参考 Shazeer et al. "Outrageously Large Neural Networks" (2017)、Mixtral (2024)、DeepSeek-V3 (2024)。</p>
+    </section>
+
+    <h2>Retrieval Prompts</h2>
+    <ol>
+      <li>写出 MoE 的参数量与每 token 计算量公式，解释 capacity-compute decoupling 的含义。</li>
+      <li>router 的选择分数 $s_{\text{choice}}$ 和门控权重 $g$ 分别用加 bias 还是不加 bias 的分数？为什么这个区分至关重要？</li>
+      <li>group-limited top-k 相比朴素 top-k 在 expert 并行部署中有什么通信优势？</li>
+      <li>五条 expert 执行路径中，哪条是正确性基准？哪条可能牺牲数值一致性？</li>
+      <li>为什么 router 的 affinity logits 要在 fp32 下计算（禁用 autocast）？</li>
+    </ol>
+
+    <section class="next">
+      <h2>Next Action</h2>
+      <p>进入 <a href="09-refiner.html">Lesson 09</a>，分析二阶段 refiner 如何从 base video 出发恢复高频细节。</p>
+    </section>
+  </article>
+</main>
+
+<script type="module" src="../assets/course-runtime.js"></script>
+</body>
+</html>

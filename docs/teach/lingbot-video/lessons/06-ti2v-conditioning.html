@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>06 TI2V Conditioning</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left:'$$',right:'$$',display:true},
+        {left:'$',right:'$',display:false}
+      ]
+    });"></script>
+</head>
+<body data-course-page="06-ti2v-conditioning">
+<main>
+  <article class="page">
+    <h1>06 TI2V Conditioning</h1>
+    <p class="meta">本章从数学上说明 Text-Image-to-Video 如何把同一张首帧拆成两条正交的条件：一条进入 VLM 影响语义表征，一条进入 VAE 潜空间并以 inpainting 硬约束固定生成轨迹的 frame-0。</p>
+
+    <section class="remember">
+      <h2>Remember Now</h2>
+      <ul>
+        <li>首帧被复制成两份条件：<b>VLM 图像条件</b>（影响 prompt encoding 的语义）与 <b>VAE latent 条件</b>（影响扩散采样的初始状态）。</li>
+        <li>latent 归一化用的是 VAE 训练时统计量：$z_{\text{norm}}=(z-\mu)/\sigma$，$\mu,\sigma$ 来自 <code>vae.config.latents_mean/latents_std</code>，reshape 成 $[1,C,1,1,1]$ 广播。</li>
+        <li>inpainting 是硬替换，不是加权：$x[:,:,:c_t] \leftarrow z_0$，其中 $c_t=$ <code>cond_latent.shape[2]</code>（TI2V 通常为 1 个 latent 帧）。</li>
+        <li>硬约束在采样前注入一次，并在<b>每个 scheduler step 之后重新注入</b>——否则去噪会把干净首帧慢慢"抹掉"。</li>
+        <li>TI2V refiner 会用原始首帧重建 clean frame-0 latent（<code>x_up[:,:,0:1]=refiner_cond_latent</code>），避免细化阶段丢失首帧外观。</li>
+      </ul>
+    </section>
+
+    <h2>数学基础：两条条件通路</h2>
+
+    <p>给定一张首帧图像 $I \in \mathbb{R}^{3\times H_0\times W_0}$，TI2V 把它送进两条互不干扰的通路。理解它们"作用于不同对象"是理解整章的关键。</p>
+
+    <h3>通路一：VLM 语义条件</h3>
+    <p>首帧先经 <code>smart_resize</code> 对齐到 patch 网格，再作为图像输入喂给多模态文本编码器，与文本 prompt 联合编码：</p>
+    <div class="math-block">
+      $$ c_{\text{text}} = \text{Encode}\big(\text{prompt},\; \text{img}=\text{smartResize}(I)\big) $$
+    </div>
+    <p>其中 <code>smart_resize</code> 把边长对齐到 $\text{patch\_factor}=\text{vision\_patch\_size}\times\text{SPATIAL\_MERGE\_SIZE}$，且 $\text{SPATIAL\_MERGE\_SIZE}=2$。这条通路改变的是<b>条件表征 $c_{\text{text}}$</b>——让文本编码"看见"首帧里的主体、外观、布局，使后续 cross/self-attention 的语义锚点与首帧一致。</p>
+
+    <h3>通路二：VAE latent 条件</h3>
+    <p>同一张首帧走几何预处理与 VAE 编码，得到 latent 前缀。预处理 <code>preprocess_image</code> 先按 $\max(h,w)$ 缩放，再中心裁剪到目标 $H\times W$，归一化到 $[0,1]$ 并加时间维：</p>
+    <div class="math-block">
+      $$ \text{pixel} \in [0,1]^{3\times 1\times H\times W},\qquad \text{norm\_pixel} = \frac{\text{pixel}-0.5}{0.5}\in[-1,1] $$
+    </div>
+    <p>VAE 编码采样后，还要用训练统计量做 latent 归一化，使条件 latent 与扩散模型训练时的 latent 分布一致：</p>
+    <div class="math-block">
+      $$ z_0 = \big(\text{VAE.encode}(\text{norm\_pixel}).\text{sample}() - \mu\big)\odot \sigma^{-1},\qquad \mu,\sigma \in \mathbb{R}^{[1,C,1,1,1]} $$
+    </div>
+    <p>这里 $\odot\sigma^{-1}$ 是逐通道乘以 <code>std_inv</code>（等价除以标准差），$\mu/\sigma$ 从 <code>vae.config.latents_mean/latents_std</code> reshape 成 $[1,C,1,1,1]$ 后按通道广播。忘记这步归一化，条件 latent 的数值尺度会偏离模型预期，导致首帧"过曝"或"发灰"。</p>
+
+    <h3>核心操作：first-frame inpainting</h3>
+    <p><code>_apply_inpainting</code> 是一个 staticmethod，做的是<b>硬替换</b>而非软融合：</p>
+    <div class="math-block">
+      $$ c_t = \texttt{cond\_latent.shape[2]},\qquad x[:,\,:,\,:c_t] \;\leftarrow\; z_0\ (\text{cast to float}) $$
+    </div>
+    <p>它把当前 latent 张量 $x\in\mathbb{R}^{[1,C,T',H',W']}$ 的前 $c_t$ 个 latent 帧直接覆盖为干净首帧 latent。TI2V 里 $c_t=1$：只钉住 frame-0。注意这是 $\leftarrow$（赋值），不是 $\alpha z_0+(1-\alpha)x$（插值）——所以叫 inpainting，等价于"这块区域已知，别去噪它"。</p>
+
+    <div class="design-note">
+      <strong>为什么要在每一步之后重新注入？</strong>
+      扩散/flow 采样每一步都会对整个张量 $x$ 施加去噪更新 $x_{t}\to x_{t-\Delta}$，包括被钉住的 frame-0。若只在开头注入一次，随着采样推进，frame-0 会被更新"污染"，逐渐偏离干净首帧。因此调用点有两处：<code>i2v.py:239</code>（采样循环前一次）与 <code>i2v.py:331</code>（每个 scheduler step 之后再钉一次）。这把"首帧已知"从软先验变成每步都被强制满足的<b>硬约束</b>。
+    </div>
+
+
+
+    <h2>代码数据流</h2>
+<div data-course-diagram="0"></div>
+
+    <h2>设计选择</h2>
+
+    <div class="design-note">
+      <strong>为什么不用单一 latent 拼接，而要 VLM + latent 双通路？</strong>
+      latent 条件只约束<b>像素级</b>初始状态（frame-0 长什么样），它不告诉模型"这是一只猫、正在跳跃"。VLM 通路把首帧语义注入文本表征 $c_{\text{text}}$，让整段视频的运动与外观都以首帧主体为锚。二者正交：去掉 VLM，后续帧可能"漂移"成别的主体；去掉 latent inpainting，首帧本身就对不上输入图。这是一种典型的"语义锚 + 像素锚"分工。
+    </div>
+
+    <div class="design-note">
+      <strong>硬替换 vs 软融合（inpainting 的选择）</strong>
+      扩散图像编辑里常见两种条件注入：软融合（$\alpha$ 混合，如 SDEdit）与硬 mask 替换（如 RePaint / latent inpainting）。LingBot-Video 选硬替换 $x[:,:,:c_t]\leftarrow z_0$，因为首帧是<b>确定已知</b>的输入，不需要给模型"改动首帧"的自由度。代价是必须每步 re-clamp（否则被去噪更新破坏），换来的是首帧像素级保真。
+    </div>
+
+    <h3>与同类 I2V/首帧条件方案的对比</h3>
+    <table>
+      <thead>
+        <tr><th>方案</th><th>首帧注入方式</th><th>语义条件</th><th>谱系</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>LingBot-Video TI2V</b></td><td>latent prefix 硬替换 + 每步 re-clamp</td><td>VLM 图像条件进 prompt encoder</td><td>code_fact（本仓库）</td></tr>
+        <tr><td>Stable Video Diffusion</td><td>首帧 CLIP embedding + latent 通道拼接</td><td>CLIP image embed</td><td>lineage_context</td></tr>
+        <tr><td>DynamiCrafter</td><td>首帧 latent 拼接 + dual-stream 注入</td><td>CLIP + 文本</td><td>lineage_context</td></tr>
+        <tr><td>SEINE / 通用 inpainting-based I2V</td><td>mask + 条件帧（软/硬混合）</td><td>文本</td><td>lineage_context</td></tr>
+        <tr><td>CogVideoX-I2V</td><td>首帧 latent 拼接（padding + mask）</td><td>T5 文本</td><td>lineage_context</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:0.85rem; color:#666;">对比行属 <b>lineage_context</b>（生态背景，非本仓库代码事实）。LingBot-Video 行为经 <code>pipeline_lingbot_video_i2v.py</code> 源码验证。</p>
+
+    <section class="warning">
+      <h2>证据边界</h2>
+      <ul>
+        <li>"VLM 图像条件影响语义、latent inpainting 影响像素轨迹"这一<b>作用分工</b>是对代码机制的教学重构（course_reconstruction）；代码事实是两条通路的存在与调用点。</li>
+        <li>论文层面的 first-frame conditioning 描述属 <b>paper_fact</b>，不等于"本地已端到端验证"——当前环境缺 diffusers/transformers 等依赖，无法实跑生成。</li>
+        <li>竞品注入方式为 <b>lineage_context</b>，用于定位设计谱系，非本仓库实现细节。</li>
+      </ul>
+    </section>
+
+    <section class="evidence">
+      <h2>Evidence</h2>
+      <p>代码事实来自 <code>pipeline_lingbot_video_i2v.py</code>：<code>preprocess_image</code>(i2v.py:86)、<code>encode_image_latent</code>(i2v.py:119，含 <code>norm_pixel=(pixel-0.5)/0.5</code> 与 latent 归一化 <code>(latents-mean)*std_inv</code>)、<code>_vlm_image</code>/<code>smart_resize</code>（patch_factor = vision_patch_size × <code>SPATIAL_MERGE_SIZE</code>=2）；<code>pipeline_lingbot_video.py:138</code> 的 staticmethod <code>_apply_inpainting</code>（<code>cond_t=cond_latent.shape[2]; latents[:,:,:cond_t]=cond_latent.float()</code>），调用点 i2v.py:239 与 i2v.py:331；refiner 首帧 <code>x_up[:,:,0:1]=refiner_cond_latent</code>（runner.py）。文献谱系：Stable Video Diffusion、DynamiCrafter、CogVideoX-I2V、RePaint（inpainting）。</p>
+    </section>
+
+    <h2>Retrieval Prompts</h2>
+    <ol>
+      <li>写出 latent 归一化公式，并解释为何要用 <code>vae.config.latents_mean/latents_std</code> 而不是当前 batch 统计量。</li>
+      <li>为什么 <code>_apply_inpainting</code> 用硬替换 $x[:,:,:c_t]\leftarrow z_0$ 而不是 $\alpha$ 加权融合？各自的代价是什么？</li>
+      <li>推导：若只在采样前注入一次 cond_latent、之后不再 re-clamp，frame-0 会发生什么？用去噪更新作用于整张量这一事实说明。</li>
+      <li>VLM 图像条件与 latent inpainting 分别改变哪个对象（$c_{\text{text}}$ 还是 $x$）？去掉其中一条各会导致什么失败模式？</li>
+      <li>TI2V refiner 为何强制要求 <code>--image</code>，而不能像 T2V refiner 那样只用 base video？</li>
+    </ol>
+
+    <section class="next">
+      <h2>Next Action</h2>
+      <p>进入 <a href="07-transformer-single-stream.html">Lesson 07</a>，研究 DiT 内部如何把视觉 token 与文本条件 token 拼进单一序列共享自注意力。</p>
+    </section>
+  </article>
+</main>
+
+<script type="module" src="../assets/course-runtime.js"></script>
+</body>
+</html>

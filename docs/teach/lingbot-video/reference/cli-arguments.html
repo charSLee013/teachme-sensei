@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLI Arguments Reference</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+</head>
+<body>
+<main>
+  <article class="page">
+    <h1>CLI Arguments Reference</h1>
+    <p class="meta">本页按行为而非 argparse 顺序组织公开推理参数。</p>
+
+    <h2>输入与输出</h2>
+    <table>
+      <tr><th>参数</th><th>作用</th></tr>
+      <tr><td>`--model_dir`</td><td>LingBot-Video 模型根目录，必填。</td></tr>
+      <tr><td>`--mode`</td><td>`t2i`、`t2v` 或 `ti2v`。</td></tr>
+      <tr><td>`--prompt_json`</td><td>推荐输入，读取 structured caption 和 optional duration。</td></tr>
+      <tr><td>`--prompt`</td><td>直接 prompt 字符串，通常只用于调试。</td></tr>
+      <tr><td>`--image`</td><td>TI2V 首帧路径；TI2V refiner 必需。</td></tr>
+      <tr><td>`--output`</td><td>base 输出路径；T2I 为图片，视频模式为 MP4。</td></tr>
+    </table>
+
+    <h2>Prompt 与 Negative</h2>
+    <table>
+      <tr><th>参数</th><th>作用</th></tr>
+      <tr><td>`--negative_prompt`</td><td>手写 negative prompt。</td></tr>
+      <tr><td>`--negative_prompt_json`</td><td>读取 auto negative 输出；与 `--negative_prompt` 互斥。</td></tr>
+    </table>
+
+    <h2>几何与采样</h2>
+    <table>
+      <tr><th>参数</th><th>作用</th></tr>
+      <tr><td>`--height`, `--width`</td><td>输出几何；需要满足 Pipeline input checks。</td></tr>
+      <tr><td>`--resolution`, `--ratio`</td><td>使用预设 bucket；必须同时提供。</td></tr>
+      <tr><td>`--duration`</td><td>视频时长；如果 prompt JSON 提供 duration，runner 会使用它。</td></tr>
+      <tr><td>`--num_frames`</td><td>手写帧数；当前代码中会被 prompt JSON duration 覆盖。</td></tr>
+      <tr><td>`--steps`, `--guidance_scale`, `--shift`, `--seed`, `--fps`</td><td>采样步数、CFG、flow shift、随机种子和视频帧率。</td></tr>
+    </table>
+
+    <h2>精度与组件加载</h2>
+    <table>
+      <tr><th>参数</th><th>作用</th></tr>
+      <tr><td>`--default_dtype`</td><td>未被组件级参数覆盖时的默认 dtype。</td></tr>
+      <tr><td>`--transformer_dtype`</td><td>DiT transformer 主体加载 dtype。</td></tr>
+      <tr><td>`--text_encoder_dtype`</td><td>Qwen3-VL text/VLM encoder 相关组件 dtype。</td></tr>
+      <tr><td>`--vae_dtype`</td><td>base VAE dtype；代码会检查实际 VAE dtype 是否匹配请求值。</td></tr>
+      <tr><td>`--transformer_subfolder`</td><td>模型目录内 transformer 子目录名，默认 `transformer`。</td></tr>
+      <tr><td>`--diffusers_attn_backend`</td><td>设置 `DIFFUSERS_ATTN_BACKEND`，常见脚本默认 `_native_flash`。</td></tr>
+      <tr><td>`--allow_tf32`, `--no-allow_tf32`</td><td>控制 CUDA matmul TF32；默认允许。</td></tr>
+      <tr><td>`--quiet_progress`</td><td>关闭加载日志与 denoising 进度输出，同时设置 `LINGBOT_QUIET_PROGRESS`。</td></tr>
+    </table>
+
+    <h2>Backend 与并行</h2>
+    <table>
+      <tr><th>参数</th><th>作用</th></tr>
+      <tr><td>`--backend`</td><td>`diffusers` 或 `sglang`。</td></tr>
+      <tr><td>`--batch_cfg`</td><td>批量计算 CFG 两支。</td></tr>
+      <tr><td>`--cfg_parallel_degree`</td><td>跨 rank 拆分 CFG 分支。</td></tr>
+      <tr><td>`--context_parallel_degree`</td><td>跨 rank 切分长序列。</td></tr>
+      <tr><td>`--context_parallel_ulysses_anything`</td><td>传给 context parallel plan 的兼容开关，用于更宽松地启用 Ulysses-style 切分。</td></tr>
+      <tr><td>`--enable_fsdp_inference`</td><td>对 transformer 做 inference-time FSDP sharding。</td></tr>
+      <tr><td>`--null_cond_clone_zero`</td><td>非 TI2V 模式下控制 null condition 的 clone-zero 策略。</td></tr>
+      <tr><td>`--reuse_condition_features`</td><td>缓存并复用 prompt condition features，尤其用于 refiner 或多阶段调用。</td></tr>
+    </table>
+
+    <h2>Refiner</h2>
+    <table>
+      <tr><th>参数</th><th>作用</th></tr>
+      <tr><td>`--run_refiner`</td><td>启用视频 refiner。</td></tr>
+      <tr><td>`--refiner_model_dir`</td><td>非标准模型布局时覆盖 refiner 根目录。</td></tr>
+      <tr><td>`--refiner_transformer_subfolder`</td><td>refiner transformer 子目录名，默认 `refiner`。</td></tr>
+      <tr><td>`--refiner_output`</td><td>refiner 输出路径。</td></tr>
+      <tr><td>`--refiner_height`, `--refiner_width`</td><td>refiner 目标分辨率。</td></tr>
+      <tr><td>`--refiner_steps`, `--refiner_guidance_scale`, `--refiner_shift`</td><td>refiner 步数、CFG 强度与 flow shift。</td></tr>
+      <tr><td>`--refiner_t_thresh`, `--refiner_sigma_tail_steps`</td><td>refiner 低噪声区间和尾部 sigma 步数配置。</td></tr>
+      <tr><td>`--refiner_fps`, `--refiner_sample_fps`</td><td>refiner 输出帧率与从 base 视频抽样的帧率。</td></tr>
+      <tr><td>`--refiner_max_video_frames`</td><td>限制进入 refiner 的最大视频帧数。</td></tr>
+      <tr><td>`--refiner_vae_dtype`</td><td>refiner VAE dtype。</td></tr>
+      <tr><td>`--refiner_batch_cfg`</td><td>refiner 内批量计算 CFG 两支；与 `--cfg_parallel_degree > 1` 互斥。</td></tr>
+      <tr><td>`--refiner_no_null_cond_clone_zero`</td><td>关闭 refiner null condition clone-zero 策略。</td></tr>
+      <tr><td>`--refiner_offload_vae_during_denoise`</td><td>denoising 期间卸载 refiner VAE，以换取显存余量。</td></tr>
+    </table>
+  </article>
+</main>
+</body>
+</html>

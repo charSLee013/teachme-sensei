@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>05 Diffusion Pipeline Loop</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left:'$$',right:'$$',display:true},
+        {left:'$',right:'$',display:false}
+      ]
+    });"></script>
+</head>
+<body data-course-page="05-diffusion-pipeline-loop">
+<main>
+  <article class="page">
+    <h1>05 Diffusion Pipeline Loop</h1>
+    <p class="meta">本章进入生成核心：LingBotVideoPipeline 如何把 prompt condition 和 latent diffusion 过程连接起来，以及为何选择 Rectified Flow 而非 DDPM。</p>
+
+    <section class="remember">
+      <h2>Remember Now</h2>
+      <ul>
+        <li>Pipeline 的核心工作是把文本条件编码、latent 初始化、scheduler timesteps、Transformer 预测和 VAE decode 串成采样循环。</li>
+        <li>普通 CFG 需要 conditional 与 unconditional 两次 Transformer forward；batch CFG 将两支拼成 batch。</li>
+        <li>视频 latent 的时间维由 $T_{\text{latent}} = \frac{T_{\text{frames}} - 1}{4} + 1$ 决定，空间维由 height/width 除以 VAE spatial scale 决定。</li>
+        <li>Rectified Flow 的直线轨迹使得推理时所需的 NFE（Number of Function Evaluations）远少于 DDPM 的布朗曲线路径。</li>
+        <li>Pipeline 本身不理解用户自然语言；它接收 runner 传入的 prompt 字符串或预缓存 prompt embeddings。</li>
+      </ul>
+    </section>
+
+    <h2>Flow Matching 的数学基础</h2>
+    <p>LingBot-Video 的 scheduler 基于 <strong>Rectified Flow</strong>（Liu et al., 2022）框架，而非传统 DDPM。其核心思想是在数据分布 $x_0$ 与噪声分布 $x_1 \sim \mathcal{N}(0,I)$ 之间定义一条直线插值路径，并学习沿该路径的速度场。</p>
+
+    <div class="math-block">
+      <p><strong>Rectified Flow 插值路径：</strong></p>
+      $$x_t = (1-t)\,x_0 + t\,x_1, \quad t \in [0,1]$$
+
+      <p><strong>最优速度场（直线方向）：</strong></p>
+      $$v^* = x_1 - x_0$$
+
+      <p><strong>训练目标（匹配直线速度）：</strong></p>
+      $$\mathcal{L}(\theta) = \mathbb{E}_{t,\,x_0,\,x_1}\,\bigl\|v_\theta(x_t,\,t) - (x_1 - x_0)\bigr\|^2$$
+
+      <p><strong>推理 ODE（从噪声走向数据）：</strong></p>
+      $$\frac{dx_t}{dt} = v_\theta(x_t,\,t)$$
+    </div>
+
+    <p>与此对比，DDPM 的正向过程是布朗运动驱动的随机微分方程（SDE），其轨迹是随机弯曲的。DDPM 的反向过程需要小步长离散化才能稳定积分，导致典型 NFE 在 50—1000 步之间。Rectified Flow 的直线轨迹在几何上是最短路径，理论上可以用更大步长积分而不引入过大离散化误差，典型 NFE 可降至 4—20 步。</p>
+
+    <div class="math-block">
+      <p><strong>Classifier-Free Guidance（速度场线性外推）：</strong></p>
+      $$v_{\text{guided}} = v_{\text{uncond}} + w \cdot \bigl(v_{\text{cond}} - v_{\text{uncond}}\bigr)$$
+
+      <p><strong>Video latent 时间压缩：</strong></p>
+      $$T_{\text{latent}} = \frac{T_{\text{frames}} - 1}{4} + 1$$
+    </div>
+
+    <p>注意 CFG 在 Rectified Flow 中依然是速度场的线性外推，逻辑与 DDPM 的 $\epsilon$-prediction CFG 完全平行。$w=0$ 退化为无条件生成，$w=7.5$ 是常用的强引导值。</p>
+
+
+
+    <h2>设计选择：为什么 Flow Matching？</h2>
+
+    <div class="design-note">
+      <strong>更少的 NFE（推理加速）</strong>
+      <p>DDPM 的布朗运动轨迹曲率大，ODE 求解器必须用小步长以保证精度，典型需要 250—1000 步。Rectified Flow 的直线轨迹曲率接近零，相同精度只需 4—20 步，视频生成的推理时间直接减少一个数量级。</p>
+    </div>
+
+    <div class="design-note">
+      <strong>更稳定的训练（几何优势）</strong>
+      <p>训练目标 $v^* = x_1 - x_0$ 在整个时间轴上是一个常数目标（与 $t$ 无关），不像 DDPM 的 $\epsilon$-prediction 目标在不同噪声水平下尺度差异大。这使得模型训练更稳定，梯度方差更低。</p>
+    </div>
+
+    <div class="design-note">
+      <strong>与 DDPM/DDIM 的关键对比</strong>
+      <table>
+        <thead>
+          <tr><th>属性</th><th>DDPM</th><th>DDIM</th><th>Rectified Flow</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>正向过程</td><td>随机 SDE（加高斯噪声）</td><td>同 DDPM，但推理确定性</td><td>直线插值（确定性）</td></tr>
+          <tr><td>反向 ODE</td><td>近似（Tweedie 公式）</td><td>确定性 DDIM 采样</td><td>精确 ODE（速度场直接积分）</td></tr>
+          <tr><td>典型 NFE</td><td>250—1000</td><td>20—50</td><td>4—20</td></tr>
+          <tr><td>训练目标</td><td>$\|\epsilon_\theta - \epsilon\|^2$（噪声预测）</td><td>同 DDPM</td><td>$\|v_\theta - (x_1-x_0)\|^2$（速度预测）</td></tr>
+          <tr><td>轨迹曲率</td><td>高（布朗曲线）</td><td>高（相同 SDE）</td><td>零（直线）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>LingBot-Video 选择 <strong>FlowUniPC</strong> 作为 scheduler，是在 Rectified Flow 框架上叠加了 UniPC（Unified Predictor-Corrector）多步求解器，进一步减少步数同时提升生成质量。</p>
+
+    <h2>采样循环结构</h2>
+<div data-course-diagram="0"></div>
+
+    <p>伪代码中 $v_{\text{cond}}$ 和 $v_{\text{uncond}}$ 是 Transformer 对速度场的预测。scheduler.step 执行一步 ODE 积分 $x_{t-\Delta t} = x_t - \Delta t \cdot v_{\text{guided}}$（简化表示，实际用 UniPC 多步预测）。</p>
+
+    <h2>输入检查和 latent 形状</h2>
+    <p><code>check_inputs</code> 规定视频帧数必须是 1 或 $4n+1$（$n \geq 1$），原因是 VAE temporal stride 为 4：$T_{\text{latent}} = (T_{\text{frames}} - 1) / 4 + 1$ 需要整除。height 和 width 必须是 16 的倍数（patch size 2 $\times$ VAE spatial scale 8）。</p>
+    <p><code>prepare_latents</code> 生成形状为 $[B, C, T_L, H_L, W_L]$ 的随机高斯噪声张量，其中：</p>
+    <div class="math-block">
+      $$T_L = \frac{T_{\text{frames}}-1}{4}+1, \quad H_L = \frac{H}{8}, \quad W_L = \frac{W}{8}$$
+    </div>
+
+    <h2>Prompt Encoding</h2>
+    <p><code>encode_prompt</code> 使用 processor 构造 Qwen 风格输入，再调用 text encoder 取得 hidden states。随后它裁掉 prompt template 前缀，只保留用户内容对应的 token 表示。对于 batch=1 的情况，右侧 padding 会被移除，以减少后续 DiT 处理长度——这是 LingBot-Video 针对推理效率的工程决策。</p>
+
+    <h2>CFG 的三种执行方式</h2>
+    <table>
+      <thead>
+        <tr><th>方式</th><th>机制</th><th>公式</th><th>适用场景</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>普通 CFG</td>
+          <td>conditional 与 unconditional 分别 forward，再线性组合。</td>
+          <td>$v_g = v_u + w(v_c - v_u)$</td>
+          <td>最直接，易于审计和调试。</td>
+        </tr>
+        <tr>
+          <td>Batch CFG</td>
+          <td>将两支 prompt embeddings 和 latents 拼成 batch，一次 forward。</td>
+          <td>同上，拆分后合并</td>
+          <td>减少调度开销，需要 padding 对齐。</td>
+        </tr>
+        <tr>
+          <td>CFG Parallel</td>
+          <td>不同 rank 分别计算 conditional/unconditional，AllReduce 合并。</td>
+          <td>分布式实现同上</td>
+          <td>多卡布局，要求初始化分布式组。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <section class="evidence">
+      <h2>Evidence</h2>
+      <p>本章依据 <code>pipeline_lingbot_video.py</code> 中的 <code>check_inputs</code>、<code>encode_prompt</code>、<code>prepare_latents</code> 和 <code>__call__</code>，以及 <code>utils.batch_cfg_prompt_inputs</code> 和 <code>scheduling_flow_unipc.py</code>。Flow Matching 理论来自 Liu et al. "Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow" (2022) 和 Lipman et al. "Flow Matching for Generative Modeling" (2022)。</p>
+    </section>
+
+    <h2>Retrieval Prompts</h2>
+    <ol>
+      <li>为什么视频帧数要满足 $4n+1$？给出具体的代数推导。</li>
+      <li>普通 CFG 和 batch CFG 在 Transformer forward 次数上有什么差异？各有什么内存开销？</li>
+      <li>VAE decode 是在采样循环前、循环中还是循环后发生？其 latent 维度如何还原到像素维度？</li>
+      <li>为什么 Rectified Flow 的轨迹是直线？从插值定义 $x_t = (1-t)x_0 + tx_1$ 推导 $dx_t/dt$。</li>
+      <li>FlowUniPC 相比朴素的 Euler 积分有什么优势？</li>
+    </ol>
+
+    <section class="next">
+      <h2>Next Action</h2>
+      <p>进入 <a href="06-ti2v-conditioning.html">Lesson 06</a>，分析 TI2V 如何在同一个采样框架中加入首帧约束。</p>
+    </section>
+  </article>
+</main>
+
+<script type="module" src="../assets/course-runtime.js"></script>
+</body>
+</html>

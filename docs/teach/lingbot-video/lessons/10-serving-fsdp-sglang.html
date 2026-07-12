@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>10 Serving, FSDP, And SGLang</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left:'$$',right:'$$',display:true},
+        {left:'$',right:'$',display:false}
+      ]
+    });"></script>
+</head>
+<body data-course-page="10-serving-fsdp-sglang">
+<main>
+  <article class="page">
+    <h1>10 Serving, FSDP, And SGLang</h1>
+    <p class="meta">本章从通信复杂度的角度解释三种正交并行维度——FSDP 切参数、Context Parallel 切序列、CFG Parallel 切 guidance 分支——它们分别付出什么通信代价，以及为什么视频 DiT 需要把它们组合起来。</p>
+
+    <section class="remember">
+      <h2>Remember Now</h2>
+      <ul>
+        <li>三个正交维度切的对象不同：<b>FSDP</b> 切参数张量（每卡存 $\approx P/N_{\text{fsdp}}$），<b>Context Parallel</b> 切序列（每卡算 $\approx N_{\text{seq}}/N_{\text{cp}}$ token），<b>CFG Parallel</b> 切 guidance 两条分支。</li>
+        <li>FSDP 用 all-gather 在前向时临时拼回完整权重，通信量随参数量走；Ulysses（CP）用 all-to-all 交换 head/序列，通信量 $O(N_{\text{seq}}\cdot d/N_{\text{cp}})$。</li>
+        <li><code>world_size = cfg_parallel_degree × context_parallel_degree</code>（见 <a href="04-runner-orchestration.html">Lesson 04</a>）；FSDP 与它们复合，切的是另一个维度（参数）而非进程网格。</li>
+        <li>FSDP 在<b>模型构造之后</b>才包装（<code>fully_shard</code>），因此不能消除加载阶段的 host memory 峰值。</li>
+        <li><code>--backend sglang</code> 不是外部 OpenAI-style server 客户端，而是本地 native adapter + MoE fused kernel；不可用时静默回退 diffusers。</li>
+      </ul>
+    </section>
+
+    <h2>数学基础：三种切分与通信代价</h2>
+
+    <p>大模型多卡的核心矛盾：单卡放不下（内存墙）或算不快（算力墙）。不同并行维度针对不同的墙，通信代价也不同。理解"切什么、换来什么、代价是什么"是部署决策的基础。</p>
+
+    <h3>维度一：FSDP —— 切参数</h3>
+    <p>Fully Sharded Data Parallel 把每个参数张量按 $N_{\text{fsdp}}$ 卡分片，每卡常驻只有一份分片：</p>
+    <div class="math-block">
+      $$ \text{每卡常驻参数} \approx \frac{P}{N_{\text{fsdp}}},\qquad
+         \text{前向/反向时 all-gather 临时拼回完整层参数} $$
+    </div>
+    <p>代价是每进入一层就要 all-gather 该层的完整权重（用完即弃），通信量正比于参数量。LingBot-Video 的 <code>apply_fsdp_inference</code> 遍历 transformer block，用 PyTorch composable FSDP 的 <code>fully_shard</code> 逐 block 包装。关键细节：它按参数 dtype 分组，把<b>主 dtype</b>作为 sharded 主体，dtype 不同的参数（如保留 FP32 的 norm/router/scale-shift，见 <a href="08-sparse-moe.html">Lesson 08</a>）放进 <code>ignored_params</code> 不参与分片。</p>
+
+    <h3>维度二：Context Parallel（Ulysses）—— 切序列</h3>
+    <p>视频 DiT 的序列极长：$N_{\text{seq}}=T'\times H'\times W'$ 个 patch token（见 <a href="07-transformer-single-stream.html">Lesson 07</a>），单卡注意力算不动。Context Parallel 把序列切到 $N_{\text{cp}}$ 卡，每卡只算一段：</p>
+    <div class="math-block">
+      $$ \text{每卡序列长度} \approx \frac{N_{\text{seq}}}{N_{\text{cp}}} $$
+    </div>
+    <p>但注意力需要每个 query 看到<b>所有</b> key，序列切开后就必须通信。DeepSpeed-Ulysses 的做法是在注意力前后各做一次 all-to-all：把"按序列切"转成"按 head 切"，算完再转回来。其通信量为：</p>
+    <div class="math-block">
+      $$ \text{Ulysses all-to-all} \sim O\!\left(\frac{N_{\text{seq}}\cdot d}{N_{\text{cp}}}\right) $$
+    </div>
+    <p>相比朴素的 all-gather 全序列（$O(N_{\text{seq}}\cdot d)$），all-to-all 的通信量随 $N_{\text{cp}}$ 下降，这是 Ulysses 对长序列友好的关键。<code>runner.py</code> 在 913–960 行构造 context parallel mesh 并在 transformer 上挂 context parallel plan。</p>
+
+    <h3>维度三：CFG Parallel —— 切 guidance 分支</h3>
+    <p>Classifier-free guidance 每步要算 conditional 与 unconditional 两条前向。CFG Parallel 把这两条分到不同进程组并行算，$D_{\text{cfg}}\le 2$（分支只有两条，超过 2 无意义）。它与 CP 正交相乘构成进程网格：</p>
+    <div class="math-block">
+      $$ \text{world\_size} = D_{\text{cfg}}\times D_{\text{cp}},\qquad D_{\text{cfg}}\in\{1,2\} $$
+    </div>
+    <p>FSDP 则是<b>第三个正交轴</b>：它切的是参数，可以叠加在上面这张网格的每个进程上（每个进程只存参数分片）。所以完整的部署拓扑是"参数分片 × guidance 分支 × 序列切片"三重复合。</p>
+
+
+
+    <h2>后端选择与数据流</h2>
+<div data-course-diagram="0"></div>
+
+    <h2>设计选择</h2>
+
+    <div class="design-note">
+      <strong>为什么要三维复合，而不是单靠一种并行？</strong>
+      每种并行都有天花板：CFG 只有 2 路（分支数固定）；FSDP 降内存但每层 all-gather 通信随参数量涨，扩太多卡通信占比过高；CP 可扩到很多卡但 all-to-all 通信随之上升。视频 DiT 同时面临"参数大 + 序列长 + 要 CFG"三重压力，单一维度都顶不住。三者正交复合，才能在给定 GPU 预算下把每一维都控制在高效区间——这是大规模视频生成部署的典型组合拳。
+    </div>
+
+    <div class="design-note">
+      <strong>为什么 FSDP inference 不能省加载阶段的内存峰值？</strong>
+      <code>fully_shard</code> 是在模型<b>已经构造完成</b>之后才包装、切分参数的。也就是说，模型对象必须先在 host/device 上被完整实例化（峰值内存 = 完整模型），然后才分片。真正的 meta-init / 流式加载才能避免这个峰值，而 FSDP inference 不做这件事。教学结论：FSDP 降的是<b>稳态</b>驻留内存，不是<b>加载瞬时</b>峰值。
+    </div>
+
+    <h3>与主流分布式方案的对比</h3>
+    <table>
+      <thead>
+        <tr><th>方案</th><th>切分对象</th><th>主要通信</th><th>谱系</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>FSDP inference（本仓库）</b></td><td>参数张量（按 dtype 分组）</td><td>per-layer all-gather</td><td>code_fact + PyTorch FSDP</td></tr>
+        <tr><td><b>Context Parallel（本仓库）</b></td><td>token 序列</td><td>attention 前后 all-to-all</td><td>code_fact + DeepSpeed-Ulysses</td></tr>
+        <tr><td><b>CFG Parallel（本仓库）</b></td><td>guidance 两条分支</td><td>分支独立，末端合并</td><td>code_fact</td></tr>
+        <tr><td>Tensor Parallel（Megatron）</td><td>层内矩阵（列/行切）</td><td>每层 all-reduce</td><td>lineage_context</td></tr>
+        <tr><td>Ring Attention</td><td>token 序列</td><td>KV 环形 P2P 传递</td><td>lineage_context</td></tr>
+        <tr><td>ZeRO-3 / DeepSpeed</td><td>参数 + 梯度 + 优化器态</td><td>all-gather + reduce-scatter</td><td>lineage_context（FSDP 的思想同源）</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:0.85rem; color:#666;">对比行属 <b>lineage_context</b>（生态谱系）。本仓库三维并行经 <code>runner.py</code>/<code>fsdp_inference.py</code> 源码验证；通信复杂度为<b>数量级分析，非实测</b>。</p>
+
+    <section class="warning">
+      <h2>证据边界</h2>
+      <ul>
+        <li><b>TI2V + CFG parallel 是 conflicting_surface</b>：i2v pipeline 代码里有 <code>cfg_parallel_group</code> 分支，但 <code>docs/en/dit_inference.md</code> 明确写 TI2V runner 未启用 CFG parallel。课程不把它列为已确认组合，需实机拓扑测试。</li>
+        <li>通信量公式（$O(N_{\text{seq}}d/N_{\text{cp}})$ 等）是<b>数量级分析</b>，非本环境实测——当前环境缺 sglang/多 GPU，无法跑分布式验证。</li>
+        <li><code>--backend sglang</code> 不是外部 server 客户端路径；这是 paper_fact（serving infrastructure）+ code_fact（native adapter）的组合，非"已端到端部署验证"。</li>
+        <li>竞品方案（Megatron TP / Ring Attention / ZeRO）为 <b>lineage_context</b>，用于定位谱系。</li>
+      </ul>
+    </section>
+
+    <section class="evidence">
+      <h2>Evidence</h2>
+      <p>代码事实来自 <code>inference_backend.py</code>（<code>resolve_backend_engine</code> 的 sglang→sglang-native/回退）、<code>native_backend.py</code>（native adapter 包装 Diffusers pipeline）、<code>fsdp_inference.py</code>（<code>apply_fsdp_inference</code>：遍历 block，<code>fully_shard</code>，主 dtype 分片，<code>ignored_params</code>=非主 dtype）、<code>runner.py</code>（<code>world_size=D_cfg×D_cp</code>、DeviceMesh runner.py:347、context parallel mesh 913–960、<code>cfg_parallel_group</code>）、<code>docs/en/dit_inference.md</code> 与 <code>docs/en/sglang_diffusion.md</code>。文献谱系：PyTorch FSDP、DeepSpeed-Ulysses（Jacobs 2023）、Megatron-LM tensor parallel、Ring Attention、DeepSpeed ZeRO。</p>
+    </section>
+
+    <h2>Retrieval Prompts</h2>
+    <ol>
+      <li>FSDP、Context Parallel、CFG Parallel 分别切分什么对象？各自的主要集合通信原语是什么？</li>
+      <li>写出 Ulysses all-to-all 的通信量数量级，并解释为什么它比朴素 all-gather 全序列更适合长序列。</li>
+      <li>推导：为什么 $D_{\text{cfg}}\le 2$？CFG parallel 超过 2 路为什么没有意义？</li>
+      <li>为什么 <code>fully_shard</code> 在模型构造之后包装，就意味着它不能消除加载阶段的 host memory 峰值？真正能消除该峰值的技术是什么？</li>
+      <li>为什么 TI2V + CFG parallel 不能仅凭"i2v pipeline 里存在 cfg_parallel_group 分支"就判定为已验证能力？</li>
+    </ol>
+
+    <section class="next">
+      <h2>Next Action</h2>
+      <p>进入 <a href="11-debugging-and-validation.html">Lesson 11</a>，学习如何在缺权重和有权重两种条件下验证项目。</p>
+    </section>
+  </article>
+</main>
+
+<script type="module" src="../assets/course-runtime.js"></script>
+</body>
+</html>

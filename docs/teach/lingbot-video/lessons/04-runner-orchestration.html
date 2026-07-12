@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>04 Runner Orchestration</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left:'$$',right:'$$',display:true},
+        {left:'$',right:'$',display:false}
+      ]
+    });"></script>
+</head>
+<body data-course-page="04-runner-orchestration">
+<main>
+  <article class="page">
+    <h1>04 Runner Orchestration</h1>
+    <p class="meta">本章把 runner 看作一个"意图 → 契约"的编译器：它把 CLI 参数解析、规范化，解决 backend/engine 的分派与回退，并把多卡并行分解成一个满足 $\text{world\_size}=D_{\text{cfg}}\times D_{\text{cp}}$ 的进程网格,最后凝结成一次 <code>pipe(**call_kwargs)</code> 调用。</p>
+
+    <section class="remember">
+      <h2>Remember Now</h2>
+      <ul>
+        <li><code>scripts/inference.py</code> 是薄入口(把仓库根加入 <code>sys.path</code> + 默认注入 <code>--backend diffusers</code>);真正的编排在 <code>runner.main</code>。</li>
+        <li>backend/engine 解析是一棵带回退分支的决策树:<code>--backend sglang</code> 不可用时 <b>warning + 回退 diffusers</b>;但显式 <code>--engine sglang-native</code> <b>不回退</b>(用户明确要求 native,失败即失败)。</li>
+        <li>并行拓扑是一个乘法分解:$\text{world\_size}=D_{\text{cfg}}\times D_{\text{cp}}$(CFG 分支 lane × context 序列 lane)。</li>
+        <li>两组互斥约束:$D_{\text{cfg}}>1$ 与 <code>--batch_cfg</code> 互斥;$D_{\text{cfg}}>1$ 与 <code>--refiner_batch_cfg</code> 互斥——同一维度不能既切进程又切 batch。</li>
+        <li>所有策略(prompt/negative/geometry/parallel/refiner)最终收敛成一个 <code>call_kwargs</code> 字典,传给 <code>pipe(**call_kwargs)</code>。</li>
+      </ul>
+    </section>
+
+    <h2>数学基础:并行拓扑的乘法分解</h2>
+
+    <p>多卡推理的核心问题是:给定 $N$ 张 GPU(<code>world_size</code>),如何把它们分配到不同的并行维度?LingBot-Video 用两个正交维度:</p>
+
+    <div class="math-block">
+      $$ \text{world\_size} = D_{\text{cfg}} \times D_{\text{cp}} $$
+    </div>
+
+    <p>其中 $D_{\text{cfg}}$ 是 <b>CFG 并行度</b>(把 classifier-free guidance 的 conditional/unconditional 两条分支拆到不同进程组),$D_{\text{cp}}$ 是 <b>context parallel 并行度</b>(把注意力的序列维切到不同进程,即 Ulysses,见 <a href="10-serving-fsdp-sglang.html">Lesson 10</a>)。这个乘法关系意味着进程被组织成一个 $D_{\text{cfg}}\times D_{\text{cp}}$ 的二维网格:同一 CFG lane 内的进程协作完成一条 guidance 分支的序列并行注意力,不同 CFG lane 并行处理两条 guidance 分支。</p>
+
+    <p>每个 rank 的坐标可以写成:</p>
+    <div class="math-block">
+      $$ \text{rank} = r_{\text{cfg}}\cdot D_{\text{cp}} + r_{\text{cp}},\qquad r_{\text{cfg}}\in[0,D_{\text{cfg}}),\; r_{\text{cp}}\in[0,D_{\text{cp}}) $$
+    </div>
+    <p>这正是 <code>DeviceMesh</code>(runner.py:347)构造的二维网格索引方式:先按 context lane 展开,再按 cfg lane 分组。</p>
+
+    <h3>为什么 $D_{\text{cfg}}>1$ 与 batch_cfg 互斥?</h3>
+    <p>CFG 需要同时算 conditional 和 unconditional 两条前向。有两种把它们"并行化"的方式,它们在物理上争抢同一份工作,不能叠加:</p>
+    <div class="math-block">
+      $$ \underbrace{D_{\text{cfg}}=2}_{\text{进程并行:两条分支放到两个进程组}} \quad\text{vs}\quad \underbrace{\texttt{batch\_cfg}}_{\text{batch 并行:两条分支拼进同一次前向的 batch 维}} $$
+    </div>
+    <p>如果 $D_{\text{cfg}}=2$ 已经把两条分支分给了两个进程,再要求 <code>batch_cfg</code> 把它们拼进同一个 batch 就自相矛盾——同一份分支工作不能既在进程 A 又在进程 B 的 batch 里。所以 runner.py:1100-1101 直接报错。<code>--refiner_batch_cfg</code> 同理(1102-1104)。</p>
+
+
+
+    <h2>数据流:参数到调用</h2>
+<div data-course-diagram="0"></div>
+
+    <h2>设计选择</h2>
+
+    <div class="design-note">
+      <strong>为什么 sglang 回退但 sglang-native 不回退?</strong>
+      这是"意图强度"的区分。public <code>--backend sglang</code> 表达的是"我想要快,用 SGLang 如果能用"——这是一个软偏好,不可用时回退 diffusers 保证任务能跑完,只打 warning。而显式 <code>--engine sglang-native</code> 表达的是"我明确要走 native 路径"——这是一个硬要求,通常出现在性能基准测试或调试 native adapter 时;此时静默回退反而会掩盖问题,让用户误以为在测 native 其实在测 diffusers。所以 runner 让它失败即失败。这是一个把 CLI 表层词汇映射到"回退策略"的经典设计。
+    </div>
+
+    <div class="design-note">
+      <strong>为什么把并行做成乘法分解而不是单一维度?</strong>
+      视频 DiT 的序列极长(见 <a href="07-transformer-single-stream.html">Lesson 07</a>,$T'\times H'\times W'$ 个 patch token),单靠一种并行难以同时利用大量 GPU。CFG 并行天然是 2 路(两条 guidance 分支),超过 2 就没意义;context parallel 可扩到任意路但通信开销随之上升。把二者相乘 $\text{world\_size}=D_{\text{cfg}}\times D_{\text{cp}}$,就能用 2 路 CFG × $k$ 路序列并行组合出 $2k$ 卡的拓扑,兼顾两种并行的收益。runner 的职责是校验这个分解合法(乘积等于 world_size、互斥约束不冲突)并构造对应的 DeviceMesh。
+    </div>
+
+    <h3>backend/engine 解析对照</h3>
+    <table>
+      <thead>
+        <tr><th>用户输入</th><th>解析 engine</th><th>不可用时</th><th>典型场景</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>(默认)</td><td>diffusers</td><td>—</td><td>入口自动注入 <code>--backend diffusers</code></td></tr>
+        <tr><td><code>--backend diffusers</code></td><td>diffusers</td><td>—</td><td>参考实现,最稳</td></tr>
+        <tr><td><code>--backend sglang</code></td><td>sglang-native</td><td>warning + 回退 diffusers</td><td>软偏好:想要快,能用就用</td></tr>
+        <tr><td><code>--engine sglang-native</code></td><td>sglang-native</td><td><b>不回退,失败即失败</b></td><td>硬要求:基准/调试 native</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:0.85rem; color:#666;">上表为 <code>resolve_backend_engine</code>(<code>inference_backend.py</code>)的代码事实(code_fact)。</p>
+
+    <section class="warning">
+      <h2>证据边界</h2>
+      <ul>
+        <li>并行拓扑的乘法分解 $\text{world\_size}=D_{\text{cfg}}\times D_{\text{cp}}$ 与两组互斥校验是 code_fact(runner.py:299-353, 1100-1104);Ulysses 通信复杂度分析见 Lesson 10,属数量级分析。</li>
+        <li>duration 覆盖 <code>--num_frames</code> 是当前代码行为(runner.py:1063-1064, 1077-1080);文档表述与之存在差异,见 <a href="11-debugging-and-validation.html">Lesson 11</a>。</li>
+        <li>"意图强度决定回退策略"是对代码分支的教学重构(course_reconstruction);代码事实是两条路径的回退行为不同。</li>
+      </ul>
+    </section>
+
+    <section class="evidence">
+      <h2>Evidence</h2>
+      <p>代码事实来自 <code>scripts/inference.py</code>(薄入口)、<code>inference_backend.py</code> 的 <code>resolve_backend_engine</code>、<code>runner.py</code>:并行分解与 DeviceMesh(299-353, 347)、CFG/batch_cfg 互斥(1100-1101)、refiner_batch_cfg 互斥(1102-1104)、<code>_load_pipe</code>(745)、refiner <code>mode="t2v"</code>(840)、duration 优先级(1063-1064, 1077-1080)、resolution+ratio 强制成对(1069-1072)。</p>
+    </section>
+
+    <h2>Retrieval Prompts</h2>
+    <ol>
+      <li>写出 world_size 的分解式,并解释 rank 如何映射到 $(r_{\text{cfg}}, r_{\text{cp}})$ 坐标。</li>
+      <li>为什么 <code>--backend sglang</code> 会回退而 <code>--engine sglang-native</code> 不会?这反映了什么设计原则?</li>
+      <li>推导:为什么 $D_{\text{cfg}}=2$ 与 <code>batch_cfg</code> 在物理上互斥?两者各自如何并行化 CFG 的两条分支?</li>
+      <li>给定 8 卡,列出所有合法的 $(D_{\text{cfg}}, D_{\text{cp}})$ 组合。哪些在开启 batch_cfg 时变非法?</li>
+      <li>runner 被称为"意图 → 契约的编译器",请列出它把哪些 CLI 参数编译进了 <code>call_kwargs</code>。</li>
+    </ol>
+
+    <section class="next">
+      <h2>Next Action</h2>
+      <p>进入 <a href="05-diffusion-pipeline-loop.html">Lesson 05</a>,从编排层进入真正的扩散采样循环。</p>
+    </section>
+  </article>
+</main>
+
+<script type="module" src="../assets/course-runtime.js"></script>
+</body>
+</html>

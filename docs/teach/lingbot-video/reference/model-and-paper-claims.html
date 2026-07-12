@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Model And Paper Claims</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+</head>
+<body>
+<main>
+  <article class="page">
+    <h1>Model And Paper Claims</h1>
+    <p class="meta">本页把论文主张和本地代码事实并列，帮助读者理解哪些内容可以由仓库直接确认。</p>
+
+    <table>
+      <thead><tr><th>主题</th><th>论文事实</th><th>本地代码事实</th></tr></thead>
+      <tbody>
+        <tr><td>项目目标</td><td>面向 embodied intelligence 的 DiT-based video pretraining paradigm。</td><td>仓库发布推理 runtime、rewriter、示例脚本和部署适配。</td></tr>
+        <tr><td>数据</td><td>Data Profiling Engine、World-Knowledge Graph、Dense Structured Captioning、Data Curriculum。</td><td>仓库包含 rewriter 和示例 structured prompt，不包含完整数据引擎。</td></tr>
+        <tr><td>架构</td><td>Task-unified single-stream DiT，使用 multimodal tokens、3D RoPE、MoE、refiner。</td><td>Transformer/Pipeline 代码中可见 single-stream token flow、MoE 和 refiner 推理路径。</td></tr>
+        <tr><td>训练</td><td>论文描述 progressive pre-training、post-training、action-to-video、distillation。</td><td>当前仓库不包含完整训练脚本。</td></tr>
+        <tr><td>评测</td><td>论文报告 internal benchmark、RBench、Physics-IQ、user study。</td><td>仓库包含 README benchmark 图表和论文资源，但不包含完整评测复现管线。</td></tr>
+        <tr><td>部署</td><td>论文描述 Diffusers-compatible package、SGLang native serving、distributed video serving。</td><td>仓库包含 diffusers path、SGLang native adapter、FSDP/CP/CFG parallel 相关代码。</td></tr>
+      </tbody>
+    </table>
+  </article>
+</main>
+</body>
+</html>

@@ -49,6 +49,21 @@ const packages = [
     ],
   },
   {
+    label: "LingBot-Video course",
+    source: "/tmp/lingbot-video-course",
+    target: resolve(teachRoot, "lingbot-video"),
+    include: [
+      "index.html",
+      "lessons/",
+      "reference/",
+      "assets/course.css",
+      "assets/favicon.svg",
+      "assets/course-runtime.js",
+      "assets/page-configs.js",
+      "assets/ogl-bridge.js",
+    ],
+  },
+  {
     label: "FLUX.2 course",
     source: "/private/tmp/flux2",
     target: resolve(teachRoot, "flux2"),
@@ -113,6 +128,50 @@ function copySelected({ label, source, target, include }) {
   }
 
   console.log(`[sync] ${label}: copied course whitelist`);
+}
+
+function sanitizeLingbotPublicPages(target) {
+  const indexPath = resolve(target, "index.html");
+  const indexHtml = readFileSync(indexPath, "utf8")
+    .replace(
+      'href="artifacts/source-matrix.md">source matrix',
+      'href="reference/model-and-paper-claims.html">model and paper claims',
+    )
+    .replace(
+      'href="artifacts/repo-truth-map.md">repo truth map',
+      'href="reference/file-map.html">file map',
+    )
+    .replace(/\n+$/, "\n");
+  writeFileSync(indexPath, indexHtml);
+
+  const validationPath = resolve(
+    target,
+    "lessons/11-debugging-and-validation.html",
+  );
+  const validationHtml = readFileSync(validationPath, "utf8").replace(
+    "静态验证记录见 <code>proof/validation-log.md</code>。",
+    '静态验证边界见 <a href="../reference/evidence-boundaries.html">证据边界参考页</a>。',
+  ).replace(/\n+$/, "\n");
+  writeFileSync(validationPath, validationHtml);
+
+  function assertNoSupportReferences(dir) {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = resolve(dir, entry.name);
+      if (entry.isDirectory()) {
+        assertNoSupportReferences(fullPath);
+        continue;
+      }
+      if (extname(entry.name) !== ".html") continue;
+      const html = readFileSync(fullPath, "utf8");
+      if (/(?:artifacts|proof|showcases)\//.test(html)) {
+        throw new Error(
+          `LingBot-Video public page references excluded support material: ${relative(target, fullPath)}`,
+        );
+      }
+    }
+  }
+
+  assertNoSupportReferences(target);
 }
 
 function verifyFlux2LearnerHtml(source) {
@@ -476,13 +535,25 @@ function syncFlux2() {
   createFlux2EntryAlias(pkg.target);
 }
 
+function syncLingbotVideo() {
+  const pkg = packages.find((entry) => entry.label === "LingBot-Video course");
+  if (!pkg) {
+    throw new Error("LingBot-Video package definition is missing");
+  }
+  copySelected(pkg);
+  sanitizeLingbotPublicPages(pkg.target);
+}
+
 for (const item of packages) {
-  if (item.label === "FLUX.2 course") continue;
+  if (item.label === "FLUX.2 course" || item.label === "LingBot-Video course") {
+    continue;
+  }
   copySelected(item);
 }
 
 syncAnima();
 syncFlux2();
+syncLingbotVideo();
 
 rmSync(resolve(docsRoot, "assets"), { recursive: true, force: true });
 mkdirSync(resolve(teachRoot, "assets"), { recursive: true });

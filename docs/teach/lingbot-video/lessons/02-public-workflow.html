@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>02 Public Workflow</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left:'$$',right:'$$',display:true},
+        {left:'$',right:'$',display:false}
+      ]
+    });"></script>
+</head>
+<body data-course-page="02-public-workflow">
+<main>
+  <article class="page">
+    <h1>02 Public Workflow</h1>
+    <p class="meta">本章从用户运行路径出发，把三种模式、prompt JSON、帧数公式和分辨率桶之间的契约讲成可计算的规则：给定 mode / duration / fps / resolution，你要能手推出送进 DiT 的张量形状 $[1, C, T', H/8, W/8]$。</p>
+
+    <section class="remember">
+      <h2>Remember Now</h2>
+      <ul>
+        <li>公开工作流不是把自然语言直接喂给 DiT，而是先经 rewriter 得到 structured JSON prompt。</li>
+        <li>帧数不是任取的：<code>num_frames_from_duration</code> 把它对齐到 $4n{+}1$ 结构 —— $N=\big(\lfloor(\lfloor d\cdot\text{fps}\rfloor-1)/4\rfloor+1\big)\cdot 4+1$。</li>
+        <li>latent 时间长度 $T'=(N-1)/4+1$（VAE temporal scale = 4）；空间 $H'=H/8,\ W'=W/8$（spatial scale = 8）。</li>
+        <li><code>check_inputs</code> 是硬约束：$N\in\{1\}\cup\{4n{+}1\}$，且 $H,W$ 必须是 16 的倍数。</li>
+        <li><code>--resolution</code> 与 <code>--ratio</code> 必须<b>同时</b>给出，二者在 <code>RESOLUTION_BUCKETS</code> 里查表得到 $(W,H)$；prompt JSON 的 <code>duration</code> 覆盖命令行 <code>--num_frames</code>。</li>
+      </ul>
+    </section>
+
+    <h2>数学基础：从时长到张量形状</h2>
+
+    <p>用户给的是"5 秒、1080p、16:9"这种人类语言。DiT 要的是一个精确形状的张量。中间的换算不是模糊的——它由两条硬性对齐规则决定：<b>时间维必须 $4n{+}1$</b>（因 VAE 在时间上 4 倍压缩），<b>空间维必须 16 的倍数</b>（patch + VAE 对齐）。</p>
+
+    <h3>帧数：4n+1 对齐</h3>
+    <p><code>num_frames_from_duration(duration, fps)</code>（utils.py:16-18）先把时长换算成原始帧数 $\lfloor d\cdot\text{fps}\rfloor$，再向上对齐到 $4n{+}1$：</p>
+    <div class="math-block">
+      $$ N = \Big(\big\lfloor \tfrac{\lfloor d\cdot\text{fps}\rfloor-1}{4}\big\rfloor + 1\Big)\cdot 4 + 1 $$
+    </div>
+    <p>为什么是 $4n{+}1$ 而不是 $4n$？因为 VAE 的时间压缩是"首帧独立 + 其余 4 帧一组"的因果结构：1 个 latent 帧解码回 1 个像素帧（首帧），之后每 1 个 latent 帧解码回 4 个像素帧。于是像素帧数 $N=4(T'-1)+1=4T'-3$，反解得 latent 帧数：</p>
+    <div class="math-block">
+      $$ T' = \frac{N-1}{4} + 1 $$
+    </div>
+    <p>举例：$d=5,\ \text{fps}=24 \Rightarrow \lfloor120\rfloor$，$\lfloor(120-1)/4\rfloor+1=30$，$N=30\cdot4+1=121$ 像素帧；对应 $T'=(121-1)/4+1=31$ 个 latent 帧。T2I 是这条链的退化情形：$N=1 \Rightarrow T'=1$。</p>
+
+    <h3>空间维与最终张量</h3>
+    <p>空间上 VAE 做 8 倍压缩，同时 <code>check_inputs</code>（pipeline_lingbot_video.py:132-134）要求 $H,W$ 是 16 的倍数（保证 patch 与 VAE 双重对齐无余数）。合起来，送进 DiT 的 latent 张量形状是：</p>
+    <div class="math-block">
+      $$ x \in \mathbb{R}^{[\,1,\ C,\ T',\ H/8,\ W/8\,]},\qquad
+         T'=\frac{N-1}{4}+1,\quad N\in\{1\}\cup\{4n{+}1\},\quad 16\mid H,\ 16\mid W $$
+    </div>
+
+
+
+    <h2>三种模式的契约</h2>
+    <table>
+      <thead>
+        <tr><th>Mode</th><th>输入</th><th>Runner 行为</th><th>输出</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>t2i</code></td><td>structured image prompt</td><td>强制 <code>num_frames=1</code>（runner.py:1118）；禁止 refiner（1106-1107）</td><td>PNG/图片</td></tr>
+        <tr><td><code>t2v</code></td><td>structured video prompt（可含 <code>duration</code>）</td><td>由 <code>duration/fps</code> 推 $4n{+}1$ 帧</td><td>MP4</td></tr>
+        <tr><td><code>ti2v</code></td><td>structured video prompt + 首帧图</td><td>首帧进 VLM 条件 + latent 条件；refiner 需 <code>--image</code>（1108-1110）</td><td>MP4</td></tr>
+      </tbody>
+    </table>
+
+    <h2>分辨率桶（RESOLUTION_BUCKETS，runner.py:235-269）</h2>
+    <p>分辨率不是任意像素数，而是查表：<code>--resolution</code>（如 720）和 <code>--ratio</code>（如 16:9）共同索引出确切的 $(W,H)$。二者必须同时给（runner.py:1069-1072），否则报错。所有桶值都满足 $16\mid H,\ 16\mid W$，所以查表结果天然通过 <code>check_inputs</code>。注意 1080p 的高取 1088 而非 1080（$1080$ 不是 16 的倍数，$1088=16\cdot68$ 才是）。</p>
+    <table>
+      <thead>
+        <tr><th>resolution</th><th>1:1</th><th>16:9 (W×H)</th><th>9:16 (W×H)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>720p</td><td>960×960</td><td>1280×720</td><td>720×1280</td></tr>
+        <tr><td>1080p</td><td>1440×1440</td><td>1920×1088</td><td>1088×1920</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:0.85rem; color:#666;">表中数值来自 <code>RESOLUTION_BUCKETS</code> 源码；计算器用同一套桶。1080p 高=1088 是 16 对齐的直接后果。</p>
+
+    <h2>代码数据流</h2>
+<div data-course-diagram="0"></div>
+
+    <h2>设计选择</h2>
+    <div class="design-note">
+      <strong>为什么把 T2I 做成"单帧视频"而不是独立图片管线？</strong>
+      T2I 令 $N=1 \Rightarrow T'=1$，走的仍是同一条 $[1,C,T',H/8,W/8]$ 张量与同一个 DiT。这避免维护两套代码路径：图片只是视频在时间维退化到长度 1 的特例。代价是 refiner 无法用于 T2I（refiner 面向视频时序细化训练），所以代码显式禁用。
+    </div>
+    <div class="design-note">
+      <strong>为什么 duration（JSON）要覆盖 --num_frames（CLI）？</strong>
+      rewriter 产出的 structured prompt 里已经根据内容语义决定了合适时长，它比用户在命令行随手写的 <code>--num_frames</code> 更"懂"这条 prompt。让 JSON 优先（runner.py:1063-1064, 1077-1080）保证"内容驱动的时长"不被命令行默认值意外覆盖。这也是文档与代码曾出现表述差异之处，见 <a href="11-debugging-and-validation.html">Lesson 11</a>。
+    </div>
+
+    <section class="warning">
+      <h2>证据边界</h2>
+      <ul>
+        <li>帧公式、check_inputs 约束、RESOLUTION_BUCKETS、mode 分支均为 <b>code_fact</b>（utils.py / pipeline_lingbot_video.py / runner.py 行号见 Evidence）。</li>
+        <li>"VAE 首帧独立 + 4 帧一组"的因果压缩解释属 <b>course_reconstruction</b>：由 $T'=(N-1)/4+1$ 与 temporal scale=4 反推的教学说明，非逐行代码断言。</li>
+        <li>当前环境缺 diffusers/transformers/peft/decord/json_repair/sglang 且无权重，可验证静态结构与纯函数（如 <code>num_frames_from_duration</code>），不能声称端到端生成。</li>
+      </ul>
+    </section>
+
+    <section class="evidence">
+      <h2>Evidence</h2>
+      <p>代码事实：<code>utils.num_frames_from_duration</code>（utils.py:16-18，<code>((int(duration*fps)-1)//4+1)*4+1</code>）；<code>check_inputs</code>（pipeline_lingbot_video.py:132-134，帧数 1 或 4n+1、H/W 16 倍数）；VAE <code>vae_scale_factor_temporal=4</code>/<code>spatial=8</code>；<code>RESOLUTION_BUCKETS</code>（runner.py:235-269）；resolution+ratio 必须同时给（runner.py:1069-1072）；t2i 强制 num_frames=1（runner.py:1118）与禁 refiner（1106-1107）；ti2v refiner 需 --image（1108-1110）；duration 覆盖 num_frames（runner.py:1063-1064, 1077-1080）。</p>
+    </section>
+
+    <h2>Retrieval Prompts</h2>
+    <ol>
+      <li>手推：$d=3.2$ 秒、$\text{fps}=30$，$N$ 是多少？对应 latent 帧数 $T'$ 是多少？写出每一步取整。</li>
+      <li>为什么像素帧数必须是 $4n{+}1$ 而不能是 $4n$？从 $T'=(N-1)/4+1$ 与 VAE 时间压缩结构解释。</li>
+      <li>1080p 的高为什么代码里是 1088 而不是 1080？用 <code>check_inputs</code> 的 16 倍数约束回答。</li>
+      <li>若命令行传 <code>--num_frames 49</code> 而 prompt JSON 里 <code>duration=5</code>、fps=24，最终帧数是多少？为什么？</li>
+      <li>给定 mode=ti2v、720p、9:16、$d=4$、fps=24，写出送进 DiT 的完整张量形状 $[1,C,T',H/8,W/8]$（$C$ 用符号）。</li>
+    </ol>
+
+    <section class="next">
+      <h2>Next Action</h2>
+      <p>进入 <a href="03-prompt-rewriter-and-negative.html">Lesson 03</a>，理解 structured prompt 如何由两阶段 LoRA rewriter 产生，以及 negative prompt 的 delete-only 剪枝。</p>
+    </section>
+  </article>
+</main>
+
+<script type="module" src="../assets/course-runtime.js"></script>
+</body>
+</html>

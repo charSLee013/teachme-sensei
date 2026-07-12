@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>01 System Map</title>
+  <link rel="stylesheet" href="../assets/course.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left:'$$',right:'$$',display:true},
+        {left:'$',right:'$',display:false}
+      ]
+    });"></script>
+</head>
+<body data-course-page="01-system-map">
+<main>
+  <article class="page">
+    <h1>01 System Map</h1>
+    <p class="meta">本章建立 LingBot-Video 的系统边界：DiT 消费的 prompt 格式、rewriter 存在的原因、三大子系统如何通过明确的数据契约衔接，并在此确立整本课程贯穿使用的张量符号体系。</p>
+
+    <section class="remember">
+      <h2>Remember Now</h2>
+      <ul>
+        <li>DiT 消费的是 <b>structured JSON caption</b>（含镜头参数与逐元素时间戳动作），不是自然语言短句；rewriter 是训练-推理分布对齐的桥梁。</li>
+        <li>三大子系统与数据契约：Prompt 处理 →(structured JSON)→ DiT 推理 →(latents)→ 部署与细化。边上流动的是<b>有明确类型和 shape 的张量</b>，不是模糊的"数据"。</li>
+        <li>贯穿全书的符号：像素张量 $[B,3,F,H,W]$，latent 张量 $[B,C,T',H',W']$，其中时间维压缩 $T'=\frac{F-1}{4}+1$、空间维压缩 $H'=H/8,\ W'=W/8$。</li>
+        <li>三种模式 t2i/t2v/ti2v 共享同一套 DiT 与 VAE，仅输入契约不同；T2I 强制 $F=1$。</li>
+        <li>本仓库是<b>公开推理运行时</b>；完整训练管线、post-training、benchmark 评测是论文事实，不在仓库内——不要把二者混为一谈。</li>
+      </ul>
+    </section>
+
+    <h2>一个问题：训练时的 prompt 是什么格式？</h2>
+    <p>训练视频生成模型时，需要为每段视频配一条 prompt 作为条件信号。这里有一个根本性的设计选择：</p>
+    <ul>
+      <li><strong>选项 A：自然语言描述</strong> — 例如 "an ice cube falling into whiskey"，简洁，人类易写</li>
+      <li><strong>选项 B：结构化 JSON caption</strong> — 包含摄像机参数、元素列表、逐帧时间戳动作，精确但复杂</li>
+    </ul>
+    <p>LingBot-Video 选择了选项 B。原因在于 embodied 应用对时空控制有精确需求：镜头语言（焦段、构图、光线）和逐元素的时间戳动作（"[0.0s–0.8s] falls from above"）共同约束 DiT 学习准确的时空关联，而这种信息在普通自然语言短句中无法表达。</p>
+    <p>这带来了推理时的挑战：用户不会手写 140 行 JSON，但 DiT 在训练时从未见过普通短句。必须有一个桥梁将用户输入转换为 DiT 期望的格式。</p>
+
+    <h2>Structured JSON Prompt 的真实结构</h2>
+    <p>以下是 <code>assets/cases/ti2v/example_1/prompt.json</code> 的缩略版（141行完整文件，此处省略部分元素字段）：</p>
+    <pre><code>{
+  "caption": {
+    "camera_info": {
+      "color": "Warm",
+      "frame_size": "Close Up",
+      "shot_type_angle": "Eye level",
+      "lens_size": "Macro",
+      "composition": "Center",
+      "lighting": "Soft light",
+      "lighting_type": "Studio lighting"
+    },
+    "prominent_elements": [
+      {
+        "name": "transparent ice cube",
+        "actions": [
+          { "timestamp": "[0.0s - 0.8s]",
+            "action": "falls from above the rim, rotating slightly as it descends" },
+          { "timestamp": "[0.8s - 1.6s]",
+            "action": "strikes the surface of the liquid, creating a circular depression and initial splash" },
+          { "timestamp": "[1.6s - 2.8s]",
+            "action": "partially submerges, generating splashes and bubbles" },
+          { "timestamp": "[2.8s - 4.0s]",
+            "action": "bobs slightly up and down and rotates within the liquid" },
+          { "timestamp": "[4.0s - 5.0s]",
+            "action": "floats gently in the liquid, slowly coming to a stop" }
+        ]
+      }
+      /* ... 还有 3 个 prominent_elements（whiskey glass、amber liquid、dark wooden table）
+             以及每个元素的 location、shape_and_color、texture、appearance_details 等字段 */
+    ]
+  },
+  "duration": 5
+}</code></pre>
+    <p>注意 <code>prominent_elements[0].actions</code>：每个条目包含一个时间戳区间和一条动作描述。这让 DiT 在训练时学会"在 [0.0s–0.8s] 时冰块下落"而不只是"冰块在某处落下"。时间戳是时空对齐信息的核心载体。</p>
+
+    <h2>问题重述</h2>
+    <p>有了上面的背景，推理时的问题可以精确描述：</p>
+    <ul>
+      <li>用户输入：<code>"an ice cube falling into whiskey"</code>（一句话）</li>
+      <li>DiT 需要：上面所示的 141 行结构化 JSON（含时间戳级 actions 数组）</li>
+    </ul>
+    <p>中间的桥梁就是接下来要介绍的 rewriter 系统。</p>
+
+    <h2>两阶段 Rewriter</h2>
+    <p>为什么是两阶段，而不是一步直接生成 JSON？有两个核心原因：</p>
+    <ol>
+      <li><strong>JSON 是 domain-specific 格式</strong>：将用户短句直接映射到 141 行 JSON 需要大量领域专用知识（时间戳分割逻辑、摄像机参数词表），这是高度特化的技能，不适合用通用 VLM 一步完成。</li>
+      <li><strong>扩展和结构化是两种不同能力</strong>：先将 "an ice cube falling into whiskey" 扩展为富有细节的散文描述（利用 VLM 的通用视觉知识），再将散文映射到 JSON schema（利用 LoRA 学到的结构化输出能力），比一步跳转更稳定。</li>
+    </ol>
+    <p>两阶段的分工：</p>
+    <ul>
+      <li><strong>Step 1（EXPAND）</strong>：使用 base VLM，不加载 LoRA。输入用户短句，输出富含细节的散文描述，例如 "A transparent ice cube suspended above a glass of amber whiskey, catching studio light..."</li>
+      <li><strong>Step 2（MAP）</strong>：使用 base VLM + LoRA adapter。输入 step1 的散文，输出符合训练 schema 的结构化 JSON caption。LoRA 只在此阶段激活，专门负责格式映射。</li>
+    </ul>
+    <p>这种设计使 LoRA 的学习目标单一（只需学格式映射），base VLM 的通用知识在 step1 得到充分利用。第 <a href="03-prompt-rewriter-and-negative.html">03 章</a>会给出 LoRA 的低秩分解数学与 <code>disable_adapter</code> 的等价含义。</p>
+
+    <h2>数学基础：贯穿全书的张量符号</h2>
+    <p>在读任何一章之前，先建立整本课程共用的符号体系。视频在两个空间中流动：<b>像素空间</b>（人能看的 RGB 帧）与 <b>latent 空间</b>（VAE 压缩后、DiT 真正操作的低维表示）。二者由一个 3D VAE 相连，压缩比是固定的。</p>
+
+    <div class="math-block">
+      $$ \underbrace{x_{\text{pixel}} \in \mathbb{R}^{B\times 3\times F\times H\times W}}_{\text{像素视频}}
+         \;\xrightarrow{\ \text{VAE.encode}\ }\;
+         \underbrace{z \in \mathbb{R}^{B\times C\times T'\times H'\times W'}}_{\text{latent 视频}} $$
+    </div>
+
+    <p>其中 $F$ 是像素帧数、$H\times W$ 是像素分辨率。VAE 在时间维压缩 $4\times$、在空间两维各压缩 $8\times$，因此：</p>
+    <div class="math-block">
+      $$ T' = \frac{F-1}{4}+1,\qquad H' = \frac{H}{8},\qquad W' = \frac{W}{8},\qquad C = \text{latent 通道数} $$
+    </div>
+    <p>时间维的 $\frac{F-1}{4}+1$ 不是普通除法：因果式的 3D VAE 单独保留第一帧、再对其余帧按 4 分组，所以像素帧数必须满足 $F=4n+1$ 才能整除。这正是第 <a href="02-public-workflow.html">02 章</a>帧公式 <code>num_frames_from_duration</code> 强制对齐 $4n+1$ 的根本原因。举例：$F=121$（5 秒 @ 24fps 对齐后）$\Rightarrow T'=\frac{120}{4}+1=31$ 个 latent 帧。</p>
+
+    <div class="design-note">
+      <strong>为什么 DiT 在 latent 空间而非像素空间工作？</strong>
+      一段 $121\times 720\times 1280$ 的 RGB 视频有约 $3.3\times 10^8$ 个像素值；经 VAE 压到 latent 后是 $C\times 31\times 90\times 160$，元素数下降约两个数量级。DiT 的自注意力对序列长度是 $O(N^2)$（$N=T'H'W'$ 个 patch token，见 <a href="07-transformer-single-stream.html">Lesson 07</a>），在 latent 空间做能把 $N$ 压小、让长视频的注意力可承受。这就是"latent diffusion"范式的核心动机——本课程后续所有 shape 都以 latent 张量为准。</p>
+    </div>
+
+
+
+    <h2>公开运行链路</h2>
+<div data-course-diagram="0"></div>
+
+    <h2>系统分层</h2>
+    <table>
+      <thead>
+        <tr><th>层次</th><th>课程中的含义</th><th>主要来源</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>研究系统</td><td>面向 embodied intelligence 的视频基础模型范式，包括数据、训练、MoE scaling、reward、评测。</td><td>arXiv source 的 abstract、method、data、training、evaluation。</td></tr>
+        <tr><td>公开运行时</td><td>用户能在本仓库中调用的推理、重写、SGLang adapter、FSDP inference 和示例脚本。</td><td>本地 Python、shell、docs、assets。</td></tr>
+        <tr><td>教学重构</td><td>为了理解而组织的端到端图、章节顺序和调试流程。</td><td>课程综合整理，不作为原始实现事实。</td></tr>
+      </tbody>
+    </table>
+
+    <section class="warning">
+      <h2>关键边界</h2>
+      <p>当前仓库没有完整训练循环、数据引擎或公开 benchmark 复现实验。它包含的是可读、可运行的推理和部署路径。因此，本课程先讲公开 runtime，再把论文中的训练与评测内容作为机制背景和研究上下文。上文张量压缩比（temporal 4×、spatial 8×）来自 pipeline 的 <code>vae_scale_factor_temporal=4</code> / <code>vae_scale_factor_spatial=8</code>（<b>code_fact</b>）；论文的训练与 scaling 描述属 <b>paper_fact</b>，不等于本地已验证。</p>
+    </section>
+
+    <section class="evidence">
+      <h2>Evidence</h2>
+      <p>本章依据 README、docs index、<code>scripts/inference.py</code>、<code>lingbot_video/runner.py</code>、<code>rewriter/*</code>、<code>assets/cases/manifest.json</code>，以及实际示例文件 <code>assets/cases/ti2v/example_1/prompt.json</code>（141行完整 JSON，包含 5 段时间戳 actions）。张量 shape 事实来自 pipeline 的 <code>prepare_latents</code>（latent $T'=(F-1)//4+1$）与 VAE scale factor 配置。arXiv source 的 abstract 和 data/method 章节提供研究背景。详细归类见 source matrix。</p>
+    </section>
+
+    <h2>Retrieval Prompts</h2>
+    <ol>
+      <li>为什么 DiT 不能直接消费用户的自然语言短句？structured JSON 提供了哪两类普通短句无法表达的信息？</li>
+      <li>写出像素张量到 latent 张量的 shape 变换，并解释时间维为什么是 $\frac{F-1}{4}+1$ 而不是 $F/4$。</li>
+      <li>给定 $F=121,\ H=720,\ W=1280$，算出 latent 张量的 $T',H',W'$。</li>
+      <li>为什么 DiT 在 latent 空间而非像素空间做扩散？用自注意力的复杂度说明。</li>
+      <li>auto_negative 被跳过时，runner 的行为是什么？refiner 对 TI2V 模式时为什么还需要传入原始 <code>--image</code>？</li>
+    </ol>
+
+    <section class="next">
+      <h2>Next Action</h2>
+      <p>进入 <a href="02-public-workflow.html">Lesson 02</a>，从使用者视角阅读 T2I、T2V 和 TI2V 的输入输出契约，并用交互式选择器实时看到本章张量 shape 如何随模式/分辨率/时长变化。</p>
+    </section>
+  </article>
+</main>
+
+<script type="module" src="../assets/course-runtime.js"></script>
+</body>
+</html>
