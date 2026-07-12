@@ -577,6 +577,10 @@ body[data-lang="en"] .lang-zh {
   color: var(--muted);
 }
 
+.footer-note code {
+  overflow-wrap: anywhere;
+}
+
 .plain-link {
   color: inherit;
 }
