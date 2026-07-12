@@ -2,8 +2,10 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Teachme Sensei 课程页：Monorepo 架构 — 5 个包如何协作">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第 2 章：Monorepo 架构 — Pi Agent Harness 教学</title>
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    <title>Monorepo 架构 — 5 个包如何协作</title>
     <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
@@ -12,6 +14,9 @@
             <h2>Pi 教学</h2>
             <span class="version">v0.80.3</span>
         </div>
+            <div class="sidebar-search">
+        <input type="search" id="searchInput" placeholder="搜索章节..." aria-label="搜索 Pi 章节">
+    </div>
         <nav class="chapter-list">
             <a href="01-what-is-pi.html">1. 认识 Pi</a>
             <a href="02-monorepo.html" class="active">2. Monorepo 架构</a>
@@ -30,7 +35,15 @@
         </nav>
     </aside>
 
-    <main class="content">
+    <div class="search-results" id="searchResults" aria-live="polite">
+    <div class="results-header">
+        <h2>搜索结果</h2>
+        <button type="button" class="results-close" id="searchResultsClose" aria-label="关闭搜索">&times;</button>
+    </div>
+    <div id="searchResultsList"></div>
+</div>
+
+<main class="content" data-chapter-id="02-monorepo" data-searchable="" data-title="Monorepo 架构 — 5 个包如何协作">
         <header class="chapter-header">
             <span class="chapter-number">第 2 章</span>
             <h1>Monorepo 架构 — 5 个包如何协作</h1>
@@ -362,6 +375,7 @@ npm run check
         </nav>
     </main>
 
-    <script src="../assets/js/app.js"></script>
+    <script src="../assets/js/search-index.js"></script>
+<script src="../assets/js/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "allowedRuntimeHosts": [
+    "cdn.jsdelivr.net",
+    "fonts.googleapis.com",
+    "fonts.gstatic.com"
+  ],
+  "allowedReferenceHosts": [
+    "bfl.ai",
+    "discord.com",
+    "github.com",
+    "huggingface.co",
+    "keepachangelog.com",
+    "pi.dev",
+    "radius.pi.dev",
+    "rfc.earendil.com"
+  ],
+  "dependencies": [
+    {
+      "id": "flux-references",
+      "type": "reference",
+      "urls": [
+        "https://bfl.ai/blog/flux2-klein-towards-interactive-visual-intelligence",
+        "https://bfl.ai/research/representation-comparison",
+        "https://github.com/black-forest-labs/flux2",
+        "https://github.com/black-forest-labs/flux2/issues",
+        "https://github.com/huggingface/diffusers/discussions",
+        "https://huggingface.co/black-forest-labs/FLUX.2-dev",
+        "https://huggingface.co/blog/flux-2"
+      ],
+      "requiredBy": ["teach/flux2/**/*.html"],
+      "failure": "warning"
+    },
+    {
+      "id": "google-fonts-inter-jetbrains",
+      "type": "runtime",
+      "urls": [
+        "https://fonts.googleapis.com",
+        "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      ],
+      "requiredBy": [
+        "teach/pi/chapters/06-coding-agent.html",
+        "teach/pi/chapters/09-session-management.html",
+        "teach/pi/chapters/10-compaction.html",
+        "teach/pi/chapters/11-interactive-mode.html",
+        "teach/pi/chapters/12-sdk.html",
+        "teach/pi/chapters/13-orchestrator.html",
+        "teach/pi/chapters/14-contributing.html"
+      ],
+      "failure": "warning"
+    },
+    {
+      "id": "katex-0.16.9",
+      "type": "runtime",
+      "urls": [
+        "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css",
+        "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+      ],
+      "requiredBy": ["teach/lingbot-video/lessons/*.html"],
+      "failure": "hard"
+    },
+    {
+      "id": "mathjax-3",
+      "type": "runtime",
+      "urls": ["https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"],
+      "requiredBy": ["teach/flux2/lessons/0003-flux2-system-masterclass.html"],
+      "failure": "hard"
+    },
+    {
+      "id": "ogl-1.0.11",
+      "type": "runtime",
+      "urls": ["https://cdn.jsdelivr.net/npm/ogl@1.0.11/+esm"],
+      "requiredBy": ["teach/lingbot-video/assets/ogl-bridge.js"],
+      "failure": "hard"
+    },
+    {
+      "id": "pi-references",
+      "type": "reference",
+      "urls": [
+        "https://discord.com/invite/3cU7Bz4UPx",
+        "https://github.com/earendil-works/pi",
+        "https://github.com/earendil-works/pi/blob/main/LICENSE",
+        "https://keepachangelog.com/",
+        "https://pi.dev",
+        "https://radius.pi.dev/",
+        "https://rfc.earendil.com/keyword/pi/"
+      ],
+      "requiredBy": ["teach/pi/**/*.html"],
+      "failure": "warning"
+    },
+    {
+      "id": "three-0.167.1",
+      "type": "runtime",
+      "urls": ["https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.module.js"],
+      "requiredBy": ["teach/flux2/lessons/0003-flux2-system-masterclass.html"],
+      "failure": "hard"
+    }
+  ]
+}

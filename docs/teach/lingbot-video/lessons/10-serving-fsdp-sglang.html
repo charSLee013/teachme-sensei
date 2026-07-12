@@ -2,10 +2,11 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：10 Serving, FSDP, And SGLang">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
   <title>10 Serving, FSDP, And SGLang</title>
   <link rel="stylesheet" href="../assets/course.css">
-  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
@@ -21,6 +22,7 @@
   <article class="page">
     <h1>10 Serving, FSDP, And SGLang</h1>
     <p class="meta">本章从通信复杂度的角度解释三种正交并行维度——FSDP 切参数、Context Parallel 切序列、CFG Parallel 切 guidance 分支——它们分别付出什么通信代价，以及为什么视频 DiT 需要把它们组合起来。</p>
+    <div class="hero-placeholder" aria-hidden="true"></div>
 
     <section class="remember">
       <h2>Remember Now</h2>
@@ -29,7 +31,7 @@
         <li>FSDP 用 all-gather 在前向时临时拼回完整权重，通信量随参数量走；Ulysses（CP）用 all-to-all 交换 head/序列，通信量 $O(N_{\text{seq}}\cdot d/N_{\text{cp}})$。</li>
         <li><code>world_size = cfg_parallel_degree × context_parallel_degree</code>（见 <a href="04-runner-orchestration.html">Lesson 04</a>）；FSDP 与它们复合，切的是另一个维度（参数）而非进程网格。</li>
         <li>FSDP 在<b>模型构造之后</b>才包装（<code>fully_shard</code>），因此不能消除加载阶段的 host memory 峰值。</li>
-        <li><code>--backend sglang</code> 不是外部 OpenAI-style server 客户端，而是本地 native adapter + MoE fused kernel；不可用时静默回退 diffusers。</li>
+        <li><code>--backend sglang</code> 不是外部 OpenAI-style server 客户端，而是本地 native adapter + MoE fused kernel；不可用时记录 warning 并回退到 diffusers。</li>
       </ul>
     </section>
 

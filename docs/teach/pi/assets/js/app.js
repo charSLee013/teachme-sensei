@@ -147,7 +147,7 @@ function initQuizzes() {
 /* 6. Full-Text Search                                                          */
 /* ============================================================================ */
 
-const SEARCH_INDEX = [];   // Populated via data-chapter elements or inline JSON
+const SEARCH_INDEX = [];
 
 function initSearch() {
     const searchInput = document.getElementById('searchInput');
@@ -157,7 +157,6 @@ function initSearch() {
 
     if (!searchInput || !resultsOverlay) return;
 
-    // Build index from [data-searchable] elements on the page
     buildSearchIndex();
 
     let debounceTimer;
@@ -190,13 +189,38 @@ function initSearch() {
 
 function buildSearchIndex() {
     SEARCH_INDEX.length = 0;
+    const staticEntries = Array.isArray(window.PI_SEARCH_INDEX?.entries)
+        ? window.PI_SEARCH_INDEX.entries
+        : [];
+
+    if (staticEntries.length > 0) {
+        SEARCH_INDEX.push(...staticEntries.map((entry) => ({
+            title: entry.title || entry.href,
+            content: entry.searchText || `${entry.title || ''} ${entry.snippet || ''}`,
+            href: entry.href,
+        })));
+        return;
+    }
+
     document.querySelectorAll('[data-searchable]').forEach((el) => {
         SEARCH_INDEX.push({
             title: el.dataset.title || el.querySelector('h1, h2')?.textContent || '',
             content: el.textContent.trim(),
-            id: el.id || '',
+            href: '',
         });
     });
+}
+
+function piRootUrl() {
+    const current = new URL(window.location.href);
+    const directory = current.pathname.endsWith('/')
+        ? current.pathname
+        : current.pathname.slice(0, current.pathname.lastIndexOf('/') + 1);
+    const marker = '/teach/pi/chapters/';
+    const root = directory.includes(marker)
+        ? directory.slice(0, directory.indexOf(marker) + '/teach/pi/'.length)
+        : directory;
+    return new URL(root, current.origin);
 }
 
 function performSearch(query, overlay, container) {
@@ -223,8 +247,8 @@ function performSearch(query, overlay, container) {
         }
 
         // Count score by number of matching terms
-        const score = terms.reduce((acc, t) => acc + (text.includes(t) ? 1 : 0), 0);
-        results.push({ title: entry.title, snippet, score, id: entry.id });
+        const score = terms.reduce((acc, t) => acc + (text.split(t).length - 1), 0);
+        results.push({ title: entry.title, snippet, score, href: entry.href });
     });
 
     results.sort((a, b) => b.score - a.score);
@@ -235,16 +259,12 @@ function performSearch(query, overlay, container) {
         container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">未找到匹配结果</p>';
     } else {
         results.forEach((r) => {
-            const div = document.createElement('div');
-            div.className = 'result-item';
-            div.innerHTML = `<div class="result-title">${escapeHtml(r.title)}</div><div class="result-snippet">${highlightTerms(escapeHtml(r.snippet), terms)}</div>`;
-            if (r.id) {
-                div.addEventListener('click', () => {
-                    overlay.classList.remove('visible');
-                    document.getElementById(r.id)?.scrollIntoView({ behavior: 'smooth' });
-                });
-            }
-            container.appendChild(div);
+            const link = document.createElement('a');
+            link.className = 'result-item';
+            link.href = r.href ? new URL(r.href, piRootUrl()).href : '#';
+            link.innerHTML = `<div class="result-title">${escapeHtml(r.title)}</div><div class="result-snippet">${highlightTerms(escapeHtml(r.snippet), terms)}</div>`;
+            link.addEventListener('click', () => overlay.classList.remove('visible'));
+            container.appendChild(link);
         });
     }
 
@@ -320,7 +340,7 @@ function saveProgress(progress) {
 }
 
 function updateProgressBar(progress) {
-    const totalChapters = document.querySelectorAll('.chapter-list li').length;
+    const totalChapters = document.querySelectorAll('.chapter-list a').length;
     if (totalChapters === 0) return;
 
     const visitedCount = (progress.visited || []).length;

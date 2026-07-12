@@ -2,8 +2,10 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：把训练缺口画出来">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>课程 0002：把训练缺口画出来</title>
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+  <title>把训练缺口画出来</title>
   <style>
     :root {
       --bg: #f4eee4;
@@ -215,10 +217,10 @@
       <div class="quiz">
         <h3>1. 下面哪一项最能直接说明“这个仓库不是训练仓库”？</h3>
         <div class="choices">
-          <button data-target="q1" data-correct="yes" data-msg="对。主入口没有训练循环，只有推理和保存图片的闭环。">缺少循环</button>
-          <button data-target="q1" data-msg="不对。README 长短不能说明是不是训练仓库。">README长短</button>
-          <button data-target="q1" data-msg="不对。图片资产多少不是关键证据。">图片数量</button>
-          <button data-target="q1" data-msg="不对。许可证类型不是训练与否的核心判断。">许可证型</button>
+          <button type="button" data-target="q1" data-correct="yes" data-msg="对。主入口没有训练循环，只有推理和保存图片的闭环。">缺少循环</button>
+          <button type="button" data-target="q1" data-msg="不对。README 长短不能说明是不是训练仓库。">README长短</button>
+          <button type="button" data-target="q1" data-msg="不对。图片资产多少不是关键证据。">图片数量</button>
+          <button type="button" data-target="q1" data-msg="不对。许可证类型不是训练与否的核心判断。">许可证型</button>
         </div>
         <div id="q1" class="feedback"></div>
       </div>
@@ -226,10 +228,10 @@
       <div class="quiz">
         <h3>2. 如果你要尽量少踩联动面，哪个起点更适合先做训练准备？</h3>
         <div class="choices">
-          <button data-target="q2" data-correct="yes" data-msg="对。klein-base-4b 体量更小，同时保留 base 路径，是更干净的训练准备起点。">4b-base起</button>
-          <button data-target="q2" data-msg="不优先。distilled klein 更像推理优化结果，不是首选训练准备入口。">4b-dist起</button>
-          <button data-target="q2" data-msg="太重。dev 很强，但不是最低摩擦的第一站。">dev直接起</button>
-          <button data-target="q2" data-msg="不对。OpenRouter 只跟 prompt upsampling 相关。">router先起</button>
+          <button type="button" data-target="q2" data-correct="yes" data-msg="对。klein-base-4b 体量更小，同时保留 base 路径，是更干净的训练准备起点。">4b-base起</button>
+          <button type="button" data-target="q2" data-msg="不优先。distilled klein 更像推理优化结果，不是首选训练准备入口。">4b-dist起</button>
+          <button type="button" data-target="q2" data-msg="太重。dev 很强，但不是最低摩擦的第一站。">dev直接起</button>
+          <button type="button" data-target="q2" data-msg="不对。OpenRouter 只跟 prompt upsampling 相关。">router先起</button>
         </div>
         <div id="q2" class="feedback"></div>
       </div>
@@ -237,10 +239,10 @@
       <div class="quiz">
         <h3>3. 下列哪一项最可能必须在仓库外补齐？</h3>
         <div class="choices">
-          <button data-target="q3" data-correct="yes" data-msg="对。数据管线是训练系统的地基，而这个仓库没有提供。">数据管线</button>
-          <button data-target="q3" data-msg="不对。模型注册表这一层在仓库里已经有。">模型注册</button>
-          <button data-target="q3" data-msg="不对。AE 编解码代码已经在仓库里。">AE编解码</button>
-          <button data-target="q3" data-msg="不对。采样逻辑这一层在仓库里已经存在。">采样逻辑</button>
+          <button type="button" data-target="q3" data-correct="yes" data-msg="对。数据管线是训练系统的地基，而这个仓库没有提供。">数据管线</button>
+          <button type="button" data-target="q3" data-msg="不对。模型注册表这一层在仓库里已经有。">模型注册</button>
+          <button type="button" data-target="q3" data-msg="不对。AE 编解码代码已经在仓库里。">AE编解码</button>
+          <button type="button" data-target="q3" data-msg="不对。采样逻辑这一层在仓库里已经存在。">采样逻辑</button>
         </div>
         <div id="q3" class="feedback"></div>
       </div>

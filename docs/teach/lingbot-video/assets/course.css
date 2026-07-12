@@ -1,6 +1,6 @@
 :root {
   --ink: #1b2520;
-  --muted: #657168;
+  --muted: #4c5a50;
   --paper: #f3eee3;
   --sheet: #fffaf1;
   --line: #d6cbbb;
@@ -671,5 +671,41 @@ body:not([data-course-page]) td:first-child {
 
   .stage-footnote {
     display: none;
+  }
+}
+
+
+.hero-placeholder {
+  height: 849px;
+  margin: 42px 0 46px;
+}
+
+[data-course-diagram] {
+  min-height: 647px;
+  margin: 22px 0 10px;
+}
+
+.story-diagram .flow-column h4,
+.story-diagram .route-arrow {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.story-diagram .flow-card.is-dim {
+  opacity: 1;
+}
+
+.story-diagram .flow-card p {
+  color: var(--muted);
+  opacity: 1;
+}
+
+@media (max-width: 760px) {
+  .hero-placeholder {
+    height: 1080px;
+  }
+
+  [data-course-diagram] {
+    min-height: 900px;
   }
 }

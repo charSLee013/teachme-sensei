@@ -1,0 +1,501 @@
+{
+  "schema": 1,
+  "hashAlgorithm": "sha256-raw-bytes",
+  "pathEncoding": "posix-relative",
+  "packages": [
+    {
+      "id": "anima",
+      "sourcePath": "anima_learning",
+      "outputPath": "teach/anima",
+      "include": [
+        "README.md",
+        "course-map.md",
+        "lessons/",
+        "reference/"
+      ],
+      "files": [
+        {
+          "path": "course-map.md",
+          "bytes": 1718,
+          "sha256": "7eaa58e39f4222636a7391aa91c8986e9ef6e19a66629eb6c469e9c9627a093a"
+        },
+        {
+          "path": "lessons/01-what-is-anima.md",
+          "bytes": 2397,
+          "sha256": "41ba1bcd48f28d2ef8bfb2615a8673b177e7f0b544086e04d28cb3a51e15da54"
+        },
+        {
+          "path": "lessons/02-architecture.md",
+          "bytes": 2620,
+          "sha256": "66edd18b2529684c65912431eb233f2690394d381245802b3d9bda25f1d23ff8"
+        },
+        {
+          "path": "lessons/03-training-boundaries.md",
+          "bytes": 2923,
+          "sha256": "41037b6b85956d62ae3fc136fcdae8d34e4bec649d52a6d686957a1f6a96d89b"
+        },
+        {
+          "path": "lessons/04-prompting.md",
+          "bytes": 2701,
+          "sha256": "42e241c86b8029b4ed3b180543e2889b767d30c63e0c93049932e8bf86056eae"
+        },
+        {
+          "path": "lessons/05-evaluation.md",
+          "bytes": 2783,
+          "sha256": "96b1e5ef72ae423cb7bd5fd5ba2443518ba2111910b6725081eb173fd0075e02"
+        },
+        {
+          "path": "README.md",
+          "bytes": 2507,
+          "sha256": "7d6b0a1a23e03fb1b9c41402bd5e836bec36a79b81d31962a2aa316e7b1d51e0"
+        },
+        {
+          "path": "reference/formulas.md",
+          "bytes": 1126,
+          "sha256": "ceb54bb14c7ccf3f73ab8f81812598d6dda931d210b7cb3dc944d7fbaa9bd25e"
+        },
+        {
+          "path": "reference/methodology.md",
+          "bytes": 2100,
+          "sha256": "5089ca94be74aa3dd9e56c56a68ef9f7adf6ef448563de36cf968adc3fe4bc0d"
+        },
+        {
+          "path": "reference/resources.md",
+          "bytes": 601,
+          "sha256": "a2ceb765945d221cb2326451362903dae3e6a2402be4671f9f51f42095e28bdb"
+        }
+      ],
+      "treeSha256": "ad865611c81d9b833d64ec6efe6ea9d0ce8c0ef0d273b6d2ac9d500ea04535cc"
+    },
+    {
+      "id": "flux2",
+      "sourcePath": "flux2",
+      "outputPath": "teach/flux2",
+      "include": [
+        "course-map.html",
+        "lessons/",
+        "reference/0001-flux2-training-glossary.html",
+        "reference/0002-flux2-latent-contract-map.html",
+        "reference/0003-training-gap-checklist.html",
+        "reference/0004-model-family-and-license-matrix.html",
+        "reference/0005-object-and-contract-quick-reference.html",
+        "reference/0006-research-route-decision-tree.html"
+      ],
+      "files": [
+        {
+          "path": "course-map.html",
+          "bytes": 13351,
+          "sha256": "0c4ec4db00cfe79f5529408b1f08a02b0e63dea770a5c5a7da6782c3a31b9722"
+        },
+        {
+          "path": "lessons/0001-find-the-latent-contract.html",
+          "bytes": 13332,
+          "sha256": "343c431f086d82670b82cb44084e4217911e17a94fcd627b6e232d39130c1d28"
+        },
+        {
+          "path": "lessons/0002-map-the-training-gaps.html",
+          "bytes": 11196,
+          "sha256": "5c399ae1669283432e07ec3f1e5aabec662f2ab5bdfa4e512eaa7cd4090cf43d"
+        },
+        {
+          "path": "lessons/0003-flux2-system-masterclass.html",
+          "bytes": 46947,
+          "sha256": "c89c8794682d212c51eef2446cd7aab6ed5cbff18b2cf5eb55ed44df9a916bb6"
+        },
+        {
+          "path": "lessons/0004-pick-your-first-research-path.html",
+          "bytes": 14177,
+          "sha256": "e57f0f435aac095e1522354fa3348869cc020accad9bf7ab86b399e02c9c8c13"
+        },
+        {
+          "path": "lessons/0005-cli-and-end-to-end-flow.html",
+          "bytes": 6943,
+          "sha256": "e56cf1c6620da01adb7ba1c346380ff7d38755ce0710a1b91c73ade41e97dedd"
+        },
+        {
+          "path": "lessons/0006-four-core-objects.html",
+          "bytes": 6570,
+          "sha256": "dce794b3dc2fc860c053268789540848d8325736241b8237335e809ff473bcf6"
+        },
+        {
+          "path": "lessons/0007-autoencoder-and-latent-representation.html",
+          "bytes": 6586,
+          "sha256": "5d5ee9d25a6f15c994b0a945ee1060ca293941860507358ac3d935fab17da7ed"
+        },
+        {
+          "path": "lessons/0008-sampler-schedule-and-cfg.html",
+          "bytes": 6121,
+          "sha256": "bce165f8df0927cad3b003053ee8a054e63b89a688b35907fb843c5002b3c54f"
+        },
+        {
+          "path": "lessons/0009-transformer-streams-and-kv-cache.html",
+          "bytes": 6155,
+          "sha256": "87af1d27e7ee0e51f83723665f8d689043ef3fa6b070a176c475e3d30025574a"
+        },
+        {
+          "path": "lessons/0010-model-family-licenses-and-boundaries.html",
+          "bytes": 6415,
+          "sha256": "240b3423ad1ed318c90b26729b06258284fc2f4d273e6d6af665aabd256432e0"
+        },
+        {
+          "path": "lessons/0011-evidence-boundaries.html",
+          "bytes": 6044,
+          "sha256": "73886eb6f49f160f1fa7a9be265a76621eb845c9450f90440f60128eedba4d8b"
+        },
+        {
+          "path": "lessons/0012-from-repo-understanding-to-training-fork.html",
+          "bytes": 8809,
+          "sha256": "2bdae4409d101ec86871d954bbda738f79e68f13d2fbe3cc95bafd46e6e5966e"
+        },
+        {
+          "path": "reference/0001-flux2-training-glossary.html",
+          "bytes": 6931,
+          "sha256": "d8b5b2d54f075450881fd030a12041294ed082a2b1da5a812f4384f3ff637533"
+        },
+        {
+          "path": "reference/0002-flux2-latent-contract-map.html",
+          "bytes": 8794,
+          "sha256": "9a3d3f45e3bcda5948064738bab3a6320441a66cb345eb1f704ee8733047dd4a"
+        },
+        {
+          "path": "reference/0003-training-gap-checklist.html",
+          "bytes": 7042,
+          "sha256": "10ae0cbc1aefd7f1570be059ebd1c299073c62bbc06d614d9f6dee3f73b71023"
+        },
+        {
+          "path": "reference/0004-model-family-and-license-matrix.html",
+          "bytes": 3154,
+          "sha256": "ff7e62404f53090c60a5a4f41a9663ff0a2fa57606cf32671b72b12848d3adc0"
+        },
+        {
+          "path": "reference/0005-object-and-contract-quick-reference.html",
+          "bytes": 3205,
+          "sha256": "ac2da3061e364bfd3fa56058e24e752a2334962acc53aa4b9f3748f313f1a929"
+        },
+        {
+          "path": "reference/0006-research-route-decision-tree.html",
+          "bytes": 4472,
+          "sha256": "811273c76f4f533d3c6f8d6ef6dd465fd9c555b20bc25bc57448f5545ea22e01"
+        }
+      ],
+      "treeSha256": "186f9c9ea9688cd278f5776a4e7787fbfc02095bdb7a455a34bd48a8d30ab80d"
+    },
+    {
+      "id": "ideogram4",
+      "sourcePath": "ideogram4/paper-course",
+      "outputPath": "teach/ideogram4",
+      "include": [
+        "01-model-card.html",
+        "02-cli-api-contract.html",
+        "03-token-packing.html",
+        "04-sampling-cfg.html",
+        "05-transformer-architecture.html",
+        "06-json-caption-protocol.html",
+        "07-training-public-record.html",
+        "appendix/",
+        "index.html",
+        "paper.css",
+        "paper.js"
+      ],
+      "files": [
+        {
+          "path": "01-model-card.html",
+          "bytes": 5228,
+          "sha256": "93c89c77fd9c162d0ffba9cdf647084bc9dac9b7ac7c77bdd6ecdfa56de4612d"
+        },
+        {
+          "path": "02-cli-api-contract.html",
+          "bytes": 5901,
+          "sha256": "e54b173ed850097cd1a2565f7bbd73d3aab514711ef019af8b472de33e0ea9b3"
+        },
+        {
+          "path": "03-token-packing.html",
+          "bytes": 6877,
+          "sha256": "9c1f8414b67075519a8aa8f253e988da987a703018062d2c6cd7065a6de23a18"
+        },
+        {
+          "path": "04-sampling-cfg.html",
+          "bytes": 5964,
+          "sha256": "79a144c59ab71c4a910d3b815d698e9bdc0ab1e8c73f002b39c56cbeff53fbba"
+        },
+        {
+          "path": "05-transformer-architecture.html",
+          "bytes": 6866,
+          "sha256": "bc4aac4fe78d491a001d753b8054c7f4e484beaa04e189350eda4be1b80f5b99"
+        },
+        {
+          "path": "06-json-caption-protocol.html",
+          "bytes": 5492,
+          "sha256": "8719e5072f0a960a0876e780b2d9aeecf4a8b0d69973d3bf7c9a35af4b3ad32f"
+        },
+        {
+          "path": "07-training-public-record.html",
+          "bytes": 5250,
+          "sha256": "0f55a9b54b46595a69b4bdfaee9229da5879e290e76e22c9cbcd6ce30829a864"
+        },
+        {
+          "path": "appendix/evidence.html",
+          "bytes": 4129,
+          "sha256": "3b4d9dfc11bf46e31572103e4db10e7d1bdc02bb909f2c9c15c043af53d9e45b"
+        },
+        {
+          "path": "appendix/module-index.html",
+          "bytes": 5225,
+          "sha256": "d1ef02b43a85c51763473360a9dd95dcf7eed7e429cd5edc3eff25f997b0d985"
+        },
+        {
+          "path": "index.html",
+          "bytes": 6399,
+          "sha256": "63f616f16839fb4d3954340dbb003c356eccf1bb8d33b4805a79699e49990b18"
+        },
+        {
+          "path": "paper.css",
+          "bytes": 5450,
+          "sha256": "692341e65d2c34bdf0c6f27de4fe39c552a78fa9618f2a1d0a8de04c0ee264ce"
+        },
+        {
+          "path": "paper.js",
+          "bytes": 8252,
+          "sha256": "1afdc1f18186b163350a16b75256ff8fb19f15c3d9e899fc34d5d810fd9fbb41"
+        }
+      ],
+      "treeSha256": "35390fb3d9a0d184a035a2861b693eec7d779621f0d6aada7ff552e87e549365"
+    },
+    {
+      "id": "lingbot-video",
+      "sourcePath": "lingbot-video-course",
+      "outputPath": "teach/lingbot-video",
+      "include": [
+        "assets/course-runtime.js",
+        "assets/course.css",
+        "assets/ogl-bridge.js",
+        "assets/page-configs.js",
+        "index.html",
+        "lessons/",
+        "reference/"
+      ],
+      "files": [
+        {
+          "path": "assets/course-runtime.js",
+          "bytes": 15234,
+          "sha256": "874f25b9e87c07a4f6256165cb65975046531f0b386efc2f9905ff837b69034d"
+        },
+        {
+          "path": "assets/course.css",
+          "bytes": 12148,
+          "sha256": "d268a9b7ddc60119816252584b578e989910e8c282c6765a7b14f9c8bd5e93fe"
+        },
+        {
+          "path": "assets/ogl-bridge.js",
+          "bytes": 143,
+          "sha256": "79d0adc7335422be56ce8db8f3878c7e0b392b8475ee56871699214029f3a29a"
+        },
+        {
+          "path": "assets/page-configs.js",
+          "bytes": 47528,
+          "sha256": "0614e736d8eb914327111227fae11fc257e44a39fcc4646fdf70d2a16241c322"
+        },
+        {
+          "path": "index.html",
+          "bytes": 5592,
+          "sha256": "ca2753a77fd9f9da0c42c232eb18757d2e1f9e5bb4cdf1ef3203ae1f49ad3f32"
+        },
+        {
+          "path": "lessons/01-system-map.html",
+          "bytes": 12099,
+          "sha256": "5f3d262f95d5069a4d146741486f7de5e7448a4576781bebef9801da38fb15cf"
+        },
+        {
+          "path": "lessons/02-public-workflow.html",
+          "bytes": 9304,
+          "sha256": "e87753064a6134444bf98f8947c66b3ba6e40975ebf5311bdd4f28f82aafcf42"
+        },
+        {
+          "path": "lessons/03-prompt-rewriter-and-negative.html",
+          "bytes": 11120,
+          "sha256": "63535f3ec1f1e2e823c2ff510b58a74bf96725d43483ecb7ecf296e81e3ab3e7"
+        },
+        {
+          "path": "lessons/04-runner-orchestration.html",
+          "bytes": 9212,
+          "sha256": "e4e855c1746624ef856dc9757387c1315184ce7adecd2413cedab7c120ad5698"
+        },
+        {
+          "path": "lessons/05-diffusion-pipeline-loop.html",
+          "bytes": 9496,
+          "sha256": "6029bb544600691c22b72887103365ecd2653acd99ca55a051a3902b4e41b019"
+        },
+        {
+          "path": "lessons/06-ti2v-conditioning.html",
+          "bytes": 10540,
+          "sha256": "477a4ee35984d41f27f9cc11d1a312af20b5a44ebc24d2c41aaa695733bd9f26"
+        },
+        {
+          "path": "lessons/07-transformer-single-stream.html",
+          "bytes": 10192,
+          "sha256": "8dbf6bd81a03f7d0e20e2f9979c8d0bf439dc1da45d0e12eb5ad4af4d553f89a"
+        },
+        {
+          "path": "lessons/08-sparse-moe.html",
+          "bytes": 10895,
+          "sha256": "f88857c8025d2668c19f6d4c7901ae419da7383f445bea8e234493ff8ca9fc72"
+        },
+        {
+          "path": "lessons/09-refiner.html",
+          "bytes": 9819,
+          "sha256": "3d3a10f5394ccd6c6e4480ba1fe669c14aa09f07e1564ce9c655087e0c44f332"
+        },
+        {
+          "path": "lessons/10-serving-fsdp-sglang.html",
+          "bytes": 10863,
+          "sha256": "0a4c356eff0cc91f22fd1286c7207995f2c71d2831672c335124f0dd0670db43"
+        },
+        {
+          "path": "lessons/11-debugging-and-validation.html",
+          "bytes": 10793,
+          "sha256": "6bfd2d220f645775d868fa8da2bc06ee2055fdc954609ab7d66d405762a4a328"
+        },
+        {
+          "path": "reference/cli-arguments.html",
+          "bytes": 5705,
+          "sha256": "8613e198887bcc8f795d7537e4aa8ab3ae77082028857a4b2e12f11266be56e0"
+        },
+        {
+          "path": "reference/environment-variables.html",
+          "bytes": 4072,
+          "sha256": "9bebbe8fa3524ee09652b02eb882adf8af7548b2391be2e14e8facc82768eefe"
+        },
+        {
+          "path": "reference/evidence-boundaries.html",
+          "bytes": 2426,
+          "sha256": "295cf3dafa0b26c2d99415b0fde4662250fa28f9fc90f4116c0e306aaa9116a4"
+        },
+        {
+          "path": "reference/file-map.html",
+          "bytes": 2495,
+          "sha256": "ed8a9840461d1aa21d3fca7301b67258fa877fa176bf4802b4301c8947c8851b"
+        },
+        {
+          "path": "reference/model-and-paper-claims.html",
+          "bytes": 2000,
+          "sha256": "ca6b8504c09643f41ab5739c19c2fe8f7f65ffda410d518ca06f0508f33d6c0a"
+        }
+      ],
+      "treeSha256": "781e8a5453529d5e9b8cfaef058a238b51bd3c787c6afe62874ccfb969a80d77"
+    },
+    {
+      "id": "pi",
+      "sourcePath": "pi/teach",
+      "outputPath": "teach/pi",
+      "include": [
+        "assets/",
+        "chapters/",
+        "course-map.html",
+        "index.html"
+      ],
+      "files": [
+        {
+          "path": "assets/js/app.js",
+          "bytes": 14392,
+          "sha256": "7fd18821d4269bbebb729f001e2959f8df8ac161d9dedeca0f084b318df58cb4"
+        },
+        {
+          "path": "assets/style.css",
+          "bytes": 21307,
+          "sha256": "ab7d238caeb0359c2c982f16df88fb997acf842e09791213048a557348215f73"
+        },
+        {
+          "path": "chapters/01-what-is-pi.html",
+          "bytes": 18153,
+          "sha256": "7ed6bb6e2bfa0193baa8bc909b580648bee3a9952f58b35536ddd62d8731cbca"
+        },
+        {
+          "path": "chapters/02-monorepo.html",
+          "bytes": 18928,
+          "sha256": "d28808724a1e22da0ec3af0349292bbaa7ebc2c07273c4fc7aaf13b171fa54fd"
+        },
+        {
+          "path": "chapters/03-pi-ai.html",
+          "bytes": 21387,
+          "sha256": "aa7540b2bb20336d6a1ff934dfa581d8143eee17918405e8da9cdc04a64bbcaf"
+        },
+        {
+          "path": "chapters/04-agent-core.html",
+          "bytes": 45744,
+          "sha256": "fd09690fbe3f2c314bb9f5042a2d22ea131512ca28c55eaf662c4ed362d0145f"
+        },
+        {
+          "path": "chapters/05-pi-tui.html",
+          "bytes": 17394,
+          "sha256": "5e0bdf9969f30c8be67fb7858602a9841ab7980a44662cb9048ef32300e48636"
+        },
+        {
+          "path": "chapters/06-coding-agent.html",
+          "bytes": 67774,
+          "sha256": "4b54377aed9be87bce35fbbce19838516b50eb34a2b9be2160159e28ada0c0f8"
+        },
+        {
+          "path": "chapters/07-tools.html",
+          "bytes": 19746,
+          "sha256": "81d258e5909d9da369610ac77e99fd7c23715925e75e7592fd3f669feca9e432"
+        },
+        {
+          "path": "chapters/08-extensions.html",
+          "bytes": 22231,
+          "sha256": "c98724205069528fdd5881f19989a4164f5fa5f3ad993a36d8621f182178a87e"
+        },
+        {
+          "path": "chapters/09-session-management.html",
+          "bytes": 28441,
+          "sha256": "343c397f6ef0fe2c70f8870029302ae3fd23d4cd302211dd716afa59d210dd9e"
+        },
+        {
+          "path": "chapters/10-compaction.html",
+          "bytes": 21493,
+          "sha256": "1ff7a191c6efd242470ccb9d1d651259f99b88fede79e969553a05cc5da352c5"
+        },
+        {
+          "path": "chapters/11-interactive-mode.html",
+          "bytes": 26992,
+          "sha256": "df5c520a74c629fbaee0eabf72fba54cd8b846b282e90c7d56e3fb7a715e36cd"
+        },
+        {
+          "path": "chapters/12-sdk.html",
+          "bytes": 19092,
+          "sha256": "4f0e51808136539bc38ab939918dfeec67d80363156e937efddc01368d1260f7"
+        },
+        {
+          "path": "chapters/13-orchestrator.html",
+          "bytes": 22032,
+          "sha256": "95f5e69b2e7b708c301ac7e7a9a8ac9a23a606333cae49a5bb5b783d6ea835aa"
+        },
+        {
+          "path": "chapters/14-contributing.html",
+          "bytes": 23208,
+          "sha256": "902ea0f6aa18e96f3a689992c4a48c515ea8aad5952b99e821270444dfaa1589"
+        },
+        {
+          "path": "course-map.html",
+          "bytes": 4100,
+          "sha256": "4b21919fa8f7f7ad692331b17e3b1c80c829e9b391df9a7b79a53afa5832c978"
+        },
+        {
+          "path": "index.html",
+          "bytes": 37660,
+          "sha256": "b51148dee1530cad5e908c9f8eda65a47af3f29024edb47f3b215b9fad34196b"
+        }
+      ],
+      "treeSha256": "cf623984971279021ad45b2b65fcc665d46e434ecd4f105bb1528e04f975f17a"
+    }
+  ],
+  "sharedFiles": [
+    {
+      "id": "ideogram-logo",
+      "sourcePath": "ideogram4/assets/ideogram_logo.svg",
+      "outputPath": "teach/assets/ideogram_logo.svg",
+      "bytes": 20920,
+      "sha256": "be074f2248f3e5e450767a3a01578e263f6e0736860d61bc426928884c0a01e4"
+    }
+  ],
+  "sharedTreeSha256": "e94eb1665c78413e5617c5f6c3a28685781675c3145120bd26929f300df60370"
+}

@@ -2,8 +2,10 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：FLUX.2 全局总课">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FLUX.2 全局总课：从推理仓库到 VAE / 训练研究入口</title>
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+  <title>FLUX.2 全局总课</title>
   <script>
     window.MathJax = {
       tex: {
@@ -14,7 +16,6 @@
     };
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.min.js"></script>
   <style>
     :root {
       --bg: #efe6d8;
@@ -593,10 +594,10 @@
             </div>
           </div>
           <div class="viz-controls">
-            <button class="viz-button active" data-focus="all">整体关系：先建立全局图</button>
-            <button class="viz-button" data-focus="text">看文本侧：prompt 是怎么进来的</button>
-            <button class="viz-button" data-focus="transformer">看核心：谁在 latent 里做更新</button>
-            <button class="viz-button" data-focus="ae">看边界：像素世界和 latent 世界怎么接</button>
+            <button type="button" class="viz-button active" data-focus="all">整体关系：先建立全局图</button>
+            <button type="button" class="viz-button" data-focus="text">看文本侧：prompt 是怎么进来的</button>
+            <button type="button" class="viz-button" data-focus="transformer">看核心：谁在 latent 里做更新</button>
+            <button type="button" class="viz-button" data-focus="ae">看边界：像素世界和 latent 世界怎么接</button>
             <div class="card">
               <h3>怎么看这张图</h3>
               <p class="mini-note">
@@ -1016,7 +1017,9 @@
     </aside>
   </div>
 
-  <script>
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.module.js";
+    window.THREE = THREE;
     (() => {
       const container = document.getElementById("system-viz");
       const nodeEls = {

@@ -2,6 +2,8 @@
 Thumbs.db
 
 node_modules/
+playwright-report/
+test-results/
 .cache/
 .tmp/
 tmp/
@@ -15,3 +17,6 @@ pnpm-debug.log*
 .env
 .env.*
 !.env.example
+
+artifacts/
+.codex/governance/

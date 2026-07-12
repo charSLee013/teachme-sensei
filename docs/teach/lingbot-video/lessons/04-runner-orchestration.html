@@ -2,10 +2,11 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：04 Runner Orchestration">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
   <title>04 Runner Orchestration</title>
   <link rel="stylesheet" href="../assets/course.css">
-  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
@@ -21,6 +22,7 @@
   <article class="page">
     <h1>04 Runner Orchestration</h1>
     <p class="meta">本章把 runner 看作一个"意图 → 契约"的编译器：它把 CLI 参数解析、规范化，解决 backend/engine 的分派与回退，并把多卡并行分解成一个满足 $\text{world\_size}=D_{\text{cfg}}\times D_{\text{cp}}$ 的进程网格,最后凝结成一次 <code>pipe(**call_kwargs)</code> 调用。</p>
+    <div class="hero-placeholder" aria-hidden="true"></div>
 
     <section class="remember">
       <h2>Remember Now</h2>
@@ -65,7 +67,7 @@
 
     <div class="design-note">
       <strong>为什么 sglang 回退但 sglang-native 不回退?</strong>
-      这是"意图强度"的区分。public <code>--backend sglang</code> 表达的是"我想要快,用 SGLang 如果能用"——这是一个软偏好,不可用时回退 diffusers 保证任务能跑完,只打 warning。而显式 <code>--engine sglang-native</code> 表达的是"我明确要走 native 路径"——这是一个硬要求,通常出现在性能基准测试或调试 native adapter 时;此时静默回退反而会掩盖问题,让用户误以为在测 native 其实在测 diffusers。所以 runner 让它失败即失败。这是一个把 CLI 表层词汇映射到"回退策略"的经典设计。
+      这是"意图强度"的区分。public <code>--backend sglang</code> 表达的是"我想要快,用 SGLang 如果能用"——这是一个软偏好,不可用时回退 diffusers 保证任务能跑完,只打 warning。而显式 <code>--engine sglang-native</code> 表达的是"我明确要走 native 路径"——这是一个硬要求,通常出现在性能基准测试或调试 native adapter 时;此时无提示回退反而会掩盖问题,让用户误以为在测 native 其实在测 diffusers。所以 runner 让它失败即失败。这是一个把 CLI 表层词汇映射到"回退策略"的经典设计。
     </div>
 
     <div class="design-note">

@@ -2,8 +2,10 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：找到 Latent Contract">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>课程 0001：找到 Latent Contract</title>
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+  <title>找到 Latent Contract</title>
   <style>
     :root {
       --bg: #f4efe5;
@@ -242,10 +244,10 @@
       <div class="quiz">
         <h3>1. 如果你把 AE 输出从 128 通道改成 192，但别的都不动，最先坏的是哪一侧？</h3>
         <div class="choices">
-          <button data-target="q1" data-correct="yes" data-msg="对。transformer 的图像输入投影就是围绕 128 通道 latent 建的。">模型输入</button>
-          <button data-target="q1" data-msg="不对。prompt 逻辑在 latent 契约的上游。">提示处理</button>
-          <button data-target="q1" data-msg="不对。EXIF 是最后才写入的，不定义 latent 形状。">输出信息</button>
-          <button data-target="q1" data-msg="不对。安全过滤和 latent 通道数不是一回事。">安全过滤</button>
+          <button type="button" data-target="q1" data-correct="yes" data-msg="对。transformer 的图像输入投影就是围绕 128 通道 latent 建的。">模型输入</button>
+          <button type="button" data-target="q1" data-msg="不对。prompt 逻辑在 latent 契约的上游。">提示处理</button>
+          <button type="button" data-target="q1" data-msg="不对。EXIF 是最后才写入的，不定义 latent 形状。">输出信息</button>
+          <button type="button" data-target="q1" data-msg="不对。安全过滤和 latent 通道数不是一回事。">安全过滤</button>
         </div>
         <div id="q1" class="feedback"></div>
       </div>
@@ -253,10 +255,10 @@
       <div class="quiz">
         <h3>2. 如果通道数还是 128，但 AE 不再匹配 /16 的空间缩放，你必须回看哪一侧？</h3>
         <div class="choices">
-          <button data-target="q2" data-correct="yes" data-msg="对。CLI 的噪声形状和预处理假设都和 latent 网格大小绑定。">噪声形状</button>
-          <button data-target="q2" data-msg="不对。许可证不控制 latent 几何。">许可证书</button>
-          <button data-target="q2" data-msg="不对。博客链接是说明，不是执行契约。">博客链接</button>
-          <button data-target="q2" data-msg="不对。git remote 很有用，但不属于运行时形状契约。">远程地址</button>
+          <button type="button" data-target="q2" data-correct="yes" data-msg="对。CLI 的噪声形状和预处理假设都和 latent 网格大小绑定。">噪声形状</button>
+          <button type="button" data-target="q2" data-msg="不对。许可证不控制 latent 几何。">许可证书</button>
+          <button type="button" data-target="q2" data-msg="不对。博客链接是说明，不是执行契约。">博客链接</button>
+          <button type="button" data-target="q2" data-msg="不对。git remote 很有用，但不属于运行时形状契约。">远程地址</button>
         </div>
         <div id="q2" class="feedback"></div>
       </div>
@@ -264,10 +266,10 @@
       <div class="quiz">
         <h3>3. 这个仓库里，哪一类模型最适合作为训练向实验的第一站？</h3>
         <div class="choices">
-          <button data-target="q3" data-correct="yes" data-msg="对。base 模型避开了固定 4-step distilled 路径，更像训练向 sampler 契约。">Klein base</button>
-          <button data-target="q3" data-msg="不是最佳首站。distilled klein 很适合推理速度实验，但不是训练准备的最好入口。">Klein dist</button>
-          <button data-target="q3" data-msg="不是。remote encoder 是部署 workaround，不是训练目标。">Remote enc</button>
-          <button data-target="q3" data-msg="不是。OpenRouter 只用于可选的 prompt upsampling。">OpenRouter</button>
+          <button type="button" data-target="q3" data-correct="yes" data-msg="对。base 模型避开了固定 4-step distilled 路径，更像训练向 sampler 契约。">Klein base</button>
+          <button type="button" data-target="q3" data-msg="不是最佳首站。distilled klein 很适合推理速度实验，但不是训练准备的最好入口。">Klein dist</button>
+          <button type="button" data-target="q3" data-msg="不是。remote encoder 是部署 workaround，不是训练目标。">Remote enc</button>
+          <button type="button" data-target="q3" data-msg="不是。OpenRouter 只用于可选的 prompt upsampling。">OpenRouter</button>
         </div>
         <div id="q3" class="feedback"></div>
       </div>

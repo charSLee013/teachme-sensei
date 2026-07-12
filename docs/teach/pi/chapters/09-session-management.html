@@ -2,8 +2,10 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Teachme Sensei 课程页：Chapter 9: 会话管理 — 持久化、分支与导航">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 9: 会话管理 — 持久化、分支与导航 | Pi Agent Harness</title>
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    <title>Chapter 9: 会话管理 — 持久化、分支与导航</title>
     <link rel="stylesheet" href="../assets/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -11,7 +13,7 @@
 <body>
 
 <!-- Sidebar -->
-<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">&#9776;</button>
+<button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">&#9776;</button>
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <h2>Pi Agent Harness</h2>
@@ -48,13 +50,13 @@
 <div class="search-results" id="searchResults">
     <div class="results-header">
         <h3>搜索结果</h3>
-        <button class="results-close" id="searchResultsClose">&times;</button>
+        <button type="button" class="results-close" id="searchResultsClose">&times;</button>
     </div>
     <div id="searchResultsList"></div>
 </div>
 
 <!-- Main Content -->
-<main class="main-content" data-chapter-id="09-session" data-searchable data-title="Chapter 9: 会话管理">
+<main class="main-content" data-chapter-id="09-session-management" data-searchable="" data-title="Chapter 9: 会话管理 — 持久化、分支与导航">
     <article class="content-wrapper">
 
         <h1>Chapter 9: 会话管理 — 持久化、分支与导航</h1>
@@ -242,7 +244,7 @@ export type SessionEntry =
                 <!-- Root message -->
                 <rect x="10" y="55" width="200" height="28" rx="4" fill="#0f3460" stroke="#533483"/>
                 <text x="20" y="73" fill="#e6e6e6" font-size="10" font-family="JetBrains Mono, monospace">msg: "帮我排序"</text>
-                <text x="225" y="73" fill="#7a8a9a" font-size="9" font-family="JetBrains Mono, monospace">id=a1b2</text>
+                <text x="225" y="73" fill="#94a3b8" font-size="9" font-family="JetBrains Mono, monospace">id=a1b2</text>
 
                 <!-- Arrow a1b2 -> e5f6 -->
                 <line x1="110" y1="83" x2="110" y2="100" stroke="#533483" stroke-width="1.5"/>
@@ -250,7 +252,7 @@ export type SessionEntry =
                 <!-- Assistant response -->
                 <rect x="10" y="105" width="200" height="28" rx="4" fill="#0f3460" stroke="#533483"/>
                 <text x="20" y="123" fill="#e6e6e6" font-size="10" font-family="JetBrains Mono, monospace">assistant: write()</text>
-                <text x="225" y="123" fill="#7a8a9a" font-size="9" font-family="JetBrains Mono, monospace">id=e5f6</text>
+                <text x="225" y="123" fill="#94a3b8" font-size="9" font-family="JetBrains Mono, monospace">id=e5f6</text>
 
                 <!-- Arrow e5f6 -> i9j0 -->
                 <line x1="110" y1="133" x2="110" y2="150" stroke="#533483" stroke-width="1.5"/>
@@ -258,7 +260,7 @@ export type SessionEntry =
                 <!-- Tool result -->
                 <rect x="10" y="155" width="200" height="28" rx="4" fill="#16213e" stroke="#3a4a5a"/>
                 <text x="20" y="173" fill="#b0b0b0" font-size="10" font-family="JetBrains Mono, monospace">toolResult: "written"</text>
-                <text x="225" y="173" fill="#7a8a9a" font-size="9" font-family="JetBrains Mono, monospace">id=i9j0</text>
+                <text x="225" y="173" fill="#94a3b8" font-size="9" font-family="JetBrains Mono, monospace">id=i9j0</text>
 
                 <!-- Arrow i9j0 -> m3n4 -->
                 <line x1="110" y1="183" x2="110" y2="200" stroke="#533483" stroke-width="1.5"/>
@@ -266,7 +268,7 @@ export type SessionEntry =
                 <!-- Assistant final -->
                 <rect x="10" y="205" width="200" height="28" rx="4" fill="#0f3460" stroke="#533483"/>
                 <text x="20" y="223" fill="#e6e6e6" font-size="10" font-family="JetBrains Mono, monospace">assistant: "完成"</text>
-                <text x="225" y="223" fill="#7a8a9a" font-size="9" font-family="JetBrains Mono, monospace">id=m3n4</text>
+                <text x="225" y="223" fill="#94a3b8" font-size="9" font-family="JetBrains Mono, monospace">id=m3n4</text>
 
                 <!-- Compaction node -->
                 <rect x="10" y="255" width="200" height="28" rx="4" fill="#2d1b4e" stroke="#bc8cff"/>
@@ -277,8 +279,8 @@ export type SessionEntry =
                 <line x1="110" y1="233" x2="110" y2="255" stroke="#bc8cff" stroke-width="1.5"/>
 
                 <!-- Branch point (dotted) -->
-                <line x1="110" y1="173" x2="310" y2="173" stroke="#e94560" stroke-width="1.5" stroke-dasharray="4 3"/>
-                <line x1="310" y1="173" x2="310" y2="205" stroke="#e94560" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <line x1="110" y1="173" x2="310" y2="173" stroke="#ff7088" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <line x1="310" y1="173" x2="310" y2="205" stroke="#ff7088" stroke-width="1.5" stroke-dasharray="4 3"/>
 
                 <!-- Branch message -->
                 <rect x="320" y="205" width="190" height="28" rx="4" fill="#1b2d1b" stroke="#2ecc71"/>
@@ -291,7 +293,7 @@ export type SessionEntry =
                 <text x="340" y="286" fill="#b0b0b0" font-size="9" font-family="Inter, sans-serif">compaction</text>
                 <rect x="320" y="295" width="14" height="14" rx="2" fill="#1b2d1b" stroke="#2ecc71"/>
                 <text x="340" y="306" fill="#b0b0b0" font-size="9" font-family="Inter, sans-serif">branch</text>
-                <line x1="320" y1="322" x2="334" y2="322" stroke="#e94560" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <line x1="320" y1="322" x2="334" y2="322" stroke="#ff7088" stroke-width="1.5" stroke-dasharray="4 3"/>
                 <text x="340" y="326" fill="#b0b0b0" font-size="9" font-family="Inter, sans-serif">branch path</text>
 
                 <!-- Leaf pointer -->
@@ -511,6 +513,7 @@ function migrateToCurrentVersion(entries: FileEntry[]): boolean {
     </article>
 </main>
 
+<script src="../assets/js/search-index.js"></script>
 <script src="../assets/js/app.js"></script>
 </body>
 </html>

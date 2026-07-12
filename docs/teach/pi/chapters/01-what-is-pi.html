@@ -2,8 +2,10 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Teachme Sensei 课程页：认识 Pi — 它是什么，能做什么？">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第 1 章：认识 Pi — Pi Agent Harness 教学</title>
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    <title>认识 Pi — 它是什么，能做什么？</title>
     <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
@@ -12,6 +14,9 @@
             <h2>Pi 教学</h2>
             <span class="version">v0.80.3</span>
         </div>
+            <div class="sidebar-search">
+        <input type="search" id="searchInput" placeholder="搜索章节..." aria-label="搜索 Pi 章节">
+    </div>
         <nav class="chapter-list">
             <a href="01-what-is-pi.html" class="active">1. 认识 Pi</a>
             <a href="02-monorepo.html">2. Monorepo 架构</a>
@@ -30,7 +35,15 @@
         </nav>
     </aside>
 
-    <main class="content">
+    <div class="search-results" id="searchResults" aria-live="polite">
+    <div class="results-header">
+        <h2>搜索结果</h2>
+        <button type="button" class="results-close" id="searchResultsClose" aria-label="关闭搜索">&times;</button>
+    </div>
+    <div id="searchResultsList"></div>
+</div>
+
+<main class="content" data-chapter-id="01-what-is-pi" data-searchable="" data-title="认识 Pi — 它是什么，能做什么？">
         <header class="chapter-header">
             <span class="chapter-number">第 1 章</span>
             <h1>认识 Pi — 它是什么，能做什么？</h1>
@@ -96,7 +109,7 @@ It handles edge cases (n=0, n=1) and uses O(1) space.</code></pre>
 
         <section>
             <h2>1.2 Pi 是什么？</h2>
-            <p><strong>Pi Agent Harness</strong> 是一个终端中的 AI 编码助手。它类似于 <a href="#">Claude Code</a>、<a href="#">Cursor</a>、<a href="#">Aider</a> 等工具，但有几个关键区别：</p>
+            <p><strong>Pi Agent Harness</strong> 是一个终端中的 AI 编码助手。它类似于 Claude Code、Cursor、Aider 等工具，但有几个关键区别：</p>
 
             <div class="callout info">
                 <strong>Pi 的核心定位</strong>：一个开源的、自扩展的、多 LLM 提供商的交互式编码代理。它不是一个 IDE 插件，而是一个命令行工具，可以与任何编辑器配合使用。
@@ -349,6 +362,7 @@ pi --help</code></pre>
         </nav>
     </main>
 
-    <script src="../assets/js/app.js"></script>
+    <script src="../assets/js/search-index.js"></script>
+<script src="../assets/js/app.js"></script>
 </body>
 </html>

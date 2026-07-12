@@ -2,8 +2,10 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Teachme Sensei 课程页：pi-agent-core — Agent 运行时">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第 4 章：pi-agent-core — Agent 运行时 — Pi Agent Harness 教学</title>
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    <title>pi-agent-core — Agent 运行时</title>
     <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
@@ -12,6 +14,9 @@
             <h2>Pi 教学</h2>
             <span class="version">v0.80.3</span>
         </div>
+            <div class="sidebar-search">
+        <input type="search" id="searchInput" placeholder="搜索章节..." aria-label="搜索 Pi 章节">
+    </div>
         <nav class="chapter-list">
             <a href="01-what-is-pi.html">1. 认识 Pi</a>
             <a href="02-monorepo.html">2. Monorepo 架构</a>
@@ -30,7 +35,15 @@
         </nav>
     </aside>
 
-    <main class="content">
+    <div class="search-results" id="searchResults" aria-live="polite">
+    <div class="results-header">
+        <h2>搜索结果</h2>
+        <button type="button" class="results-close" id="searchResultsClose" aria-label="关闭搜索">&times;</button>
+    </div>
+    <div id="searchResultsList"></div>
+</div>
+
+<main class="content" data-chapter-id="04-agent-core" data-searchable="" data-title="pi-agent-core — Agent 运行时">
         <header class="chapter-header">
             <span class="chapter-number">第 4 章</span>
             <h1>pi-agent-core — Agent 运行时</h1>
@@ -1034,6 +1047,7 @@ console.log("Messages:", agent.state.messages.length);
 </div>
 
     </main>
-    <script src="../assets/js/app.js"></script>
+    <script src="../assets/js/search-index.js"></script>
+<script src="../assets/js/app.js"></script>
 </body>
 </html>

@@ -2,8 +2,10 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Teachme Sensei 课程页：Chapter 13: 编排器 — 多代理协调（实验性）">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 13: 编排器 — 多代理协调 | Pi Agent Harness</title>
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    <title>Chapter 13: 编排器 — 多代理协调（实验性）</title>
     <link rel="stylesheet" href="../assets/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -11,7 +13,7 @@
 <body>
 
 <!-- Sidebar -->
-<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">&#9776;</button>
+<button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">&#9776;</button>
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <h2>Pi Agent Harness</h2>
@@ -48,13 +50,13 @@
 <div class="search-results" id="searchResults">
     <div class="results-header">
         <h3>搜索结果</h3>
-        <button class="results-close" id="searchResultsClose">&times;</button>
+        <button type="button" class="results-close" id="searchResultsClose">&times;</button>
     </div>
     <div id="searchResultsList"></div>
 </div>
 
 <!-- Main Content -->
-<main class="main-content" data-chapter-id="13-orchestrator" data-searchable data-title="Chapter 13: 编排器 — 多代理协调">
+<main class="main-content" data-chapter-id="13-orchestrator" data-searchable="" data-title="Chapter 13: 编排器 — 多代理协调（实验性）">
     <article class="content-wrapper">
 
         <h1>Chapter 13: 编排器 — 多代理协调（实验性）</h1>
@@ -265,17 +267,17 @@ interface Envelope {
                 <rect x="0" y="0" width="700" height="420" rx="8" fill="#16213e"/>
 
                 <!-- Client -->
-                <rect x="280" y="20" width="140" height="50" rx="6" fill="#0f3460" stroke="#e94560" stroke-width="2"/>
+                <rect x="280" y="20" width="140" height="50" rx="6" fill="#0f3460" stroke="#ff7088" stroke-width="2"/>
                 <text x="350" y="50" text-anchor="middle" fill="#e6e6e6" font-family="Inter, sans-serif" font-size="14" font-weight="600">Client</text>
 
                 <!-- Arrows: Client <-> Server -->
                 <line x1="350" y1="70" x2="350" y2="100" stroke="#533483" stroke-width="2" stroke-dasharray="4,3"/>
-                <text x="370" y="88" fill="#7a8a9a" font-size="11">request</text>
-                <line x1="340" y1="100" x2="340" y2="70" stroke="#0f9b8e" stroke-width="2" stroke-dasharray="4,3"/>
-                <text x="320" y="88" fill="#7a8a9a" font-size="11" text-anchor="end">result</text>
+                <text x="370" y="88" fill="#94a3b8" font-size="11">request</text>
+                <line x1="340" y1="100" x2="340" y2="70" stroke="#0b756b" stroke-width="2" stroke-dasharray="4,3"/>
+                <text x="320" y="88" fill="#94a3b8" font-size="11" text-anchor="end">result</text>
 
                 <!-- Orchestrator Server -->
-                <rect x="200" y="105" width="300" height="60" rx="6" fill="#e94560" stroke="#ff6b81" stroke-width="1.5" opacity="0.9"/>
+                <rect x="200" y="105" width="300" height="60" rx="6" fill="#ff7088" stroke="#ff6b81" stroke-width="1.5" opacity="0.9"/>
                 <text x="350" y="130" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">Orchestrator Server</text>
                 <text x="350" y="150" text-anchor="middle" fill="#ffd0d8" font-size="11">serve.ts / handler.ts / storage.ts</text>
 
@@ -290,12 +292,12 @@ interface Envelope {
                 <text x="350" y="265" text-anchor="middle" fill="#b0b0b0" font-size="10">supervisor</text>
 
                 <!-- Coder -->
-                <rect x="60" y="225" width="120" height="50" rx="6" fill="#0f3460" stroke="#0f9b8e" stroke-width="1.5"/>
+                <rect x="60" y="225" width="120" height="50" rx="6" fill="#0f3460" stroke="#0b756b" stroke-width="1.5"/>
                 <text x="120" y="248" text-anchor="middle" fill="#e6e6e6" font-size="12" font-weight="600">Coder</text>
                 <text x="120" y="265" text-anchor="middle" fill="#b0b0b0" font-size="10">coder</text>
 
                 <!-- Reviewer -->
-                <rect x="460" y="225" width="120" height="50" rx="6" fill="#0f3460" stroke="#0f9b8e" stroke-width="1.5"/>
+                <rect x="460" y="225" width="120" height="50" rx="6" fill="#0f3460" stroke="#0b756b" stroke-width="1.5"/>
                 <text x="520" y="248" text-anchor="middle" fill="#e6e6e6" font-size="12" font-weight="600">Reviewer</text>
                 <text x="520" y="265" text-anchor="middle" fill="#b0b0b0" font-size="10">reviewer</text>
 
@@ -311,14 +313,14 @@ interface Envelope {
 
                 <!-- Legend -->
                 <rect x="30" y="395" width="640" height="18" rx="3" fill="#0d1117"/>
-                <circle cx="50" cy="404" r="4" fill="#e94560"/>
-                <text x="58" y="408" fill="#7a8a9a" font-size="10">server</text>
-                <circle cx="130" cy="404" r="4" fill="#0f9b8e"/>
-                <text x="138" y="408" fill="#7a8a9a" font-size="10">worker agent</text>
+                <circle cx="50" cy="404" r="4" fill="#ff7088"/>
+                <text x="58" y="408" fill="#94a3b8" font-size="10">server</text>
+                <circle cx="130" cy="404" r="4" fill="#0b756b"/>
+                <text x="138" y="408" fill="#94a3b8" font-size="10">worker agent</text>
                 <circle cx="230" cy="404" r="4" fill="#533483"/>
-                <text x="238" y="408" fill="#7a8a9a" font-size="10">supervisor</text>
+                <text x="238" y="408" fill="#94a3b8" font-size="10">supervisor</text>
                 <circle cx="330" cy="404" r="4" fill="#f5a623"/>
-                <text x="338" y="408" fill="#7a8a9a" font-size="10">storage</text>
+                <text x="338" y="408" fill="#94a3b8" font-size="10">storage</text>
             </svg>
         </div>
 
@@ -397,6 +399,7 @@ interface Envelope {
     </article>
 </main>
 
+<script src="../assets/js/search-index.js"></script>
 <script src="../assets/js/app.js"></script>
 </body>
 </html>

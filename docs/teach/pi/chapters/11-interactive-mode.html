@@ -2,8 +2,10 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Teachme Sensei 课程页：Chapter 11: 交互模式 — TUI 实现详解">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 11: 交互模式 — TUI 实现详解 | Pi Agent Harness</title>
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    <title>Chapter 11: 交互模式 — TUI 实现详解</title>
     <link rel="stylesheet" href="../assets/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -11,7 +13,7 @@
 <body>
 
 <!-- Sidebar -->
-<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">&#9776;</button>
+<button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">&#9776;</button>
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <h2>Pi Agent Harness</h2>
@@ -48,13 +50,13 @@
 <div class="search-results" id="searchResults">
     <div class="results-header">
         <h3>搜索结果</h3>
-        <button class="results-close" id="searchResultsClose">&times;</button>
+        <button type="button" class="results-close" id="searchResultsClose">&times;</button>
     </div>
     <div id="searchResultsList"></div>
 </div>
 
 <!-- Main Content -->
-<main class="main-content" data-chapter-id="11-interactive" data-searchable data-title="Chapter 11: 交互模式">
+<main class="main-content" data-chapter-id="11-interactive-mode" data-searchable="" data-title="Chapter 11: 交互模式 — TUI 实现详解">
     <article class="content-wrapper">
 
         <h1>Chapter 11: 交互模式 — TUI 实现详解</h1>
@@ -130,7 +132,7 @@
                 <rect x="25" y="224" width="230" height="25" rx="3" fill="#16213e" stroke="#3a4a5a"/>
                 <text x="35" y="241" fill="#b0b0b0" font-size="9" font-family="JetBrains Mono, monospace">ToolExecutionComponent</text>
                 <rect x="25" y="256" width="230" height="15" rx="3" fill="#16213e" stroke="#3a4a5a" opacity="0.6"/>
-                <text x="35" y="267" fill="#7a8a9a" font-size="9" font-family="JetBrains Mono, monospace">... more messages</text>
+                <text x="35" y="267" fill="#94a3b8" font-size="9" font-family="JetBrains Mono, monospace">... more messages</text>
 
                 <!-- Selectors on right -->
                 <rect x="275" y="160" width="220" height="25" rx="3" fill="#1b2d1b" stroke="#2ecc71"/>
@@ -147,9 +149,9 @@
                 <text x="20" y="297" fill="#b0b0b0" font-size="10" font-family="JetBrains Mono, monospace">Extension Widgets (above editor)</text>
 
                 <!-- Editor -->
-                <rect x="10" y="315" width="500" height="50" rx="4" fill="#0d1117" stroke="#e94560"/>
-                <text x="20" y="335" fill="#e94560" font-size="10" font-weight="600" font-family="Inter, sans-serif">Editor (CustomEditor — pi-tui)</text>
-                <text x="20" y="355" fill="#7a8a9a" font-size="9" font-family="JetBrains Mono, monospace">autocomplete, bash mode, image paste</text>
+                <rect x="10" y="315" width="500" height="50" rx="4" fill="#0d1117" stroke="#ff7088"/>
+                <text x="20" y="335" fill="#ff7088" font-size="10" font-weight="600" font-family="Inter, sans-serif">Editor (CustomEditor — pi-tui)</text>
+                <text x="20" y="355" fill="#94a3b8" font-size="9" font-family="JetBrains Mono, monospace">autocomplete, bash mode, image paste</text>
 
                 <!-- Status -->
                 <rect x="10" y="375" width="500" height="25" rx="4" fill="#1e2a3a" stroke="#3a4a5a"/>
@@ -158,7 +160,7 @@
                 <!-- Footer -->
                 <rect x="10" y="410" width="500" height="35" rx="4" fill="#1e2a3a" stroke="#3a4a5a"/>
                 <text x="20" y="428" fill="#e6e6e6" font-size="10" font-family="JetBrains Mono, monospace">Footer (model, provider, git branch, session name)</text>
-                <text x="20" y="442" fill="#7a8a9a" font-size="9" font-family="JetBrains Mono, monospace">FooterDataProvider — reactive data source</text>
+                <text x="20" y="442" fill="#94a3b8" font-size="9" font-family="JetBrains Mono, monospace">FooterDataProvider — reactive data source</text>
             </svg>
         </div>
 
@@ -326,8 +328,8 @@ switch (event.type) {
   "name": "My Theme",
   "fg": {
     "default": "#e6e6e6",
-    "muted": "#7a8a9a",
-    "accent": "#e94560",
+    "muted": "#94a3b8",
+    "accent": "#ff7088",
     "dim": "#5a6a7a"
   },
   "bg": {
@@ -336,7 +338,7 @@ switch (event.type) {
   },
   "mode": "ansi",  // "ansi" | "truecolor"
   "vars": {
-    "primary": "#e94560"
+    "primary": "#ff7088"
   }
 }</code></pre>
 
@@ -469,6 +471,7 @@ filterAndSortSessions(sessions, query, scope, sortMode);</code></pre>
     </article>
 </main>
 
+<script src="../assets/js/search-index.js"></script>
 <script src="../assets/js/app.js"></script>
 </body>
 </html>

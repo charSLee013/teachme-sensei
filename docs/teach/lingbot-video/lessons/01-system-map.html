@@ -2,10 +2,11 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：01 System Map">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
   <title>01 System Map</title>
   <link rel="stylesheet" href="../assets/course.css">
-  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
@@ -21,6 +22,7 @@
   <article class="page">
     <h1>01 System Map</h1>
     <p class="meta">本章建立 LingBot-Video 的系统边界：DiT 消费的 prompt 格式、rewriter 存在的原因、三大子系统如何通过明确的数据契约衔接，并在此确立整本课程贯穿使用的张量符号体系。</p>
+    <div class="hero-placeholder" aria-hidden="true"></div>
 
     <section class="remember">
       <h2>Remember Now</h2>
@@ -144,7 +146,7 @@
 
     <section class="evidence">
       <h2>Evidence</h2>
-      <p>本章依据 README、docs index、<code>scripts/inference.py</code>、<code>lingbot_video/runner.py</code>、<code>rewriter/*</code>、<code>assets/cases/manifest.json</code>，以及实际示例文件 <code>assets/cases/ti2v/example_1/prompt.json</code>（141行完整 JSON，包含 5 段时间戳 actions）。张量 shape 事实来自 pipeline 的 <code>prepare_latents</code>（latent $T'=(F-1)//4+1$）与 VAE scale factor 配置。arXiv source 的 abstract 和 data/method 章节提供研究背景。详细归类见 source matrix。</p>
+      <p>本章依据 README、docs index、<code>scripts/inference.py</code>、<code>lingbot_video/runner.py</code>、<code>rewriter/*</code>、<code>assets/cases/manifest.json</code>，以及实际示例文件 <code>assets/cases/ti2v/example_1/prompt.json</code>（141行完整 JSON，包含 5 段时间戳 actions）。张量 shape 事实来自 pipeline 的 <code>prepare_latents</code>（latent $T'=(F-1)//4+1$）与 VAE scale factor 配置。arXiv source 的 abstract 和 data/method 章节提供研究背景。详细归类见 <a href="../reference/evidence-boundaries.html">证据边界参考页</a>。</p>
     </section>
 
     <h2>Retrieval Prompts</h2>

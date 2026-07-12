@@ -94,7 +94,9 @@ async function mountHero(article, heroConfig, pageId) {
     </div>
   `;
 
-  anchor.insertAdjacentElement("afterend", hero);
+  const placeholder = article.querySelector(".hero-placeholder");
+  if (placeholder) placeholder.replaceWith(hero);
+  else anchor.insertAdjacentElement("afterend", hero);
 
   const noteBody = hero.querySelector(".scene-note p");
   const cameraLabel = hero.querySelector(".camera-pill span");
@@ -136,10 +138,15 @@ async function mountHero(article, heroConfig, pageId) {
     }
     buttons.prev.disabled = index === 0;
     buttons.next.disabled = index === heroConfig.steps.length - 1;
+    const canvas = hero.querySelector("canvas");
+    if (canvas) canvas.dataset.stepIndex = String(index);
   };
 
   api.onStepChange(setStepUI);
   setStepUI(api.currentStep());
+  hero.dataset.runtimeReady = "true";
+  const canvas = hero.querySelector("canvas");
+  if (canvas) canvas.dataset.runtimeReady = "true";
 
   buttons.intro.addEventListener("click", () => api.playIntro());
   buttons.prev.addEventListener("click", () => api.prev());
@@ -273,6 +280,7 @@ async function mountOglStage(canvas, heroConfig) {
     dpr: Math.min(window.devicePixelRatio || 1, 1.5),
     alpha: true,
     antialias: true,
+    preserveDrawingBuffer: true,
   });
   const gl = renderer.gl;
   gl.clearColor(0.02, 0.03, 0.06, 1);
@@ -339,9 +347,11 @@ async function mountOglStage(canvas, heroConfig) {
   };
 
   function resize() {
-    const width = canvas.clientWidth || 640;
-    const height = canvas.clientHeight || 460;
+    const width = canvas.parentElement?.clientWidth || canvas.clientWidth || 640;
+    const height = window.matchMedia("(max-width: 760px)").matches ? 380 : 500;
     renderer.setSize(width, height);
+    canvas.style.width = "100%";
+    canvas.style.height = `${height}px`;
     camera.perspective({ aspect: width / height });
   }
 

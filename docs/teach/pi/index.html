@@ -2,9 +2,10 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Teachme Sensei 课程页：Pi Agent Harness 完全解读">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Pi Agent Harness 完全解读 — 从 monorepo 架构到 agent loop，14 章带你深入 Pi 的内部实现">
-    <title>Pi Agent Harness 完全解读 — 交互式学习站</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+    <title>Pi Agent Harness 完全解读</title>
     <link rel="stylesheet" href="assets/style.css">
     <style>
         /* ============================================================================
@@ -744,12 +745,12 @@
             <div class="diagram-container">
                 <svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pi 包架构图">
                     <!-- Background boxes -->
-                    <rect x="20" y="20" width="150" height="80" rx="8" fill="#16213e" stroke="#e94560" stroke-width="1.5"/>
-                    <text x="95" y="55" text-anchor="middle" fill="#e94560" font-family="monospace" font-size="14" font-weight="bold">pi-ai</text>
+                    <rect x="20" y="20" width="150" height="80" rx="8" fill="#16213e" stroke="#ff7088" stroke-width="1.5"/>
+                    <text x="95" y="55" text-anchor="middle" fill="#ff7088" font-family="monospace" font-size="14" font-weight="bold">pi-ai</text>
                     <text x="95" y="75" text-anchor="middle" fill="#b0b0b0" font-family="sans-serif" font-size="11">LLM 抽象层</text>
 
-                    <rect x="190" y="20" width="150" height="80" rx="8" fill="#16213e" stroke="#0f9b8e" stroke-width="1.5"/>
-                    <text x="265" y="55" text-anchor="middle" fill="#0f9b8e" font-family="monospace" font-size="14" font-weight="bold">pi-agent-core</text>
+                    <rect x="190" y="20" width="150" height="80" rx="8" fill="#16213e" stroke="#0b756b" stroke-width="1.5"/>
+                    <text x="265" y="55" text-anchor="middle" fill="#0b756b" font-family="monospace" font-size="14" font-weight="bold">pi-agent-core</text>
                     <text x="265" y="75" text-anchor="middle" fill="#b0b0b0" font-family="sans-serif" font-size="11">Agent 运行时</text>
 
                     <rect x="360" y="20" width="150" height="80" rx="8" fill="#16213e" stroke="#f5a623" stroke-width="1.5"/>
@@ -761,18 +762,18 @@
                     <text x="605" y="75" text-anchor="middle" fill="#b0b0b0" font-family="sans-serif" font-size="11">主 CLI 入口</text>
 
                     <!-- Arrows between top row -->
-                    <line x1="170" y1="60" x2="188" y2="60" stroke="#e94560" stroke-width="1.5" marker-end="url(#arrow)"/>
-                    <line x1="340" y1="60" x2="358" y2="60" stroke="#0f9b8e" stroke-width="1.5" marker-end="url(#arrow)"/>
+                    <line x1="170" y1="60" x2="188" y2="60" stroke="#ff7088" stroke-width="1.5" marker-end="url(#arrow)"/>
+                    <line x1="340" y1="60" x2="358" y2="60" stroke="#0b756b" stroke-width="1.5" marker-end="url(#arrow)"/>
                     <line x1="510" y1="60" x2="528" y2="60" stroke="#f5a623" stroke-width="1.5" marker-end="url(#arrow)"/>
 
                     <!-- Bottom layer -->
                     <rect x="100" y="150" width="500" height="80" rx="8" fill="#0d1117" stroke="#3498db" stroke-width="1.5"/>
                     <text x="350" y="185" text-anchor="middle" fill="#3498db" font-family="monospace" font-size="13" font-weight="bold">Sessions &amp; Storage Layer</text>
-                    <text x="350" y="208" text-anchor="middle" fill="#7a8a9a" font-family="sans-serif" font-size="11">JSONL Persistence &middot; Branching &middot; Compaction</text>
+                    <text x="350" y="208" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="11">JSONL Persistence &middot; Branching &middot; Compaction</text>
 
                     <!-- Arrows down -->
-                    <line x1="95" y1="100" x2="200" y2="148" stroke="#e94560" stroke-width="1" stroke-dasharray="4,3"/>
-                    <line x1="265" y1="100" x2="300" y2="148" stroke="#0f9b8e" stroke-width="1" stroke-dasharray="4,3"/>
+                    <line x1="95" y1="100" x2="200" y2="148" stroke="#ff7088" stroke-width="1" stroke-dasharray="4,3"/>
+                    <line x1="265" y1="100" x2="300" y2="148" stroke="#0b756b" stroke-width="1" stroke-dasharray="4,3"/>
                     <line x1="435" y1="100" x2="400" y2="148" stroke="#f5a623" stroke-width="1" stroke-dasharray="4,3"/>
                     <line x1="605" y1="100" x2="500" y2="148" stroke="#533483" stroke-width="1" stroke-dasharray="4,3"/>
 
@@ -838,11 +839,12 @@
 <div class="search-results" id="searchResults">
     <div class="results-header">
         <h3>搜索结果</h3>
-        <button class="results-close" id="searchResultsClose" aria-label="关闭搜索">&times;</button>
+        <button type="button" class="results-close" id="searchResultsClose" aria-label="关闭搜索">&times;</button>
     </div>
     <div id="searchResultsList"></div>
 </div>
 
+<script src="assets/js/search-index.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>

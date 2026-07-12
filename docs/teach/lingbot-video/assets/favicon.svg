@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-  <title>LingBot course</title>
-  <rect width="64" height="64" rx="12" fill="#18201c"/>
-  <path d="M16 16h21c6.075 0 11 4.925 11 11v21H27c-6.075 0-11-4.925-11-11V16Z" fill="#f7f2e8"/>
-  <path d="M24 24h17M24 32h17M24 40h10" stroke="#2f6f63" stroke-width="4" stroke-linecap="round"/>
-</svg>

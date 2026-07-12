@@ -2,8 +2,10 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Teachme Sensei 课程页：Chapter 14: 贡献指南与开发实践">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter 14: 贡献指南与开发实践 | Pi Agent Harness</title>
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+    <title>Chapter 14: 贡献指南与开发实践</title>
     <link rel="stylesheet" href="../assets/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -11,7 +13,7 @@
 <body>
 
 <!-- Sidebar -->
-<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">&#9776;</button>
+<button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">&#9776;</button>
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <h2>Pi Agent Harness</h2>
@@ -48,13 +50,13 @@
 <div class="search-results" id="searchResults">
     <div class="results-header">
         <h3>搜索结果</h3>
-        <button class="results-close" id="searchResultsClose">&times;</button>
+        <button type="button" class="results-close" id="searchResultsClose">&times;</button>
     </div>
     <div id="searchResultsList"></div>
 </div>
 
 <!-- Main Content -->
-<main class="main-content" data-chapter-id="14-contributing" data-searchable data-title="Chapter 14: 贡献指南与开发实践">
+<main class="main-content" data-chapter-id="14-contributing" data-searchable="" data-title="Chapter 14: 贡献指南与开发实践">
     <article class="content-wrapper">
 
         <h1>Chapter 14: 贡献指南与开发实践</h1>
@@ -220,7 +222,7 @@ npm test</code></pre>
 import { describe, it, expect } from 'vitest';
 // 真实的测试请参考已有的 regression 文件作为模板
 
-describe('regression: issue #1234', () => {
+describe('regression: empty-system-prompt', () => {
     it('should not crash on edge case', async () => {
         // 使用 test.sh 运行此测试，无需真实 API key
     });
@@ -325,7 +327,7 @@ ENTRYPOINT ["node", "dist/cli.js"]</code></pre>
 - Fixed #1234: crash on empty system prompt.
 
 ### Security
-- Updated `anthropic-sdk` to patch CVE-2024-xxxxx.
+- Updated `anthropic-sdk` to patch a dependency vulnerability.
 
 ## [1.2.3] - 2025-06-15
 ...</code></pre>
@@ -416,6 +418,7 @@ ENTRYPOINT ["node", "dist/cli.js"]</code></pre>
     </article>
 </main>
 
+<script src="../assets/js/search-index.js"></script>
 <script src="../assets/js/app.js"></script>
 </body>
 </html>
