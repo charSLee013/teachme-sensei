@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "allowedRuntimeHosts": [
     "cdn.jsdelivr.net",
     "fonts.googleapis.com",
@@ -34,8 +34,7 @@
         "https://huggingface.co/black-forest-labs/FLUX.2-dev",
         "https://huggingface.co/blog/flux-2"
       ],
-      "requiredBy": ["teach/flux2/**/*.html"],
-      "failure": "warning"
+      "requiredBy": ["teach/flux2/**/*.html"]
     },
     {
       "id": "google-fonts-inter-jetbrains",
@@ -52,8 +51,7 @@
         "teach/pi/chapters/12-sdk.html",
         "teach/pi/chapters/13-orchestrator.html",
         "teach/pi/chapters/14-contributing.html"
-      ],
-      "failure": "warning"
+      ]
     },
     {
       "id": "katex-0.16.9",
@@ -63,8 +61,7 @@
         "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css",
         "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
       ],
-      "requiredBy": ["teach/lingbot-video/lessons/*.html"],
-      "failure": "hard"
+      "requiredBy": ["teach/lingbot-video/lessons/*.html"]
     },
     {
       "id": "krea2-references",
@@ -106,22 +103,19 @@
       "urlPrefixes": [
         "https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/"
       ],
-      "requiredBy": ["teach/krea2/**/*.html"],
-      "failure": "warning"
+      "requiredBy": ["teach/krea2/**/*.html"]
     },
     {
       "id": "mathjax-3",
       "type": "runtime",
       "urls": ["https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"],
-      "requiredBy": ["teach/flux2/lessons/0003-flux2-system-masterclass.html"],
-      "failure": "hard"
+      "requiredBy": ["teach/flux2/lessons/0003-flux2-system-masterclass.html"]
     },
     {
       "id": "ogl-1.0.11",
       "type": "runtime",
       "urls": ["https://cdn.jsdelivr.net/npm/ogl@1.0.11/+esm"],
-      "requiredBy": ["teach/lingbot-video/assets/ogl-bridge.js"],
-      "failure": "hard"
+      "requiredBy": ["teach/lingbot-video/assets/ogl-bridge.js"]
     },
     {
       "id": "pi-references",
@@ -135,15 +129,13 @@
         "https://radius.pi.dev/",
         "https://rfc.earendil.com/keyword/pi/"
       ],
-      "requiredBy": ["teach/pi/**/*.html"],
-      "failure": "warning"
+      "requiredBy": ["teach/pi/**/*.html"]
     },
     {
       "id": "three-0.167.1",
       "type": "runtime",
       "urls": ["https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.module.js"],
-      "requiredBy": ["teach/flux2/lessons/0003-flux2-system-masterclass.html"],
-      "failure": "hard"
+      "requiredBy": ["teach/flux2/lessons/0003-flux2-system-masterclass.html"]
     }
   ]
 }

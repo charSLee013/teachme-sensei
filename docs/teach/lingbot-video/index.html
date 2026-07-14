@@ -21,7 +21,7 @@
         <li>本课程把 LingBot-Video 作为一个"论文系统 + 公开推理仓库"来学习，而不是只按文件夹顺序阅读代码。</li>
         <li>所有强结论被分为代码事实、论文事实、教学重构、工程建议和未知项。</li>
         <li>主线是从研究动机进入公开推理链路，再进入 Pipeline、Transformer、MoE、Refiner 和多卡部署。</li>
-        <li>读者最终应能解释系统、运行 smoke test、定位失败点，并明确哪些结论尚未被本地验证。</li>
+        <li>读者最终应能解释系统、执行最小运行验证、定位失败点，并明确哪些结论尚未被本地验证。</li>
       </ul>
     </section>
 
@@ -60,7 +60,7 @@
         <tr><td><a href="lessons/08-sparse-moe.html">08 Sparse MoE</a></td><td>MoE 如何提高容量并控制活跃计算？</td><td>解释 router、top-k experts、grouped execution 和 FP8 path。</td></tr>
         <tr><td><a href="lessons/09-refiner.html">09 Refiner</a></td><td>二阶段细化如何与 base generation 连接？</td><td>解释低分辨率视频重读、VAE encode、t_thresh 和 clean first frame。</td></tr>
         <tr><td><a href="lessons/10-serving-fsdp-sglang.html">10 Serving</a></td><td>部署和多卡路径解决什么瓶颈？</td><td>区分 diffusers、SGLang adapter、FSDP、CP 和 CFG parallel。</td></tr>
-        <tr><td><a href="lessons/11-debugging-and-validation.html">11 Validation</a></td><td>如何在不同资源条件下验证系统？</td><td>设计无权重静态检查和有权重 smoke test。</td></tr>
+        <tr><td><a href="lessons/11-debugging-and-validation.html">11 Validation</a></td><td>如何在不同资源条件下验证系统？</td><td>设计无权重静态检查和有权重最小运行验证。</td></tr>
       </tbody>
     </table>
 

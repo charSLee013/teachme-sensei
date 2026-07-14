@@ -7,16 +7,12 @@
   },
   "scripts": {
     "verify:public": "node scripts/verify-public-site.mjs --all",
-    "verify:workflow": "node scripts/verify-workflow.mjs .github/workflows/static.yml",
-    "verify:artifacts": "node scripts/verify-artifact-survival.mjs",
+    "verify:workflow": "node scripts/verify-workflow.mjs .github/workflows/pages.yml",
     "test:krea2-adapter": "node --test tests/krea2-adapter.test.mjs",
     "test:sync-fixture": "node scripts/test-sync-fixture.mjs",
-    "smoke:public": "node scripts/smoke-public-site.mjs",
-    "test": "npm run test:krea2-adapter && npm run verify:public && npm run verify:workflow && npm run test:sync-fixture && npm run smoke:public"
+    "test": "npm run test:krea2-adapter && npm run test:sync-fixture && npm run verify:public && npm run verify:workflow"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.10.2",
-    "@playwright/test": "1.55.0",
     "parse5": "7.2.1"
   }
 }

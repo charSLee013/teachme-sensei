@@ -73,7 +73,7 @@ export const pageConfigs = {
             items: [
               { id: "architecture", title: "Transformer / MoE", body: "看清 token、RoPE、router 与 expert path。" },
               { id: "systems", title: "Serving / Validation", body: "最后才进入并行与验证策略。" },
-              { id: "practice", title: "Smoke Test", body: "用无权重静态检查与有权重 smoke test 收束证据。" },
+              { id: "practice", title: "最小运行验证", body: "用无权重静态检查与有权重最小运行验证收束证据。" },
             ],
           },
         ],
@@ -793,13 +793,13 @@ export const pageConfigs = {
       intro: [0, 1, 2],
       steps: [
         { label: "先静态", active: ["syntax", "json", "pure"], note: "无权重环境仍然可以产出强证据，只要你知道哪些属性真能被静态判定。" },
-        { label: "再运行时", active: ["smoke", "distributed"], note: "运行时验证必须按风险梯度上升，否则失败点会被更大系统噪声淹没。" },
+        { label: "再运行时", active: ["minimum-runtime", "distributed"], note: "运行时验证按风险梯度上升，让首个失败点对应最小新增系统层级。" },
         { label: "最后证据边界", active: ["evidence"], note: "顶级教学包不是“证明一切”，而是把能证与未证的边界诚实讲清。" },
       ],
       diagram: {
         title: "验证台阶",
         description: "先拿最便宜、最确定的静态证据守住边界，再把昂贵的运行时验证留到最后。",
-        route: ["syntax", "json", "pure", "smoke", "distributed", "evidence"],
+        route: ["syntax", "json", "pure", "minimum-runtime", "distributed", "evidence"],
         columns: [
           { title: "静态层", items: [
             { id: "syntax", title: "syntax / parse", body: "先证明代码、脚本、JSON 至少可解析。" },
@@ -807,7 +807,7 @@ export const pageConfigs = {
             { id: "pure", title: "pure function checks", body: "断言那些真正可在无权重环境里证明正确的边界逻辑。" },
           ]},
           { title: "运行时层", items: [
-            { id: "smoke", title: "single-node smoke", body: "从 Dense T2I 开始，逐步增加风险面。" },
+            { id: "minimum-runtime", title: "单机最小运行验证", body: "从 Dense T2I 开始，逐步增加风险面。" },
             { id: "distributed", title: "multi-GPU / SGLang", body: "最后才进入拓扑、量化与 fused kernel。" },
           ]},
           { title: "证据层", items: [
@@ -826,7 +826,7 @@ export const pageConfigs = {
             { id: "compile", title: "compile / parse", body: "语法与结构层的最低门槛。" },
             { id: "pure", title: "pure invariants", body: "能在本地直接证明输入输出关系的边界函数。" },
           ]},
-          { title: "单机 smoke", items: [
+          { title: "单机最小运行验证", items: [
             { id: "dense", title: "Dense T2I / T2V", body: "最小系统先成立，再增加时间维与条件支路。" },
             { id: "ti2v", title: "TI2V / Refiner", body: "把图像条件与第二阶段精修逐层叠加。" },
           ]},
@@ -837,7 +837,7 @@ export const pageConfigs = {
         ],
         steps: [
           { label: "先强证据", active: ["compile", "pure"], note: "这些检查最便宜，也最适合在无权重环境里建立可信基线。" },
-          { label: "再最小系统", active: ["dense", "ti2v"], note: "smoke test 的价值在于逐层增风险，而不是一次把全系统点亮。" },
+          { label: "再最小系统", active: ["dense", "ti2v"], note: "最小运行验证逐层增加风险面，每一步只引入一个新的系统层级。" },
           { label: "最后高风险", active: ["moe", "multi"], note: "只有在前面都成立后，复杂拓扑的失败才有解释价值。" },
         ],
       },

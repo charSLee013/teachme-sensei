@@ -1,79 +1,68 @@
 #!/usr/bin/env node
 
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, readdirSync } from "node:fs";
+import { basename, resolve } from "node:path";
 
-const workflowPath = resolve(process.cwd(), process.argv[2] ?? ".github/workflows/static.yml");
+const repoRoot = resolve(new URL("..", import.meta.url).pathname);
+const workflowDir = resolve(repoRoot, ".github/workflows");
+const workflowPath = resolve(repoRoot, process.argv[2] ?? ".github/workflows/pages.yml");
 const source = readFileSync(workflowPath, "utf8");
 
 function fail(message) {
   throw new Error(message);
 }
 
-function jobSection(name) {
+function jobNames() {
   const lines = source.split(/\r?\n/);
-  const start = lines.findIndex((line) => line === `  ${name}:`);
-  if (start === -1) fail(`missing job: ${name}`);
-  const body = [];
-  for (let index = start + 1; index < lines.length; index += 1) {
-    if (/^  [a-z][a-z0-9_-]*:\s*$/.test(lines[index])) break;
-    body.push(lines[index]);
-  }
-  return body.join("\n");
+  const jobsStart = lines.findIndex((line) => line === "jobs:");
+  if (jobsStart === -1) fail("workflow is missing jobs");
+  return lines
+    .slice(jobsStart + 1)
+    .filter((line) => /^  [a-z][a-z0-9_-]*:\s*$/.test(line))
+    .map((line) => line.trim().slice(0, -1));
 }
 
-function requireText(section, text, label) {
-  if (!section.includes(text)) fail(`${label} is missing: ${text}`);
-}
-
-function requireJobNeeds(name, value) {
-  const section = jobSection(name);
-  requireText(section, value, `${name}.needs`);
+function requireText(text, label) {
+  if (!source.includes(text)) fail(`${label} is missing: ${text}`);
 }
 
 try {
-  if (/sync-teaching-packages|TEACHING_SOURCE_ROOT|TEACHING_SOURCE_LOCK/.test(source)) fail("workflow must not invoke or depend on source sync");
-  const forbiddenTempPath = [String.fromCharCode(47), "tmp"].join("");
-  if (source.includes(forbiddenTempPath)) fail("workflow contains a forbidden temporary-path literal");
+  const workflows = readdirSync(workflowDir)
+    .filter((name) => /\.ya?ml$/i.test(name))
+    .sort();
+  if (JSON.stringify(workflows) !== JSON.stringify([basename(workflowPath)])) {
+    fail(`expected one workflow (${basename(workflowPath)}), found: ${workflows.join(", ")}`);
+  }
+  if (JSON.stringify(jobNames()) !== JSON.stringify(["deploy"])) fail("workflow must contain exactly one deploy job");
 
-  const staticJob = jobSection("static");
-  requireText(staticJob, "actions/checkout@v4", "static checkout");
-  requireText(staticJob, "actions/setup-node@v4", "static setup-node");
-  requireText(staticJob, "node-version: 22.23.1", "static node version");
-  requireText(staticJob, "run: npm ci", "static npm ci");
-  requireText(staticJob, "npx playwright install --with-deps chromium", "static Chromium install");
-  requireText(staticJob, "run: npm run verify:public", "static public verification");
-  requireText(staticJob, "run: npm run verify:workflow", "static workflow verification");
-  requireText(staticJob, "run: npm run test:krea2-adapter", "static Krea2 adapter verification");
-  requireText(staticJob, "run: npm run test:sync-fixture", "static fixture verification");
+  requireText("branches:\n      - master", "master push trigger");
+  requireText("workflow_dispatch:", "manual trigger");
+  requireText("contents: read", "contents permission");
+  requireText("pages: write", "Pages permission");
+  requireText("id-token: write", "OIDC permission");
+  requireText("name: github-pages", "Pages environment");
+  requireText("url: ${{ steps.deployment.outputs.page_url }}", "deployment URL");
+  requireText("path: docs", "Pages source directory");
+  requireText("include-hidden-files: true", "hidden file upload");
 
-  const smokeJob = jobSection("smoke");
-  requireJobNeeds("smoke", "    needs: static");
-  requireText(smokeJob, "actions/checkout@v4", "smoke checkout");
-  requireText(smokeJob, "actions/setup-node@v4", "smoke setup-node");
-  requireText(smokeJob, "run: npm ci", "smoke npm ci");
-  requireText(smokeJob, "npx playwright install --with-deps chromium", "smoke Chromium install");
-  requireText(smokeJob, "python3 -m http.server 4173 --directory docs", "smoke HTTP server");
-  requireText(smokeJob, "run: npm run smoke:public", "smoke runner");
+  const expectedActions = [
+    "actions/checkout@v4",
+    "actions/configure-pages@v6",
+    "actions/upload-pages-artifact@v5",
+    "actions/deploy-pages@v5",
+  ];
+  const actualActions = [...source.matchAll(/^\s+uses:\s+([^\s]+)\s*$/gm)].map((match) => match[1]);
+  if (JSON.stringify(actualActions) !== JSON.stringify(expectedActions)) {
+    fail(`workflow action sequence mismatch: ${actualActions.join(" -> ")}`);
+  }
 
-  const reportJob = jobSection("report");
-  requireJobNeeds("report", "    needs: [static, smoke]");
-  requireText(reportJob, "    if: always()", "report always condition");
-  requireText(reportJob, "actions/download-artifact@v4", "report artifact download");
-  requireText(reportJob, "id: upload-smoke-artifacts", "report upload step id");
-  requireText(reportJob, "name: public-site-smoke", "report artifact name");
-  requireText(reportJob, "if-no-files-found: error", "report missing-artifact policy");
-  requireText(reportJob, "steps.upload-smoke-artifacts.outcome", "report upload gate");
+  const forbiddenKeys = [...source.matchAll(/^\s+(run|needs|if|continue-on-error|strategy):/gm)].map((match) => match[1]);
+  if (forbiddenKeys.length) fail(`deploy workflow contains execution branches: ${[...new Set(forbiddenKeys)].join(", ")}`);
+  if (/setup-node|npm\s|source sync|sync-teaching-packages|upload-artifact|download-artifact/i.test(
+    source.replaceAll("upload-pages-artifact", "pages-artifact"),
+  )) fail("deploy workflow contains development or report tooling");
 
-  const deployJob = jobSection("deploy");
-  requireJobNeeds("deploy", "    needs: [static, smoke, report]");
-  requireText(deployJob, "if: needs.static.result == 'success' && needs.smoke.result == 'success' && needs.report.result == 'success'", "deploy gate");
-  requireText(deployJob, "actions/upload-pages-artifact@v5", "Pages artifact upload");
-  requireText(deployJob, "actions/deploy-pages@v5", "Pages deployment");
-  if ((source.match(/actions\/upload-pages-artifact@v5/g) ?? []).length !== 1) fail("Pages artifact upload must exist only in deploy");
-  if ((source.match(/actions\/deploy-pages@v5/g) ?? []).length !== 1) fail("Pages deployment must exist only in deploy");
-
-  console.log("[OK] workflow graph static -> smoke -> report -> deploy");
+  console.log("[OK] workflow: one deploy job, one Pages artifact, four ordered actions");
 } catch (error) {
   console.error(`[FAIL] ${error.message}`);
   process.exitCode = 1;

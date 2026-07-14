@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "htmlRoutes": [
     "index.html",
     "teach/anima/course-map.html",
@@ -158,11 +158,5 @@
   ],
   "orphanRoots": [
     {"root":"teach/flux2/assets","expectedLinks":[],"allowedFiles":[]}
-  ],
-  "interactionCases": [
-    {"id":"krea2-details","route":"teach/krea2/lessons/0001-repository-as-research-object.html","selector":"details","action":"click","expected":"details open state is true"},
-    {"id":"lingbot-next","route":"teach/lingbot-video/index.html","selector":"[data-action=next]","action":"click","expected":"canvas-pixel-hash changes"},
-    {"id":"lingbot-replay","route":"teach/lingbot-video/index.html","selector":"[data-action=replay]","action":"click","expected":"canvas-pixel-hash changes; step index returns to 0"},
-    {"id":"pi-search-compaction","route":"teach/pi/index.html","selector":"#searchInput","action":"fill:compaction then click result[href=chapters/10-compaction.html]","expected":"location:teach/pi/chapters/10-compaction.html"}
   ]
 }

@@ -22,7 +22,7 @@
         <tr><td>`paper_fact`</td><td>arXiv source 明确陈述。</td><td>论文称训练数据包含 70,000+ hours embodied-oriented footage。</td></tr>
         <tr><td>`lineage_context`</td><td>上游框架或相关研究背景。</td><td>FSDP、Diffusers、SGLang 的一般生态含义。</td></tr>
         <tr><td>`course_reconstruction`</td><td>课程为帮助理解而重组的说明。</td><td>端到端 ASCII 数据流图。</td></tr>
-        <tr><td>`engineering_transfer`</td><td>维护、调试或测试建议。</td><td>先跑 Dense T2I smoke test 再跑 MoE/refiner。</td></tr>
+        <tr><td>`engineering_transfer`</td><td>维护、调试或测试建议。</td><td>先跑 Dense T2I 最小运行验证，再运行 MoE/refiner。</td></tr>
         <tr><td>`unknown`</td><td>缺少权重、GPU、训练代码或原始实验数据，无法确认。</td><td>当前环境不能验证生成质量和 benchmark 分数。</td></tr>
         <tr><td>`conflicting_surface`</td><td>代码或文档存在可解释为不同结论的表面信号，需要继续实机或作者级证据裁决。</td><td>TI2V pipeline 含 `cfg_parallel_group` 分支，但公开文档写到 TI2V runner 未启用 CFG parallel。</td></tr>
       </tbody>

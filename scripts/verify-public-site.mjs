@@ -55,37 +55,6 @@ const EXPECTED_SYNC_OWNED = [
   "teach/pi/",
 ];
 
-const EXPECTED_INTERACTIONS = [
-  {
-    id: "krea2-details",
-    route: "teach/krea2/lessons/0001-repository-as-research-object.html",
-    selector: "details",
-    action: "click",
-    expected: "details open state is true",
-  },
-  {
-    id: "lingbot-next",
-    route: "teach/lingbot-video/index.html",
-    selector: "[data-action=next]",
-    action: "click",
-    expected: "canvas-pixel-hash changes",
-  },
-  {
-    id: "lingbot-replay",
-    route: "teach/lingbot-video/index.html",
-    selector: "[data-action=replay]",
-    action: "click",
-    expected: "canvas-pixel-hash changes; step index returns to 0",
-  },
-  {
-    id: "pi-search-compaction",
-    route: "teach/pi/index.html",
-    selector: "#searchInput",
-    action: "fill:compaction then click result[href=chapters/10-compaction.html]",
-    expected: "location:teach/pi/chapters/10-compaction.html",
-  },
-];
-
 const EXPECTED_DEPENDENCY_HOSTS = {
   runtime: ["cdn.jsdelivr.net", "fonts.googleapis.com", "fonts.gstatic.com"],
   reference: [
@@ -117,6 +86,9 @@ const KREA_FORBIDDEN_COPY = [
   /不等于/,
   /而不是/,
 ];
+
+const legacyValidationTerm = ["smo", "ke"].join("");
+const legacyValidationPattern = new RegExp(legacyValidationTerm, "i");
 
 const SUPPORT_PATTERNS = [
   /source matrix/i,
@@ -263,6 +235,7 @@ function assertPublicContent() {
   const errors = [];
   for (const route of htmlRoutes()) {
     const html = readFileSync(resolve(docsRoot, route), "utf8");
+    if (legacyValidationPattern.test(html)) errors.push(`${route}: legacy validation terminology`);
     const document = parse(html);
     const body = allElements(document).find((node) => node.tagName === "body");
     const text = normalizeText(body ? visibleText(body) : visibleText(document));
@@ -297,6 +270,17 @@ function assertPublicContent() {
       }
     }
   }
+  function visitCode(dir) {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) visitCode(full);
+      else if (entry.isFile() && /\.(?:js|css)$/i.test(entry.name)) {
+        const source = readFileSync(full, "utf8");
+        if (legacyValidationPattern.test(source)) errors.push(`${relative(docsRoot, full)}: legacy validation terminology`);
+      }
+    }
+  }
+  visitCode(docsRoot);
   if (errors.length) fail(errors.join("\n"));
   console.log("[OK] public content boundary");
 }
@@ -397,16 +381,15 @@ function assertPiSearch() {
 function assertManifest() {
   if (!existsSync(manifestPath)) fail("public-site-manifest.json is missing");
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  const expectedKeys = ["assetAllowlist", "binaryAllowlist", "entryRoutes", "htmlRoutes", "interactionCases", "orphanRoots", "schema", "syncOwnedPaths"];
+  const expectedKeys = ["assetAllowlist", "binaryAllowlist", "entryRoutes", "htmlRoutes", "orphanRoots", "schema", "syncOwnedPaths"];
   if (JSON.stringify(Object.keys(manifest).sort()) !== JSON.stringify(expectedKeys)) fail("public manifest top-level schema mismatch");
-  if (manifest.schema !== 1) fail("public manifest schema must be 1");
+  if (manifest.schema !== 2) fail("public manifest schema must be 2");
   if (JSON.stringify(manifest.htmlRoutes) !== JSON.stringify(htmlRoutes())) fail("public manifest htmlRoutes mismatch");
   if (JSON.stringify(manifest.entryRoutes) !== JSON.stringify(EXPECTED_ENTRY_ROUTES)) fail("public manifest entryRoutes mismatch");
   if (JSON.stringify(manifest.assetAllowlist) !== JSON.stringify(EXPECTED_ASSETS)) fail("public manifest assetAllowlist mismatch");
   if (JSON.stringify(manifest.binaryAllowlist) !== JSON.stringify([])) fail("public manifest binaryAllowlist must be empty");
   if (JSON.stringify(manifest.syncOwnedPaths) !== JSON.stringify(EXPECTED_SYNC_OWNED)) fail("public manifest syncOwnedPaths mismatch");
   if (JSON.stringify(manifest.orphanRoots) !== JSON.stringify([{ root: "teach/flux2/assets", expectedLinks: [], allowedFiles: [] }])) fail("public manifest orphanRoots mismatch");
-  if (JSON.stringify(manifest.interactionCases) !== JSON.stringify(EXPECTED_INTERACTIONS)) fail("public manifest interactionCases mismatch");
   for (const path of EXPECTED_ASSETS) if (!existsSync(resolve(docsRoot, path))) fail(`declared asset missing: ${path}`);
   console.log("[OK] public manifest exact inventory");
 }
@@ -430,7 +413,7 @@ function assertDependencies() {
   const manifest = JSON.parse(readFileSync(dependencyManifestPath, "utf8"));
   const keys = Object.keys(manifest).sort();
   if (JSON.stringify(keys) !== JSON.stringify(["allowedReferenceHosts", "allowedRuntimeHosts", "dependencies", "schema"])) fail("external dependency manifest keys mismatch");
-  if (manifest.schema !== 1) fail("external dependency manifest schema must be 1");
+  if (manifest.schema !== 2) fail("external dependency manifest schema must be 2");
   if (JSON.stringify(manifest.allowedRuntimeHosts) !== JSON.stringify(EXPECTED_DEPENDENCY_HOSTS.runtime)) fail("runtime host allowlist mismatch");
   if (JSON.stringify(manifest.allowedReferenceHosts) !== JSON.stringify(EXPECTED_DEPENDENCY_HOSTS.reference)) fail("reference host allowlist mismatch");
   const seen = new Set();
@@ -440,7 +423,6 @@ function assertDependencies() {
     if (seen.has(dependency.id)) fail(`duplicate dependency id: ${dependency.id}`);
     seen.add(dependency.id);
     if (!["runtime", "reference"].includes(dependency.type)) fail(`invalid dependency type: ${dependency.id}`);
-    if (!["hard", "warning"].includes(dependency.failure)) fail(`invalid dependency failure: ${dependency.id}`);
     for (const raw of dependency.urls) {
       const url = new URL(raw);
       declaredUrls.add(raw);

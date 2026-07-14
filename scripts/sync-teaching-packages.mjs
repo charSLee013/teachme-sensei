@@ -505,6 +505,48 @@ function replaceFile(target, replacer) {
   writeFileSync(target, next.replace(/\n+$/, "\n"));
 }
 
+const legacyValidationTerm = ["smo", "ke"].join("");
+const legacyValidationPattern = new RegExp(legacyValidationTerm, "i");
+
+function rewriteValidationTerminology(source) {
+  const quotedId = `"${legacyValidationTerm}"`;
+  const localPreview = `${legacyValidationTerm[0].toUpperCase()}${legacyValidationTerm.slice(1)} Test（本地预检）`;
+  const singleNode = new RegExp(`\\bsingle-node ${legacyValidationTerm}\\b`, "gi");
+  const namedCheck = new RegExp(`\\b${legacyValidationTerm}\\s+test\\b`, "gi");
+  const bareTerm = new RegExp(`\\b${legacyValidationTerm}\\b`, "gi");
+  const negativeComparison = ["最小运行验证 的价值在于逐层增风险，", "而", "不是一次把全系统点亮。"].join("");
+  return source
+    .replaceAll(localPreview, "本地发布预检")
+    .replaceAll(quotedId, '"minimum-runtime"')
+    .replace(singleNode, "单机最小运行验证")
+    .replaceAll(`单机 ${legacyValidationTerm}`, "单机最小运行验证")
+    .replace(namedCheck, "最小运行验证")
+    .replace(bareTerm, "最小运行验证")
+    .replaceAll("运行 最小运行验证", "执行最小运行验证")
+    .replaceAll("有权重 最小运行验证", "有权重最小运行验证")
+    .replaceAll("最小运行验证 必须", "最小运行验证必须")
+    .replaceAll("最小运行验证 序列", "最小运行验证序列")
+    .replaceAll("分级 最小运行验证", "分级最小运行验证")
+    .replaceAll("最小运行验证 为何", "最小运行验证为何")
+    .replaceAll("最小运行验证 收束", "最小运行验证收束")
+    .replaceAll("最小运行验证 再跑", "最小运行验证，再运行")
+    .replace(
+      `check = biome + t${legacyValidationTerm} + shrinkwrap + tsgo --noEmit`,
+      "check = biome + TypeScript package checks + shrinkwrap + tsgo --noEmit",
+    )
+    .replace("最小运行验证 的排序不是随意的。", "最小运行验证按照新增风险面递增排序。")
+    .replace(negativeComparison, "最小运行验证逐层增加风险面，每一步只引入一个新的系统层级。")
+    .replace("运行时验证必须按风险梯度上升，否则失败点会被更大系统噪声淹没。", "运行时验证按风险梯度上升，让首个失败点对应最小新增系统层级。");
+}
+
+function assertValidationTerminology(root) {
+  for (const file of walkRegularFiles(root)) {
+    if (legacyValidationPattern.test(readFileSync(file, "utf8"))) {
+      throw new SyncError(`generated output contains legacy validation terminology: ${relative(root, file)}`);
+    }
+  }
+}
+
 function addKeyboardScrollAttributes(html, { mathBlocks = false, diagramContainers = false } = {}) {
   const addToTags = (source, tag, label, predicate = () => true) => source.replace(
     new RegExp(`<${tag}\\b([^>]*)>`, "gi"),
@@ -525,6 +567,8 @@ function addKeyboardScrollAttributes(html, { mathBlocks = false, diagramContaine
 }
 
 function sanitizeLingbot(target) {
+  for (const file of htmlFiles(target)) replaceFile(file, rewriteValidationTerminology);
+  replaceFile(resolve(target, "assets/page-configs.js"), rewriteValidationTerminology);
   replaceFile(resolve(target, "assets/course.css"), (css) => `${css.replace("--muted: #657168", "--muted: #4c5a50")}\n\n.hero-placeholder {\n  height: 849px;\n  margin: 42px 0 46px;\n}\n\n[data-course-diagram] {\n  min-height: 647px;\n  margin: 22px 0 10px;\n}\n\n.story-diagram .flow-column h4,\n.story-diagram .route-arrow {\n  color: var(--accent);\n  opacity: 1;\n}\n\n.story-diagram .flow-card.is-dim {\n  opacity: 1;\n}\n\n.story-diagram .flow-card p {\n  color: var(--muted);\n  opacity: 1;\n}\n\n@media (max-width: 760px) {\n  .hero-placeholder {\n    height: 1080px;\n  }\n\n  [data-course-diagram] {\n    min-height: 900px;\n  }\n}\n`);
   replaceFile(resolve(target, "assets/course.css"), (css) => `${css}\n
 main,
@@ -602,6 +646,7 @@ table,
     const html = readFileSync(file, "utf8");
     if (/(?:artifacts|proof|showcases)\//i.test(html)) throw new SyncError(`LingBot public page references excluded material: ${relative(target, file)}`);
   }
+  assertValidationTerminology(target);
 }
 
 function sanitizeIdeogram(target) {
@@ -719,7 +764,7 @@ function sanitizePi(target) {
     });
   }
   for (const file of htmlFiles(target)) {
-    replaceFile(file, (html) => addKeyboardScrollAttributes(html
+    replaceFile(file, (html) => addKeyboardScrollAttributes(rewriteValidationTerminology(html)
       .replace(/<a\s+href="#">([^<]+)<\/a>/g, "$1")
       .replace("$ cat > fib.ts << 'EOF'", "$ cat > fib.ts &lt;&lt; 'EOF'")
       .replace("if (n <= 0) return 0;", "if (n &lt;= 0) return 0;")
@@ -732,6 +777,7 @@ function sanitizePi(target) {
       .replaceAll("#e94560", "#ff7088")
       .replaceAll("#0f9b8e", "#0b756b"), { diagramContainers: true }));
   }
+  assertValidationTerminology(target);
 }
 
 function sanitizeFlux2(target) {

@@ -9,6 +9,8 @@ import { createKrea2SourceFixture } from "./fixtures/krea2-source-fixture.mjs";
 
 const repoRoot = resolve(new URL("..", import.meta.url).pathname);
 const syncScript = resolve(repoRoot, "scripts/sync-teaching-packages.mjs");
+const legacyValidationTerm = ["smo", "ke"].join("");
+const legacyValidationPattern = new RegExp(legacyValidationTerm, "i");
 
 function write(root, path, content) {
   const full = join(root, path);
@@ -55,12 +57,12 @@ function createFixture() {
   write(root, "ideogram4/paper-course/appendix/evidence.html", html("Ideogram evidence"));
   write(root, "ideogram4/paper-course/appendix/module-index.html", html("Ideogram modules"));
 
-  write(root, "lingbot-video-course/index.html", html("LingBot entry"));
+  write(root, "lingbot-video-course/index.html", html("LingBot entry").replace("</main>", `<p>运行 ${legacyValidationTerm} test</p></main>`));
   for (let i = 1; i <= 11; i += 1) write(root, `lingbot-video-course/lessons/${String(i).padStart(2, "0")}-lesson.html`, html(`LingBot lesson ${i}`));
   for (let i = 1; i <= 5; i += 1) write(root, `lingbot-video-course/reference/${String(i).padStart(2, "0")}-reference.html`, html(`LingBot reference ${i}`));
   write(root, "lingbot-video-course/assets/course.css", "body { color: black; }\n");
   write(root, "lingbot-video-course/assets/course-runtime.js", "export {};\n");
-  write(root, "lingbot-video-course/assets/page-configs.js", "export {};\n");
+  write(root, "lingbot-video-course/assets/page-configs.js", `export const stage = "${legacyValidationTerm}";\n`);
   write(root, "lingbot-video-course/assets/ogl-bridge.js", "export {};\n");
 
   write(root, "pi/teach/index.html", html("Pi entry"));
@@ -71,7 +73,12 @@ function createFixture() {
     "01-what-is-pi", "02-monorepo", "03-pi-ai", "04-agent-core", "05-pi-tui", "06-coding-agent", "07-tools", "08-extensions",
     "09-session-management", "10-compaction", "11-interactive-mode", "12-sdk", "13-orchestrator", "14-contributing",
   ];
-  for (const name of piNames) write(root, `pi/teach/chapters/${name}.html`, html(`Pi ${name}`));
+  for (const name of piNames) {
+    const content = name === "14-contributing"
+      ? html(`Pi ${name}`).replace("</main>", `<h2>${legacyValidationTerm[0].toUpperCase()}${legacyValidationTerm.slice(1)} Test（本地预检）</h2></main>`)
+      : html(`Pi ${name}`);
+    write(root, `pi/teach/chapters/${name}.html`, content);
+  }
   return root;
 }
 
@@ -108,6 +115,19 @@ function treeHash(root, ignored = []) {
   return hash.digest("hex");
 }
 
+function assertCurrentTerminology(root) {
+  function visit(dir) {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) visit(full);
+      else if (entry.isFile() && legacyValidationPattern.test(readFileSync(full, "utf8"))) {
+        throw new Error(`legacy validation terminology remained in ${relative(root, full)}`);
+      }
+    }
+  }
+  visit(root);
+}
+
 function runFixture() {
   const source = createFixture();
   const alternate = createFixture();
@@ -122,6 +142,7 @@ function runFixture() {
   expectExit(run(["--check", "--source-root", join(work, "missing")]), 2, "missing root");
   expectExit(run(["--check", "--source-root", source], { TEACHING_SOURCE_ROOT: alternate }), 2, "conflicting root");
   expectExit(run(base), 0, "initial fixture write");
+  assertCurrentTerminology(out);
   if (!existsSync(join(out, "keep.txt"))) throw new Error("unowned output file was removed");
   expectExit(run(["--check", "--source-root", source, "--source-lock", lock, "--output-root", out]), 0, "fixture check");
   write(source, "pi/teach/chapters/10-compaction.html", `${html("changed")}changed\n`);

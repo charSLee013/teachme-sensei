@@ -174,7 +174,7 @@ npm install --ignore-scripts
 # 构建所有包（需要时）
 npm run build
 
-# 检查（check = biome + tsmoke + shrinkwrap + tsgo --noEmit）
+# 检查（check = biome + TypeScript package checks + shrinkwrap + tsgo --noEmit）
 npm run check
 
 # test.sh（无 API key 的本地测试）
@@ -249,7 +249,7 @@ describe('regression: empty-system-prompt', () => {
     "version": "1.2.3"
 }</code></pre>
 
-        <h3>Smoke Test（本地预检）</h3>
+        <h3>本地发布预检</h3>
         <p>发布前的本地预检以仓库规则为准：先构建一个未发布的本地 release，再在仓库外验证 Node 和 Bun 产物是否可启动、可列模型、可进入交互模式。</p>
         <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-bash">npm run release:local -- --out /tmp/pi-local-release --force
 cd /tmp

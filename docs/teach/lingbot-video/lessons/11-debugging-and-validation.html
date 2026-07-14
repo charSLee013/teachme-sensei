@@ -29,7 +29,7 @@
       <ul>
         <li>验证属性分两类：<b>静态可判定</b> $P_{\text{static}}$（语法、JSON、纯函数输入输出、资产引用）与 <b>运行时属性</b> $P_{\text{runtime}}$（数值正确性、吞吐、显存、分布式收敛）。缺权重只能覆盖前者。</li>
         <li>纯函数是验证的黄金地带：无副作用、确定性，满足 $f(x)=y$ 可用有限样例直接断言，无需模型。</li>
-        <li>smoke test 必须按<b>复杂度递增</b>排序：Dense T2I → T2V/TI2V → MoE → refiner → 多卡，让失败尽早、在最小系统里暴露。</li>
+        <li>最小运行验证必须按<b>复杂度递增</b>排序：Dense T2I → T2V/TI2V → MoE → refiner → 多卡，让失败尽早、在最小系统里暴露。</li>
         <li>可测性是分层的：越靠近 runner/utils/rewriter 边界越可测，越靠近 pipeline/transformer/MoE kernel 越需要权重与硬件。</li>
         <li>当前环境缺 diffusers/transformers/peft/decord/json_repair/sglang，有 torch/triton——所以本课程的证据严格限于 $P_{\text{static}}$。</li>
       </ul>
@@ -84,8 +84,8 @@
       </tbody>
     </table>
 
-    <h2>有权重 smoke test：复杂度递增序</h2>
-    <p>smoke test 的排序不是随意的。设每一步引入的新风险面为 $R_i$，把步骤按 $R_i$ 单调递增排列，可让<b>首个失败点定位到最小系统</b>——若 Dense T2I 就挂了，问题必在最基础的加载/采样层，与 MoE、多卡无关。这是"二分定位"思想在集成测试上的应用。</p>
+    <h2>有权重最小运行验证：复杂度递增序</h2>
+    <p>最小运行验证按照新增风险面递增排序。设每一步引入的新风险面为 $R_i$，把步骤按 $R_i$ 单调递增排列，可让<b>首个失败点定位到最小系统</b>——若 Dense T2I 就挂了，问题必在最基础的加载/采样层，与 MoE、多卡无关。这是"二分定位"思想在集成测试上的应用。</p>
 <div data-course-diagram="0"></div>
 
     <h2>常见失败定位</h2>
@@ -114,13 +114,13 @@
       <ul>
         <li>本课程所有"已通过"仅覆盖 $P_{\text{static}}$。<b>数值正确性、生成质量、吞吐、显存峰值属 $P_{\text{runtime}}$，本环境未验证</b>——缺 diffusers/transformers/peft/decord/json_repair/sglang，无权重。</li>
         <li>"复杂度递增可二分定位"是一个<b>工程启发式</b>（course_reconstruction），非形式化定理；真实故障可能跨层耦合。</li>
-        <li>smoke test 序列基于代码结构与文档推断，实际最优顺序应随你的硬件与模型变体调整。</li>
+        <li>最小运行验证序列基于代码结构与文档推断，实际最优顺序应随你的硬件与模型变体调整。</li>
       </ul>
     </section>
 
     <section class="evidence">
       <h2>Evidence</h2>
-      <p>代码事实来自纯函数 <code>num_frames_from_duration</code>（utils.py:16）、<code>validate_refiner_sigmas</code>（utils.py:21）、<code>resolve_backend_engine</code>（inference_backend.py）、<code>resolve_negative_prompt_arg</code>（runner.py）、<code>_enforce_delete_only</code>（auto_negative.py:153）；模型目录组件检查来自 runner 的 refiner 组件探测；输入约束来自 <code>pipeline_lingbot_video.py</code> 的 check_inputs（num_frames∈{1,4n+1}、H/W%16）。静态验证边界见 <a href="../reference/evidence-boundaries.html">证据边界参考页</a>。方法论谱系：可判定性分层、纯函数属性测试（property-based testing，如 QuickCheck/Hypothesis）、集成测试的复杂度分级 smoke test。</p>
+      <p>代码事实来自纯函数 <code>num_frames_from_duration</code>（utils.py:16）、<code>validate_refiner_sigmas</code>（utils.py:21）、<code>resolve_backend_engine</code>（inference_backend.py）、<code>resolve_negative_prompt_arg</code>（runner.py）、<code>_enforce_delete_only</code>（auto_negative.py:153）；模型目录组件检查来自 runner 的 refiner 组件探测；输入约束来自 <code>pipeline_lingbot_video.py</code> 的 check_inputs（num_frames∈{1,4n+1}、H/W%16）。静态验证边界见 <a href="../reference/evidence-boundaries.html">证据边界参考页</a>。方法论谱系：可判定性分层、纯函数属性测试（property-based testing，如 QuickCheck/Hypothesis）、集成测试的复杂度分级最小运行验证。</p>
     </section>
 
     <h2>Retrieval Prompts</h2>
@@ -128,7 +128,7 @@
       <li>给出 $P_{\text{static}}$ 与 $P_{\text{runtime}}$ 的定义，并各举本仓库两个例子。为什么缺权重环境只能覆盖前者？</li>
       <li>为什么"纯函数断言"比"<code>py_compile</code> 通过"是更强的证据？用副作用与确定性说明。</li>
       <li>证明 <code>num_frames_from_duration</code> 的输出恒 $\equiv 1 \pmod 4$，并说明如何用有限样例 + 归纳验证。</li>
-      <li>smoke test 为何要按复杂度递增排序？若第 4 步（MoE）首次失败，故障域应限定在哪些维度？</li>
+      <li>最小运行验证为何要按复杂度递增排序？若第 4 步（MoE）首次失败，故障域应限定在哪些维度？</li>
       <li>要修改 runner 的 frame-count 行为，应先加哪一层回归测试？为什么不先改 transformer？</li>
     </ol>
 
