@@ -12,19 +12,20 @@ const dependencyManifestPath = resolve(repoRoot, "scripts/external-dependencies.
 const piRoot = resolve(docsRoot, "teach/pi");
 
 const EXPECTED_ENTRY_ROUTES = [
-  { route: "index.html", course: "portal", kind: "portal" },
+  { route: "index.html", course: "catalog", kind: "catalog" },
   { route: "teach/anima/course-map.html", course: "anima", kind: "map" },
   { route: "teach/anima/index.html", course: "anima", kind: "course" },
   { route: "teach/flux2/course-map.html", course: "flux2", kind: "map" },
   { route: "teach/flux2/index.html", course: "flux2", kind: "course" },
   { route: "teach/ideogram4/index.html", course: "ideogram4", kind: "course" },
-  { route: "teach/index.html", course: "catalog", kind: "catalog" },
   { route: "teach/krea2/course-map.html", course: "krea2", kind: "map" },
   { route: "teach/krea2/index.html", course: "krea2", kind: "course" },
   { route: "teach/lingbot-video/index.html", course: "lingbot-video", kind: "course" },
   { route: "teach/pi/course-map.html", course: "pi", kind: "map" },
   { route: "teach/pi/index.html", course: "pi", kind: "course" },
 ];
+
+const RETIRED_PUBLIC_ROUTES = ["teach/index.html"];
 
 const EXPECTED_ASSETS = [
   "teach/anima/anima.css",
@@ -390,6 +391,9 @@ function assertManifest() {
   if (JSON.stringify(manifest.binaryAllowlist) !== JSON.stringify([])) fail("public manifest binaryAllowlist must be empty");
   if (JSON.stringify(manifest.syncOwnedPaths) !== JSON.stringify(EXPECTED_SYNC_OWNED)) fail("public manifest syncOwnedPaths mismatch");
   if (JSON.stringify(manifest.orphanRoots) !== JSON.stringify([{ root: "teach/flux2/assets", expectedLinks: [], allowedFiles: [] }])) fail("public manifest orphanRoots mismatch");
+  for (const route of RETIRED_PUBLIC_ROUTES) {
+    if (existsSync(resolve(docsRoot, route))) fail(`retired public route still exists: ${route}`);
+  }
   for (const path of EXPECTED_ASSETS) if (!existsSync(resolve(docsRoot, path))) fail(`declared asset missing: ${path}`);
   console.log("[OK] public manifest exact inventory");
 }

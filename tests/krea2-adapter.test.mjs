@@ -82,6 +82,23 @@ test("builds the complete public Krea2 course from the approved source layout", 
   }
 });
 
+test("routes Krea2 catalog links to the public site root", () => {
+  const sourceRoot = createKrea2SourceFixture();
+  const temporaryRoot = mkdtempSync(join(tmpdir(), "krea2-adapter-test-"));
+  const outputRoot = resolve(temporaryRoot, "course");
+  try {
+    buildKrea2Course({ packageRoot: sourceRoot, outputRoot });
+    const courseIndex = pageTextAndLinks(readFileSync(resolve(outputRoot, "index.html"), "utf8"));
+    const courseMap = pageTextAndLinks(readFileSync(resolve(outputRoot, "course-map.html"), "utf8"));
+    assert.ok(courseIndex.links.includes("../../index.html"));
+    assert.ok(courseMap.links.includes("../../index.html"));
+    assert.match(courseMap.text, /Teachme Sensei 目录/);
+  } finally {
+    rmSync(sourceRoot, { recursive: true, force: true });
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+});
+
 test("publishes reader-facing prose and revision-pinned evidence links", () => {
   const sourceRoot = createKrea2SourceFixture();
   const temporaryRoot = mkdtempSync(join(tmpdir(), "krea2-adapter-test-"));

@@ -128,6 +128,17 @@ function assertCurrentTerminology(root) {
   visit(root);
 }
 
+function assertAnimaCatalogLinks(root) {
+  const expectedLinks = [
+    ["teach/anima/index.html", 'href="../../"'],
+    ["teach/anima/lessons/01-what-is-anima.html", 'href="../../../"'],
+  ];
+  for (const [path, expected] of expectedLinks) {
+    const html = readFileSync(resolve(root, path), "utf8");
+    if (!html.includes(expected)) throw new Error(`${path}: missing site-root catalog link ${expected}`);
+  }
+}
+
 function runFixture() {
   const source = createFixture();
   const alternate = createFixture();
@@ -143,6 +154,7 @@ function runFixture() {
   expectExit(run(["--check", "--source-root", source], { TEACHING_SOURCE_ROOT: alternate }), 2, "conflicting root");
   expectExit(run(base), 0, "initial fixture write");
   assertCurrentTerminology(out);
+  assertAnimaCatalogLinks(out);
   if (!existsSync(join(out, "keep.txt"))) throw new Error("unowned output file was removed");
   expectExit(run(["--check", "--source-root", source, "--source-lock", lock, "--output-root", out]), 0, "fixture check");
   write(source, "pi/teach/chapters/10-compaction.html", `${html("changed")}changed\n`);

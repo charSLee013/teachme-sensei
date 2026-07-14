@@ -42,7 +42,6 @@
     "teach/ideogram4/appendix/evidence.html",
     "teach/ideogram4/appendix/module-index.html",
     "teach/ideogram4/index.html",
-    "teach/index.html",
     "teach/krea2/course-map.html",
     "teach/krea2/index.html",
     "teach/krea2/lessons/0001-repository-as-research-object.html",
@@ -115,13 +114,12 @@
     "teach/pi/index.html"
   ],
   "entryRoutes": [
-    {"route":"index.html","course":"portal","kind":"portal"},
+    {"route":"index.html","course":"catalog","kind":"catalog"},
     {"route":"teach/anima/course-map.html","course":"anima","kind":"map"},
     {"route":"teach/anima/index.html","course":"anima","kind":"course"},
     {"route":"teach/flux2/course-map.html","course":"flux2","kind":"map"},
     {"route":"teach/flux2/index.html","course":"flux2","kind":"course"},
     {"route":"teach/ideogram4/index.html","course":"ideogram4","kind":"course"},
-    {"route":"teach/index.html","course":"catalog","kind":"catalog"},
     {"route":"teach/krea2/course-map.html","course":"krea2","kind":"map"},
     {"route":"teach/krea2/index.html","course":"krea2","kind":"course"},
     {"route":"teach/lingbot-video/index.html","course":"lingbot-video","kind":"course"},

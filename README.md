@@ -15,7 +15,7 @@ npm ci
 npm test
 ```
 
-`npm test` runs the Krea adapter tests, deterministic sync fixture, 112-route static site validator, and single-job Pages workflow contract.
+`npm test` runs the Krea adapter tests, deterministic sync fixture, full static site validator, and single-job Pages workflow contract.
 
 When a page or interaction changes, open the affected page during development and inspect its desktop and narrow-screen behavior directly.
 

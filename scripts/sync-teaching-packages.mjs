@@ -454,7 +454,7 @@ function markdownToHtml(markdown, title, sourceRelativePath) {
   flushParagraph(); closeLists(); if (inCode) flushCode();
   const depth = sourceRelativePath.split("/").length - 1;
   const homeHref = depth === 0 ? "index.html" : `${"../".repeat(depth)}index.html`;
-  const catalogHref = `${"../".repeat(depth)}../`;
+  const catalogHref = `${"../".repeat(depth)}../../`;
   return `<!doctype html>
 <html lang="zh-CN">
 <head>
