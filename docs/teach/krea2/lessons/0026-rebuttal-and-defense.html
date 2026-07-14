@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：Rebuttal 与答辩"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>Rebuttal 与答辩</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Review</span></div><a href="0025-reviewer-objections.html">上一课</a><a href="0027-capstone-paper.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 26 / Review</p><h1>Rebuttal 与答辩</h1><p class="lede">Rebuttal 的任务是减少不确定性；答辩的任务是让别人能复述你的证据边界。</p><div class="meta"><span>前置：objection map</span><span>产物：rebuttal draft</span><span>练习：90 秒答辩</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>每条回应采用“感谢/澄清 -&gt; 直接回答 -&gt; 证据 -&gt; 修改 -&gt; 剩余限制”的结构，优先处理 reviewer 真正担心的 claim。</p></section>
+<section><h2>直觉：降低对方的搜索成本</h2><p>审稿人没有时间重新猜你的实验。回应中直接指出表格、图、配置、补充实验和修改位置，让他能快速确认你是否处理了问题。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">reviewer concern
+  -&gt; restate fairly
+  -&gt; answer in one sentence
+  -&gt; point to evidence (Table/Figure/appendix)
+  -&gt; state manuscript change
+  -&gt; retain or narrow scope</div></section>
+<section><h2>公式：回应的证据链</h2><p><code>response = respect + answer + evidence + revision + boundary</code></p><p>数据暂时无法补充时，可以明确说明当前协议尚未建立 X，随后删除对应主张并澄清限制。这样的回应让结论重新对齐现有证据。</p></section>
+<section><h2>代码：把回复绑定到 artifact</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>response = {
+  "reviewer_id": "R1-C2",
+  "answer": "We agree that one seed is insufficient.",
+  "new_experiment": "five seeds on the fixed prompt set",
+  "evidence": ["results/r1_c2.json", "Table 3"],
+  "manuscript_change": "Section 4.2 and limitation paragraph",
+  "remaining_scope": "not tested beyond 1024px",
+}
+</code></pre><p>科研写作的工程化体现在：每一句 response 都能回到结果文件和论文版本。</p></section>
+<section><h2>实验：90 秒答辩</h2><ol><li>30 秒说明问题和固定研究主线。</li><li>30 秒解释方法和控制变量。</li><li>20 秒给出最重要观察和指标。</li><li>10 秒主动说出限制。</li></ol><p>录音后检查是否使用了“always、significantly、better、general”而没有条件。把绝对词替换为 measurable scope language。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong>第 20-25 课的 claim/evidence 记录、<a href="../reference/paper-writing-checklist.html">paper checklist</a>。</p><p><strong>Teaching use：</strong>将 rebuttal 变成可审计的研究沟通。</p><p><strong>Scope：</strong>课程不模拟真实编辑决定，只训练回应证据和边界的能力。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么第一句不应立即攻击审稿人的前提？</li><li>没有新实验时，rebuttal 还能做什么？</li><li>什么样的回答看似礼貌但没有信息？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>先公平复述能确认你理解问题，再给回答。没有新实验可以澄清定义、补充实现细节、提供已有证据、修改 claim 或明确 limitation。只说“Thank you, we will consider this”没有回答、证据或修改，因此信息量为零。</p><p><strong>常见误解：</strong>rebuttal 不是另一个 introduction；它必须逐条对应 objection。</p></details></section>
+<section class="next"><strong>Next action：</strong>用固定研究问题完成 <a href="0027-capstone-paper.html">毕业论文包</a>。</section></main><footer class="foot"><a href="../reference/evidence-and-sources.html#acm-mm-and-ccf-context">来源：投稿语境</a></footer>
+</body></html>

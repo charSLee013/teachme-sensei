@@ -80,7 +80,7 @@
         <!-- ================================================================ -->
         <p><code>InteractiveMode</code> 是 TUI 的主控制器，负责渲染和用户交互，业务逻辑委托给 <code>AgentSession</code>。它订阅 agent 事件流并实时更新 UI。</p>
 
-        <pre><code class="language-ts">export class InteractiveMode {
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts">export class InteractiveMode {
     private runtimeHost: AgentSessionRuntime;
     private ui: TUI;
     private chatContainer: Container;
@@ -108,7 +108,7 @@
         <h2 id="components">11.2 组件架构</h2>
         <!-- ================================================================ -->
 
-        <div class="diagram-container">
+        <div tabindex="0" aria-label="可横向滚动的课程图示" class="diagram-container">
             <svg viewBox="0 0 520 460" xmlns="http://www.w3.org/2000/svg" class="diagram-svg">
                 <!-- TUI root -->
                 <rect x="10" y="10" width="500" height="35" rx="4" fill="#2d1b4e" stroke="#bc8cff"/>
@@ -184,7 +184,7 @@
         <!-- ================================================================ -->
         <p>当模型开始流式响应时，<code>InteractiveMode</code> 通过事件订阅实时更新 UI：</p>
 
-        <pre><code class="language-ts">// 事件处理核心逻辑
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts">// 事件处理核心逻辑
 switch (event.type) {
     case "message_start":
         if (event.message.role === "assistant") {
@@ -231,7 +231,7 @@ switch (event.type) {
         <!-- ================================================================ -->
         <p>Pi 有两层按键系统：<code>pi-tui</code> 内置的 TUI 按键 + Pi 自身的应用按键。用户可以通过配置文件自定义。</p>
 
-        <pre><code class="language-ts">export const KEYBINDINGS = {
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts">export const KEYBINDINGS = {
     ...TUI_KEYBINDINGS,
     "app.interrupt":        { defaultKeys: "escape", description: "Cancel or abort" },
     "app.clear":            { defaultKeys: "ctrl+c", description: "Clear editor" },
@@ -265,7 +265,7 @@ switch (event.type) {
         <!-- ================================================================ -->
         <p>编辑器支持多种补全源，通过 <code>CombinedAutocompleteProvider</span> 组合：</p>
 
-        <pre><code class="language-ts">private createBaseAutocompleteProvider(): AutocompleteProvider {
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts">private createBaseAutocompleteProvider(): AutocompleteProvider {
     // 1. 内置斜杠命令
     const slashCommands: SlashCommand[] = BUILTIN_SLASH_COMMANDS.map(cmd =&gt; ({
         name: cmd.name, description: cmd.description,
@@ -307,7 +307,7 @@ switch (event.type) {
         <!-- ================================================================ -->
         <p>Pi 支持 JSON 格式的主题文件，运行时可通过 <code>/theme</code> 切换：</p>
 
-        <pre><code class="language-ts">export class Theme {
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts">export class Theme {
     readonly name?: string;
     private fgColors: Map&lt;ThemeColor, string&gt;;
     private bgColors: Map&lt;ThemeBg, string&gt;;
@@ -323,7 +323,7 @@ switch (event.type) {
 
         <p>主题 JSON 结构示例：</p>
 
-        <pre><code class="language-ts">// 主题文件 (~/.pi/agent/themes/my-theme.json)
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts">// 主题文件 (~/.pi/agent/themes/my-theme.json)
 {
   "name": "My Theme",
   "fg": {
@@ -352,7 +352,7 @@ switch (event.type) {
         <!-- ================================================================ -->
         <p>当用户在一个没有 <code>.pi/</code> 目录的项目中首次运行 Pi 时，会触发信任确认：</p>
 
-        <pre><code class="language-ts">// trust-manager.ts
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts">// trust-manager.ts
 export class ProjectTrustStore {
     get(cwd: string): ProjectTrustDecision;  // boolean | null
     set(cwd: string, decision: ProjectTrustDecision): void;
@@ -379,7 +379,7 @@ private async checkProjectTrust(): Promise&lt;void&gt; {
         <!-- ================================================================ -->
         <p>按 <code>Ctrl+R</code> 打开会话选择器，支持搜索、过滤、排序：</p>
 
-        <pre><code class="language-ts">// SessionSelectorComponent 核心功能
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts">// SessionSelectorComponent 核心功能
 class SessionSelectorHeader implements Component {
     private scope: "current" | "all";     // 当前项目 vs 全部
     private sortMode: SortMode;            // 按时间 / 按名称

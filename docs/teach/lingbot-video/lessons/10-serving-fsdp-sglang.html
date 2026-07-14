@@ -41,7 +41,7 @@
 
     <h3>维度一：FSDP —— 切参数</h3>
     <p>Fully Sharded Data Parallel 把每个参数张量按 $N_{\text{fsdp}}$ 卡分片，每卡常驻只有一份分片：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ \text{每卡常驻参数} \approx \frac{P}{N_{\text{fsdp}}},\qquad
          \text{前向/反向时 all-gather 临时拼回完整层参数} $$
     </div>
@@ -49,18 +49,18 @@
 
     <h3>维度二：Context Parallel（Ulysses）—— 切序列</h3>
     <p>视频 DiT 的序列极长：$N_{\text{seq}}=T'\times H'\times W'$ 个 patch token（见 <a href="07-transformer-single-stream.html">Lesson 07</a>），单卡注意力算不动。Context Parallel 把序列切到 $N_{\text{cp}}$ 卡，每卡只算一段：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ \text{每卡序列长度} \approx \frac{N_{\text{seq}}}{N_{\text{cp}}} $$
     </div>
     <p>但注意力需要每个 query 看到<b>所有</b> key，序列切开后就必须通信。DeepSpeed-Ulysses 的做法是在注意力前后各做一次 all-to-all：把"按序列切"转成"按 head 切"，算完再转回来。其通信量为：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ \text{Ulysses all-to-all} \sim O\!\left(\frac{N_{\text{seq}}\cdot d}{N_{\text{cp}}}\right) $$
     </div>
     <p>相比朴素的 all-gather 全序列（$O(N_{\text{seq}}\cdot d)$），all-to-all 的通信量随 $N_{\text{cp}}$ 下降，这是 Ulysses 对长序列友好的关键。<code>runner.py</code> 在 913–960 行构造 context parallel mesh 并在 transformer 上挂 context parallel plan。</p>
 
     <h3>维度三：CFG Parallel —— 切 guidance 分支</h3>
     <p>Classifier-free guidance 每步要算 conditional 与 unconditional 两条前向。CFG Parallel 把这两条分到不同进程组并行算，$D_{\text{cfg}}\le 2$（分支只有两条，超过 2 无意义）。它与 CP 正交相乘构成进程网格：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ \text{world\_size} = D_{\text{cfg}}\times D_{\text{cp}},\qquad D_{\text{cfg}}\in\{1,2\} $$
     </div>
     <p>FSDP 则是<b>第三个正交轴</b>：它切的是参数，可以叠加在上面这张网格的每个进程上（每个进程只存参数分片）。所以完整的部署拓扑是"参数分片 × guidance 分支 × 序列切片"三重复合。</p>
@@ -83,7 +83,7 @@
     </div>
 
     <h3>与主流分布式方案的对比</h3>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <thead>
         <tr><th>方案</th><th>切分对象</th><th>主要通信</th><th>谱系</th></tr>
       </thead>

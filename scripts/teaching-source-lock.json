@@ -262,6 +262,246 @@
       "treeSha256": "35390fb3d9a0d184a035a2861b693eec7d779621f0d6aada7ff552e87e549365"
     },
     {
+      "id": "krea2",
+      "sourcePath": "kera2-course",
+      "outputPath": "teach/krea2",
+      "include": [
+        "assets/course.css",
+        "course-map.html",
+        "lessons/",
+        "reference/",
+        "sources/"
+      ],
+      "files": [
+        {
+          "path": "assets/course.css",
+          "bytes": 5622,
+          "sha256": "190b5945cc47e6e654946f926d67a1f64134cf507f018ac37283db594a09c86b"
+        },
+        {
+          "path": "course-map.html",
+          "bytes": 8647,
+          "sha256": "601ca18c1f04203f5d9b4c59ef24743b744a9c5fa5dd132cb7c6d61bac7c2fcd"
+        },
+        {
+          "path": "lessons/0001-repository-as-research-object.html",
+          "bytes": 7743,
+          "sha256": "8fe81dca306c111a8385e3e9190581b868a1785f16eed173b1b19016d836cb2b"
+        },
+        {
+          "path": "lessons/0002-tensors-and-shapes.html",
+          "bytes": 5029,
+          "sha256": "963fcaf66d9c9350006a64326421781784b1fddc765c5ef74628c86fc8ad374e"
+        },
+        {
+          "path": "lessons/0003-probability-and-noise.html",
+          "bytes": 4842,
+          "sha256": "c31178884c3743ed35075e2d3920caa5301baa05972439a7e6cb29a1d5af8241"
+        },
+        {
+          "path": "lessons/0004-neural-network-inference.html",
+          "bytes": 5233,
+          "sha256": "53d5f3a9315c33b28d258da8322504d7949499a02b72c9a45ae2ede9da28e6f0"
+        },
+        {
+          "path": "lessons/0005-tokenization-and-conditioning.html",
+          "bytes": 5367,
+          "sha256": "a524bbacda4d5d97de9c275f243247353073da8311cf7a146db82b7b6d5b0f86"
+        },
+        {
+          "path": "lessons/0006-attention-and-gqa.html",
+          "bytes": 5295,
+          "sha256": "978b325a90ce737a007f9cd56198bfcd66331923c8b3d6eae607fcc19642f0c5"
+        },
+        {
+          "path": "lessons/0007-rope-and-position.html",
+          "bytes": 4850,
+          "sha256": "4e96c21ba19f05e368baae4c4ac51cc173a61312ce463541b19f0bbb34a3653c"
+        },
+        {
+          "path": "lessons/0008-vae-latent-space.html",
+          "bytes": 4978,
+          "sha256": "4b61e126bb702e5d602b2cb4dc4c816298e9846d31e7ec070f15bff3e1fa317b"
+        },
+        {
+          "path": "lessons/0009-diffusion-and-flow-matching.html",
+          "bytes": 5077,
+          "sha256": "1e2e74604bae6c27f34c8dcc3461c38cd0ae87b103c6c2f3d2384287fbbf4052"
+        },
+        {
+          "path": "lessons/0010-cfg-and-sampling.html",
+          "bytes": 4742,
+          "sha256": "96b48e50f01ec39053a02de687d264fe5aacb2fdbf35709d63f999191ee7e804"
+        },
+        {
+          "path": "lessons/0011-dit-and-mmdit.html",
+          "bytes": 5078,
+          "sha256": "9da750f54c3dd2f169570c75373e16c8712fc446887d173615f92609295d462c"
+        },
+        {
+          "path": "lessons/0012-krea2-pipeline-trace.html",
+          "bytes": 5062,
+          "sha256": "830fd02d11b907614dd756609c57bd80c7f73f6236a43062fc1bd885de0c5d42"
+        },
+        {
+          "path": "lessons/0013-code-to-tensor-trace.html",
+          "bytes": 5013,
+          "sha256": "77da26c4306fa0004b69a7fef806af182154f1497730009ac6e43235417d5c1f"
+        },
+        {
+          "path": "lessons/0014-hardware-and-performance.html",
+          "bytes": 5334,
+          "sha256": "2ae1e6264150ce16abb3ba70c90c4f019fb3d89db693d85736e5ab5aeadaf08d"
+        },
+        {
+          "path": "lessons/0015-experiment-design.html",
+          "bytes": 4892,
+          "sha256": "699f37a6e1b5cf791d7252e44cdabc1ef2aa09ad1970451c68c0d27dbf4ab420"
+        },
+        {
+          "path": "lessons/0016-metrics-and-error-analysis.html",
+          "bytes": 5045,
+          "sha256": "a4f7452cdc2b430d599a820ada3d6df198b9107c8da9fc38eb0a1460d0c1de7f"
+        },
+        {
+          "path": "lessons/0017-reproducibility-protocol.html",
+          "bytes": 4784,
+          "sha256": "0eecc7e200903273c6d06f47740f7f81c2ecdbc02973a8586dda5c54b34f3af3"
+        },
+        {
+          "path": "lessons/0018-paper-reading.html",
+          "bytes": 4561,
+          "sha256": "60d28976ea9d946f60320e75c215a735368661439912992e252dc4b7ff7328bf"
+        },
+        {
+          "path": "lessons/0019-related-work.html",
+          "bytes": 4629,
+          "sha256": "f155ecb1c1eab10ec85d227700cf650de373245c26291e1ebf24f96da3a5609b"
+        },
+        {
+          "path": "lessons/0020-abstract-and-introduction.html",
+          "bytes": 4731,
+          "sha256": "33788330c57a948e24bbf9d6accc72be9802f649ca576ef67ad897396788a644"
+        },
+        {
+          "path": "lessons/0021-method-and-equations.html",
+          "bytes": 4852,
+          "sha256": "b2f332d6c010414ff358ab80443e5193d3e335b592bf62407bb32332ea436306"
+        },
+        {
+          "path": "lessons/0022-experiments-and-tables.html",
+          "bytes": 4959,
+          "sha256": "b94a899b1b20f6e9504580857e885b960799bc35525ae01b812bc4d26831ea18"
+        },
+        {
+          "path": "lessons/0023-figures-and-captions.html",
+          "bytes": 4905,
+          "sha256": "bab21ae1855bfcb13791326440223dc9a6a45a7e141c19206a1007ed7c2b46cd"
+        },
+        {
+          "path": "lessons/0024-limitations-and-negative-results.html",
+          "bytes": 4622,
+          "sha256": "8545605f6282a4ae0ed6dc01646c552d6e2758e3b72045f82c457e187c465468"
+        },
+        {
+          "path": "lessons/0025-reviewer-objections.html",
+          "bytes": 4656,
+          "sha256": "aa585f9dbd7ef9a9d0f05fe78fe46f5e14900598a5eaeb47cdb803874bda42b8"
+        },
+        {
+          "path": "lessons/0026-rebuttal-and-defense.html",
+          "bytes": 4195,
+          "sha256": "c7ce5fe34799d5980c4dd77dea3af7e5389c9db57484ef2349a64d1279daa158"
+        },
+        {
+          "path": "lessons/0027-capstone-paper.html",
+          "bytes": 4753,
+          "sha256": "327b4cb7e7f061357c1ac319078caf67ace7510fd6c2e187028d27590f8d336f"
+        },
+        {
+          "path": "lessons/0028-final-synthesis.html",
+          "bytes": 4581,
+          "sha256": "b3a8f47895c38bcf098c0060d1d6120f97c701d547fc12a50c907615c58b3063"
+        },
+        {
+          "path": "reference/experiment-record-template.html",
+          "bytes": 5882,
+          "sha256": "36501f760d835c2b3ce7a0efb9e3662fee22b8659d9107fe727f94d4c162b088"
+        },
+        {
+          "path": "reference/krea2-architecture.html",
+          "bytes": 5838,
+          "sha256": "44b2b50959dea3d8f2744b9700a713a4de220a1687c3fd2c263b1287a020f645"
+        },
+        {
+          "path": "reference/paper-writing-checklist.html",
+          "bytes": 5839,
+          "sha256": "b3652c6781955f8caa47ad6bb73a26c65ac4a6d0c60b5ff20c81d1645c36ba68"
+        },
+        {
+          "path": "reference/sampler-and-scheduler.html",
+          "bytes": 5941,
+          "sha256": "bc67eb0d5da6f58e351940118ce39242e272f7855a24bdb6becf74bba61c71a5"
+        },
+        {
+          "path": "reference/tensor-shape-atlas.html",
+          "bytes": 5462,
+          "sha256": "a257c9ace32ef2612715a9599cb2ec6fc2f16919512f4d65908ff8bcc4a66ff4"
+        },
+        {
+          "path": "reference/terminology.html",
+          "bytes": 6129,
+          "sha256": "725a18498326cbb69cb98481ca90a6a975def7f7682ea27129ac06b8a968e4a5"
+        },
+        {
+          "path": "sources/acm-mm-and-ccf-context.md",
+          "bytes": 1563,
+          "sha256": "8c51f81e4f4fb1e5c82177ec85c5a92f955a06e8f429aa9e237a95adcd67f377"
+        },
+        {
+          "path": "sources/diffusers-krea2-pipeline.md",
+          "bytes": 1687,
+          "sha256": "29198e1540248fa4b87bc8049a6f19ffe7a635d1e053a419e929c02715d323f1"
+        },
+        {
+          "path": "sources/flow-matching-papers.md",
+          "bytes": 1479,
+          "sha256": "3ce3b6a045a5959ac4a8c885ac7f4b50dd7c1425f3c734a2fef7b264e6182a69"
+        },
+        {
+          "path": "sources/krea2-official-sources.md",
+          "bytes": 1836,
+          "sha256": "1086d1151d35e42cfdb01fb2ebaa9d6dc2f6304814045d7bba1874df1ae980b3"
+        },
+        {
+          "path": "sources/local-codebase.md",
+          "bytes": 1742,
+          "sha256": "6e699b90832763e023aa314cb2cde1e3d1e909b81713a8704ad4e79966f6d5f4"
+        },
+        {
+          "path": "sources/qwen3vl-and-qwen-image.md",
+          "bytes": 1970,
+          "sha256": "0bc3bdd99b891cc9aab26913aa6b983be1e61c50a82fb3d9406ae6e18288dc90"
+        },
+        {
+          "path": "sources/reproducibility-and-evaluation.md",
+          "bytes": 1865,
+          "sha256": "1a62b500bb9251461a81a954b0eb5df1518b165f55ae67ef959cc133bc50029d"
+        },
+        {
+          "path": "sources/transformer-and-dit-papers.md",
+          "bytes": 1724,
+          "sha256": "53caa29ef1132fa2679ba88df4d63895f123d3f80b07361221ca22978654a377"
+        },
+        {
+          "path": "sources/vae-and-diffusion-papers.md",
+          "bytes": 1606,
+          "sha256": "5e06f0bfb6d31f8a28455bee0d2bd4d37bf22952ec10c1f5df5a6e9bc0d8be42"
+        }
+      ],
+      "treeSha256": "6a27d5b875eb09dfc46b919ac16708d65bf6c495bcc6220a7b84aeff801a21b9"
+    },
+    {
       "id": "lingbot-video",
       "sourcePath": "lingbot-video-course",
       "outputPath": "teach/lingbot-video",

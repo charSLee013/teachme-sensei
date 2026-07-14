@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from "node:os";
 import { join, relative, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
+import { createKrea2SourceFixture } from "./fixtures/krea2-source-fixture.mjs";
 
 const repoRoot = resolve(new URL("..", import.meta.url).pathname);
 const syncScript = resolve(repoRoot, "scripts/sync-teaching-packages.mjs");
@@ -21,6 +22,7 @@ function html(title) {
 
 function createFixture() {
   const root = mkdtempSync(join(tmpdir(), "teachme-sync-fixture-"));
+  createKrea2SourceFixture(join(root, "kera2-course"));
   write(root, "ideogram4/assets/ideogram_logo.svg", "<svg></svg>\n");
   write(root, "anima_learning/README.md", "# Anima fixture\n");
   write(root, "anima_learning/course-map.md", "# Anima map\n");

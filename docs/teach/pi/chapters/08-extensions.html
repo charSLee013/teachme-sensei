@@ -83,7 +83,7 @@
         <section>
             <h2>8.2 扩展发现与加载</h2>
             <h3>发现机制</h3>
-            <pre class="language-ts"><code>// core/extensions/loader.ts
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// core/extensions/loader.ts
 export async function discoverAndLoadExtensions(): Promise&lt;LoadExtensionsResult&gt; {
   const dirs = [
     getAgentDir() + "/extensions",    // ~/.pi/extensions/
@@ -102,7 +102,7 @@ export async function discoverAndLoadExtensions(): Promise&lt;LoadExtensionsResu
 }</code></pre>
 
             <h3>jiti 运行时 TypeScript 加载</h3>
-            <pre class="language-ts"><code>import { createJiti } from "jiti/static";
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>import { createJiti } from "jiti/static";
 
 const jiti = createJiti(import.meta.url, {
   // 别名映射：扩展可以用 @earendil-works/pi-xxx 导入
@@ -124,7 +124,7 @@ const extensionFactory = jiti(filePath).default;</code></pre>
             </div>
 
             <h3>VIRTUAL_MODULES — Bun 二进制模式的技巧</h3>
-            <pre class="language-ts"><code>const VIRTUAL_MODULES: Record&lt;string, unknown&gt; = {
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>const VIRTUAL_MODULES: Record&lt;string, unknown&gt; = {
   "typebox": _bundledTypebox,
   "@earendil-works/pi-agent-core": _bundledPiAgentCore,
   "@earendil-works/pi-tui": _bundledPiTui,
@@ -137,7 +137,7 @@ const extensionFactory = jiti(filePath).default;</code></pre>
 
         <section>
             <h2>8.3 ExtensionFactory 模式</h2>
-            <pre class="language-ts"><code>// 扩展工厂函数
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// 扩展工厂函数
 export type ExtensionFactory = (context: ExtensionContext) => Extension | Promise&lt;Extension&gt;;
 
 // Extension 定义
@@ -164,7 +164,7 @@ export interface Extension {
 }</code></pre>
 
             <h3>ExtensionContext — 工厂接收的上下文</h3>
-            <pre class="language-ts"><code>export interface ExtensionContext {
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>export interface ExtensionContext {
   // 扩展自身的配置
   config?: Record&lt;string, unknown&gt;;
 
@@ -181,7 +181,7 @@ export interface Extension {
             <h2>8.4 事件系统 — 核心！</h2>
             <p>Pi 的扩展系统围绕一个丰富的事件系统构建。以下是完整的事件流：</p>
 
-            <div class="diagram-container">
+            <div tabindex="0" aria-label="可横向滚动的课程图示" class="diagram-container">
                 <svg viewBox="0 0 700 400" class="diagram">
                     <!-- Timeline -->
                     <text x="50" y="30" fill="#888" font-size="11" font-weight="bold">Agent Session Event Flow</text>
@@ -245,7 +245,7 @@ export interface Extension {
             </div>
 
             <h3>事件分类</h3>
-            <table class="comparison-table">
+            <table tabindex="0" aria-label="可横向滚动的数据表" class="comparison-table">
                 <thead>
                     <tr>
                         <th>类别</th>
@@ -297,7 +297,7 @@ export interface Extension {
             <h2>8.5 示例扩展走读</h2>
 
             <h3>hello.ts — 最小扩展</h3>
-            <pre class="language-ts collapsible"><code>// examples/extensions/hello.ts
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts collapsible"><code>// examples/extensions/hello.ts
 import type { ExtensionFactory } from "@earendil-works/pi-coding-agent";
 
 const helloExtension: ExtensionFactory = (context) => {
@@ -318,7 +318,7 @@ const helloExtension: ExtensionFactory = (context) => {
 export default helloExtension;</code></pre>
 
             <h3>git-checkpoint.ts — 中等复杂度</h3>
-            <pre class="language-ts collapsible"><code>// examples/extensions/git-checkpoint.ts
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts collapsible"><code>// examples/extensions/git-checkpoint.ts
 // 自动在每次 turn 结束时创建 git checkpoint
 
 const gitCheckpointExtension: ExtensionFactory = (context) => {
@@ -346,7 +346,7 @@ const gitCheckpointExtension: ExtensionFactory = (context) => {
 
         <section>
             <h2>8.6 自定义工具注册</h2>
-            <pre class="language-ts"><code>import { defineTool, Type } from "@earendil-works/pi-coding-agent";
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>import { defineTool, Type } from "@earendil-works/pi-coding-agent";
 
 const myToolsExtension: ExtensionFactory = (context) => {
   return {
@@ -380,7 +380,7 @@ const myToolsExtension: ExtensionFactory = (context) => {
 
         <section>
             <h2>8.7 UI 扩展</h2>
-            <pre class="language-ts"><code>// 注册自定义 Widget（显示在编辑器上方）
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// 注册自定义 Widget（显示在编辑器上方）
 const statusExtension: ExtensionFactory = (context) => {
   return {
     name: "status-widget",
@@ -460,7 +460,7 @@ const statusExtension: ExtensionFactory = (context) => {
         <section class="callout exercise">
             <h2>8.9 练习</h2>
             <p>写一个自定义扩展，注册一个 <code>/hello</code> 命令：</p>
-            <pre class="language-ts"><code>// ~/.pi/extensions/hello.ts
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// ~/.pi/extensions/hello.ts
 import type { ExtensionFactory } from "@earendil-works/pi-coding-agent";
 
 const factory: ExtensionFactory = (ctx) => ({

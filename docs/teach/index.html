@@ -59,13 +59,13 @@
             <span class="lang-en">Catalog</span>
           </div>
           <h2 class="section-title">
-            <span class="lang-zh">这里有五类不同的学习对象。</span>
-            <span class="lang-en">Five different learning objects live here.</span>
+            <span class="lang-zh">这里有六类不同的学习对象。</span>
+            <span class="lang-en">Six different learning objects live here.</span>
           </h2>
         </div>
       </div>
-      <p class="section-copy lang-zh">Pi 是面向工程贡献者的代码仓库课程；Ideogram 4 是面向技术读者的推理系统课程；Anima 是面向研究复现与论文准备的模型方法课程；FLUX.2 是面向 repo 到训练迁移决策的研究课程；LingBot-Video 是面向视频生成推理系统和论文机制的 repo + deep-paper 课程。五者服务不同学习任务，彼此独立。</p>
-      <p class="section-copy lang-en">Pi is a repo course for engineering contributors. Ideogram 4 is a technical course for an inference system. Anima is a model-method course for research reproduction and paper preparation. FLUX.2 is a research course for moving from repo understanding toward training decisions. LingBot-Video is a repo and deep-paper course for a video-generation inference system. They are independent course packages.</p>
+      <p class="section-copy lang-zh">Pi 面向工程贡献；Ideogram 4 面向推理系统；Anima 面向研究复现与论文准备；FLUX.2 面向 repo 到训练迁移决策；Krea 2 面向多模态生成代码、实验方法与 ACM MM 写作；LingBot-Video 面向视频生成推理系统和论文机制。六门课程各自服务明确的学习任务。</p>
+      <p class="section-copy lang-en">Pi covers engineering contribution. Ideogram 4 covers an inference system. Anima covers research reproduction and paper preparation. FLUX.2 covers repo-to-training decisions. Krea 2 connects multimodal-generation code, experimental method, and ACM MM writing. LingBot-Video covers a video-generation inference system and paper mechanisms. Each course serves a distinct learning task.</p>
 
       <div class="courses" aria-label="Course catalog">
         <article class="course-panel pi">
@@ -235,6 +235,48 @@
           </div>
         </article>
 
+        <article class="course-panel krea2">
+          <div class="panel-top">
+            <div class="badges">
+              <span class="badge krea2">Research + Writing Course</span>
+              <span class="badge ok"><span class="lang-zh">课程页</span><span class="lang-en">Course pages</span></span>
+            </div>
+          </div>
+
+          <h2 class="course-title">Krea 2</h2>
+          <p class="course-summary lang-zh">从多模态生成推理代码出发，沿着张量、VAE、flow matching、MMDiT、采样、实验协议和 ACM MM 论文写作推进的研究型长课。</p>
+          <p class="course-summary lang-en">A long-form research course that moves from multimodal inference code through tensors, VAE, flow matching, MMDiT, sampling, experimental protocol, and ACM MM paper writing.</p>
+
+          <div class="route-tags">
+            <span class="route-tag">28 lessons</span>
+            <span class="route-tag">7 references</span>
+            <span class="route-tag">code to paper</span>
+          </div>
+
+          <div class="facts">
+            <div class="fact">
+              <span class="fact-label">Audience</span>
+              <strong class="lang-zh">模型工程师与研究写作者</strong>
+              <strong class="lang-en">Model engineers and research writers</strong>
+              <p class="lang-zh">适合具备基础 Python，希望建立生成模型心智模型、可复现实验和论文证据链的读者。</p>
+              <p class="lang-en">For readers with basic Python who want a generative-model mental model, reproducible experiments, and a paper evidence chain.</p>
+            </div>
+            <div class="fact">
+              <span class="fact-label">Best First Step</span>
+              <strong class="lang-zh">课程入口或 28 课地图</strong>
+              <strong class="lang-en">Course home or 28-lesson map</strong>
+              <p class="lang-zh">先从入口确认四个学习阶段，再按课程地图完成每课的检索练习与下一步行动。</p>
+              <p class="lang-en">Use the home page to identify the four stages, then follow the map through each retrieval exercise and next action.</p>
+            </div>
+          </div>
+
+          <div class="cta-row">
+            <a class="button primary krea2" href="krea2/"><span class="lang-zh">开始课程</span><span class="lang-en">Start Course</span></a>
+            <a class="button" href="krea2/course-map.html"><span class="lang-zh">课程地图</span><span class="lang-en">Course Map</span></a>
+            <a class="button" href="krea2/reference/evidence-and-sources.html"><span class="lang-zh">证据索引</span><span class="lang-en">Evidence Index</span></a>
+          </div>
+        </article>
+
         <article class="course-panel lingbot">
           <div class="panel-top">
             <div class="badges">
@@ -293,12 +335,13 @@
         </div>
       </div>
 
-      <div class="compare five" aria-label="Course comparison">
+      <div class="compare six" aria-label="Course comparison">
         <div class="row-label"></div>
         <div class="head">Pi Agent Harness</div>
         <div class="head">Ideogram 4</div>
         <div class="head">Anima</div>
         <div class="head">FLUX.2</div>
+        <div class="head">Krea 2</div>
         <div class="head">LingBot-Video</div>
 
         <div class="row-label"><span class="lang-zh">类型</span><span class="lang-en">Type</span></div>
@@ -306,6 +349,7 @@
         <div class="cell"><span class="lang-zh">面向推理仓库的技术课程。</span><span class="lang-en">Technical course for an inference repository.</span></div>
         <div class="cell"><span class="lang-zh">面向研究复现的模型方法课程。</span><span class="lang-en">Model-method course for research reproduction.</span></div>
         <div class="cell"><span class="lang-zh">面向 repo 到训练迁移的研究课程。</span><span class="lang-en">Research course for repo-to-training migration.</span></div>
+        <div class="cell"><span class="lang-zh">面向生成模型实验与论文写作的研究课程。</span><span class="lang-en">Research course for generative-model experiments and paper writing.</span></div>
         <div class="cell"><span class="lang-zh">面向视频推理系统和论文机制的 repo + deep-paper 课程。</span><span class="lang-en">Repo and deep-paper course for a video inference system.</span></div>
 
         <div class="row-label"><span class="lang-zh">学习内容</span><span class="lang-en">What you learn</span></div>
@@ -313,6 +357,7 @@
         <div class="cell"><span class="lang-zh">模型接口、CLI 契约、token packing、采样、架构、JSON caption protocol 与公开训练信息边界。</span><span class="lang-en">Model contract, CLI contract, token packing, sampling, architecture, JSON caption protocol, and public training-information boundaries.</span></div>
         <div class="cell"><span class="lang-zh">公开架构事实、训练边界、prompting 规则、动漫评估方法和论文准备路径。</span><span class="lang-en">Public architecture facts, training boundaries, prompting rules, anime evaluation methods, and paper-prep path.</span></div>
         <div class="cell"><span class="lang-zh">仓库身份、latent contract、模型家族边界、训练缺口与研究起点选择。</span><span class="lang-en">Repository identity, latent contract, model-family boundaries, training gaps, and research entry selection.</span></div>
+        <div class="cell"><span class="lang-zh">张量、条件编码、VAE、flow matching、MMDiT、采样、实验设计与 ACM MM 写作。</span><span class="lang-en">Tensors, conditioning, VAE, flow matching, MMDiT, sampling, experiment design, and ACM MM writing.</span></div>
         <div class="cell"><span class="lang-zh">T2I/T2V/TI2V、prompt rewriter、Pipeline、Transformer、MoE、Refiner、FSDP 与 SGLang。</span><span class="lang-en">T2I/T2V/TI2V, prompt rewriter, pipeline, Transformer, MoE, refiner, FSDP, and SGLang.</span></div>
 
         <div class="row-label"><span class="lang-zh">结构入口</span><span class="lang-en">Structure view</span></div>
@@ -320,13 +365,14 @@
         <div class="cell"><span class="lang-zh">模块索引与阅读顺序。</span><span class="lang-en">Module index and reading order.</span></div>
         <div class="cell"><span class="lang-zh">课程地图与方法论参考。</span><span class="lang-en">Course map and methodology reference.</span></div>
         <div class="cell"><span class="lang-zh">课程地图与研究决策树。</span><span class="lang-en">Course map and research decision tree.</span></div>
+        <div class="cell"><span class="lang-zh">28 课地图、架构图谱与证据索引。</span><span class="lang-en">28-lesson map, architecture atlas, and evidence index.</span></div>
         <div class="cell"><span class="lang-zh">课程地图、文件地图与证据边界。</span><span class="lang-en">Course map, file map, and evidence boundaries.</span></div>
       </div>
     </section>
 
     <section class="footer-note">
-      <p class="lang-zh">发布路径保持为 <code>/teach/pi/</code>、<code>/teach/ideogram4/</code>、<code>/teach/anima/</code>、<code>/teach/flux2/</code> 和 <code>/teach/lingbot-video/</code>。本页只链接公开课程材料，课程页内提供阅读边界与参考入口。</p>
-      <p class="lang-en">Published paths stay stable at <code>/teach/pi/</code>, <code>/teach/ideogram4/</code>, <code>/teach/anima/</code>, <code>/teach/flux2/</code>, and <code>/teach/lingbot-video/</code>. This page links the public course materials and their learner-facing reading boundaries.</p>
+      <p class="lang-zh">稳定发布路径包括 <code>/teach/pi/</code>、<code>/teach/ideogram4/</code>、<code>/teach/anima/</code>、<code>/teach/flux2/</code>、<code>/teach/krea2/</code> 和 <code>/teach/lingbot-video/</code>。本页链接公开课程材料及其阅读边界与参考入口。</p>
+      <p class="lang-en">Stable published paths include <code>/teach/pi/</code>, <code>/teach/ideogram4/</code>, <code>/teach/anima/</code>, <code>/teach/flux2/</code>, <code>/teach/krea2/</code>, and <code>/teach/lingbot-video/</code>. This page links public course material with its reading boundaries and references.</p>
     </section>
   </main>
   <script>

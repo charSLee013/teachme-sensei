@@ -1,0 +1,36 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：Token、embedding 与条件输入"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>Token、embedding 与条件输入</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Foundation</span></div><a href="0004-neural-network-inference.html">上一课</a><a href="0006-attention-and-gqa.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 05 / Foundation</p><h1>Token、embedding 与条件输入</h1><p class="lede">模型不直接接收“一个自然语言句子”。它接收 token id，再把 id 映射到能参与矩阵运算的向量，最后形成多层 hidden states。</p><div class="meta"><span>前置：推理函数</span><span>产物：prompt contract</span><span>实验：真实 tokenizer + tiny model</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>tokenizer 决定文字如何切分，embedding 决定 token 如何进入向量空间，hidden state 记录经过多层上下文混合后的表示，mask 决定哪些位置参与注意力。</p></section>
+<section><h2>直觉：把句子变成带位置的积木</h2><p>“a fox walking in the snow” 对人是一个整体，对模型先是一串整数。特殊 token 负责消息边界，padding 让 batch 中不同长度对齐，assistant suffix 让模板保持训练时的对话布局。数字本身没有语义，语义来自 embedding 参数和层间变换。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">raw prompt
+  -&gt; chat template prefix + prompt + padded region + assistant suffix
+  -&gt; token ids: [151644, 8948, ..., 151645, ...]
+  -&gt; embeddings: (B, L, 2560)
+  -&gt; selected hidden states: (B, L, 12, 2560)
+  -&gt; valid mask: (B, L)</div></section>
+<section><h2>公式：embedding 与层选择</h2><p>给定词表大小 <code>V</code> 和 hidden size <code>d</code>，embedding 矩阵是 <code>E ∈ R^{V×d}</code>。token id <code>i</code> 取出 <code>E_i</code>。经过第 <code>l</code> 层得到 <code>H^{(l)} ∈ R^{B×L×d}</code>。Krea 2 不只使用最后一层，而是选择：</p><p><code>C = stack(H^{(2)}, H^{(5)}, ..., H^{(35)}, axis=2)</code></p><p>所以条件张量是 <code>(B,L,12,d)</code>；之后 MMDiT 的 text fusion 将 layer axis 投影成一个文本向量。</p></section>
+<section><h2>代码：模板和固定长度</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code># encoder.py
+text = [self.prompt_template_encode_prefix + item for item in text]
+inputs = self.tokenizer(
+    text, truncation=True, padding="max_length",
+    max_length=self.max_length + prefix_idx - suffix_start_idx,
+    return_tensors="pt",
+)
+suffix_inputs = self.processor(text=suffix_text, return_tensors="pt")
+input_ids = torch.cat([inputs["input_ids"], suffix_ids], dim=1)
+mask = torch.cat([inputs["attention_mask"].bool(), suffix_mask], dim=1)
+</code></pre><p>当前 Qwen tokenizer 实测 prefix 为 34 token、suffix 为 5 token，因此截掉 prefix 后得到固定长度 512。这个常量不是装饰：一旦 token 数改变，hidden-state 和 MMDiT 预期就会错位。</p></section>
+<section><h2>实验：区分 padding 与内容 token</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>tokens = tokenizer(["red square", "a long prompt ..."],
+                   padding="max_length", max_length=16,
+                   return_tensors="pt")
+print(tokens.input_ids.shape)
+print(tokens.attention_mask)
+
+# 练习：比较短 prompt 的 hidden states 和 mask 最后几位
+</code></pre><p>实验要回答两个问题：短 prompt 的 padding 是否被 mask 掉？suffix 是否仍然处在模型期望的位置？不要只打印 token id，要同时打印 mask 和有效 token 数。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/encoder.py#L12-L76">encoder.py</a>；官方 <a href="https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct/blob/main/config.json">Qwen3-VL config</a>。</p><p><strong>Teaching use：</strong>把 tokenizer 行为、模板布局和多层 hidden-state 接口联系起来。</p><p><strong>Scope：</strong>本课只处理文本输入；Qwen3-VL 的图像/视频输入不是 Krea 2 当前最小推理路径。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么 padding 位置仍会出现在 hidden-state 张量里？</li><li>Krea 2 选择多层 hidden states 会带来哪些信息？</li><li>prefix 被切掉后，为什么 suffix 不能随意追加在另一处？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>batch 需要固定 L，所以 padding 被计算出来但由 mask 标记为无效。多层选择把不同抽象深度的语言特征交给 text fusion，projector 学习如何组合它们。suffix 是训练布局的一部分，改变它的位置会改变有效位置、因果关系和位置编码，不能只把字符串内容看作等价。</p><p><strong>常见误解：</strong>mask 不是删除 tensor；它是在注意力计算中限制可见性。</p></details></section>
+<section class="next"><strong>Next action：</strong>用一张表记录每个 token axis 的语义，为下一课的 attention 做准备。</section></main><footer class="foot"><a href="../reference/tensor-shape-atlas.html">参考：Tensor shape atlas</a></footer>
+</body></html>

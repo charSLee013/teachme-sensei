@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：VAE 与 latent space"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>VAE 与 latent space</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Mechanism</span></div><a href="0007-rope-and-position.html">上一课</a><a href="0009-diffusion-and-flow-matching.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 08 / Mechanism</p><h1>VAE 与 latent space</h1><p class="lede">Krea 2 的 MMDiT 不在 RGB 像素上工作，而在一个经过 VAE 压缩和归一化的 16 通道 latent 空间中工作。</p><div class="meta"><span>前置：shape + RoPE</span><span>产物：pixel/latent 对照</span><span>实验：decode contract</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>VAE 是表示转换器，不是 MMDiT。采样出来的 latent 在进入 decoder 前必须使用与训练一致的 mean/std 反归一化，否则“模型输出正常”也可能得到错误图像。</p></section>
+<section><h2>直觉：在更小的画布上作画</h2><p>直接在 1024x1024 像素上建模非常昂贵。VAE 把图像编码到更小的 latent 网格，让主干网络在压缩后的空间建模，再由 decoder 还原细节。压缩带来效率，也带来信息损失和 decode 的资源成本。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">image pixels                 latent representation
+(B, 3, 1024, 1024)  --VAE--&gt;  (B, 16, 128, 128)
+                                  |
+                         MMDiT operates here
+                                  |
+(B, 3, 1024, 1024)  &lt;--decode--  (B, 16, 128, 128)</div></section>
+<section><h2>公式：逐通道标准化</h2><p>采样网络使用的 latent 通常是归一化后的 <code>z</code>。解码前，代码执行：</p><p><code>z_decode = z * latent_std + latent_mean</code></p><p>其中 mean/std 都是 16 个通道的统计量，reshape 后为 <code>(1,16,1,1,1)</code>，与视频式 VAE 的临时时间维兼容。之后 decoder 输出约在 <code>[-1,1]</code>，再映射到像素区间 <code>[0,1]</code>。</p></section>
+<section><h2>代码：显式添加时间轴</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code># autoencoder.py
+def decode(self, x):
+    x = rearrange(x, "b c h w -&gt; b c 1 h w")
+    x = (x * self.latents_std) + self.latents_mean
+    return rearrange(self.ae.decode(x).sample,
+                     "b c 1 h w -&gt; b c h w")
+</code></pre><p><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/autoencoder.py#L16-L22">QwenAutoencoder.decode</a> 是一个小接口，但隐藏了三个重要约束：latent channel=16、时间帧=1、mean/std 的 channel order 必须一致。</p></section>
+<section><h2>实验：归一化错误的可视化</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>z = torch.randn(1, 16, 8, 8)
+mean = torch.zeros(16).view(1, 16, 1, 1)
+std = torch.ones(16).view(1, 16, 1, 1) * 2
+
+correct = z * std + mean
+wrong = z + mean
+print(correct.std().item(), wrong.std().item())
+</code></pre><p>真实 VAE 实验中，分别使用正确和错误的 std decode 同一 latent；记录颜色、对比度、饱和度和结构变化。不要把视觉差异直接叫“模型质量”，先把它归因到 decode contract。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/autoencoder.py#L6-L22">autoencoder.py</a>；官方 <a href="https://github.com/huggingface/diffusers/blob/main/src/diffusers/models/autoencoders/autoencoder_kl_qwenimage.py">AutoencoderKLQwenImage</a>。</p><p><strong>Teaching use：</strong>解释 latent channels、spatial compression、normalization 和 decode。</p><p><strong>Scope：</strong>本课讨论当前 Krea 2 的 decode 路径；不把 VAE 训练、KL loss 和所有视频帧缓存实现冒充成仓库当前功能。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么 MMDiT 使用 16 个 latent channels，RGB 图像则使用 3 个通道？</li><li>mean/std 为什么要按 channel 对齐？</li><li>如果 VAE decode 输出 shape 多一个时间维，为什么 wrapper 要显式 squeeze/rearrange？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>MMDiT 操作 VAE latent，16 是 latent channel 数，不是像素色彩通道。mean/std 的第 i 项只应作用于第 i 个 latent channel；错位会改变分布。Qwen VAE 是 3D/视频兼容实现，单张图仍以 <code>t=1</code> 处理，wrapper 把它转换回二维图像接口。</p><p><strong>常见误解：</strong>latent channel 不是“16 种颜色”，它们是学习到的表示维度。</p></details></section>
+<section class="next"><strong>Next action：</strong>打开 <a href="0009-diffusion-and-flow-matching.html">第 9 课</a>，把“latent 是画布”连接到“时间路径”。</section></main><footer class="foot"><a href="../reference/evidence-and-sources.html#vae-and-diffusion-papers">来源：VAE 与扩散论文</a></footer>
+</body></html>

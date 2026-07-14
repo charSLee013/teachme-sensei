@@ -1,0 +1,40 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：神经网络从训练到推理"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>神经网络从训练到推理</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body>
+<header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Foundation</span></div><a href="0003-probability-and-noise.html">上一课</a><a href="0005-tokenization-and-conditioning.html">下一课</a></header>
+<main>
+<section class="hero"><p class="kicker">Lesson 04 / Foundation</p><h1>神经网络从训练到推理</h1><p class="lede">Krea 2 仓库不包含训练循环，但你必须理解训练留下了什么，推理时又做了什么，才能读懂 checkpoint 和模型输出。</p><div class="meta"><span>前置：随机性</span><span>产物：train/inference 对照表</span><span>实验：tiny network</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>训练是在更新参数以减少损失；推理是在固定参数下执行函数。推理代码的每一层都应能回答：参数来自哪里？输入是什么？输出如何被下一步消费？</p></section>
+<section><h2>直觉：学习规则与使用规则</h2><p>学生做题和考试可以类比训练与推理。训练阶段反复看题、比较答案、修改解题规则；考试阶段规则被冻结，只把新题输入规则。Krea 2 的 safetensors 是冻结后的规则，不是“已经生成的一张图片”。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">training:  data -&gt; model -&gt; loss -&gt; backward -&gt; update parameters
+inference: prompt/noise -&gt; frozen model -&gt; prediction -&gt; next state
+
+training changes theta; inference changes x</div></section>
+<section><h2>公式：参数固定的函数</h2><p>训练阶段可抽象为：</p><p><code>θ_{k+1} = θ_k - η ∇_θ L(f_θ(x), y)</code></p><p>推理阶段只执行：</p><p><code>y = f_θ(x, c, t)</code></p><p>在 Krea 2 中，<code>θ</code> 是 MMDiT checkpoint 参数，<code>x</code> 是当前 image token，<code>c</code> 是文本 hidden states，<code>t</code> 是当前时间。采样循环改变 <code>x</code>，采样期间保持 <code>θ</code>。</p></section>
+<section><h2>代码：冻结模型</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code># inference.py
+mmdit = mmdit.to(device=device, dtype=dtype).eval().requires_grad_(False)
+ae = ae.to(device=device, dtype=dtype).eval().requires_grad_(False)
+encoder = encoder.to(device=device, dtype=dtype).eval().requires_grad_(False)
+
+# sampling.py
+@torch.no_grad()
+def sample(...):
+    ...
+</code></pre><p><code>eval()</code> 和 <code>requires_grad_(False)</code> 分别影响模块行为与参数梯度；<code>@torch.no_grad()</code> 避免构建训练用的 autograd graph。它们不是“让模型更聪明”的开关。</p></section>
+<section><h2>实验：tiny network 的训练/推理对照</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>model = torch.nn.Linear(2, 1)
+before = model.weight.detach().clone()
+prediction = model(torch.tensor([[1., 2.]]))
+assert torch.equal(before, model.weight)
+
+# 只有 optimizer.step() 才会改变参数
+loss = (prediction - 3).square().mean()
+loss.backward()
+torch.optim.SGD(model.parameters(), lr=.1).step()
+assert not torch.equal(before, model.weight)
+</code></pre><p>这个实验建立“推理不更新参数”的可观察证据。之后看到 <code>load_state_dict(..., strict=True)</code>，你就知道它是在检查固定规则是否完整装配。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/inference.py#L49-L59">inference.py 的 meta/load/move</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L56-L77">sampling.sample</a>。</p><p><strong>Teaching use：</strong>区分 checkpoint、模型状态、采样状态和梯度状态。</p><p><strong>Scope：</strong>本课不重建 Krea 2 的训练数据和训练损失；这些是后续研究问题的背景，而非当前仓库事实。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么当前 sampler 更新的是 <code>img</code> ，同时保持模型参数固定？</li><li><code>eval()</code>、<code>requires_grad_(False)</code>、<code>no_grad()</code> 分别解决什么问题？</li><li>如果 checkpoint 少一个 key，为什么应该尽早失败？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>采样求解的是固定 velocity field 下的状态轨迹，参数是 checkpoint 中冻结的 <code>theta</code>。<code>eval()</code> 切换 dropout/batchnorm 等模块行为，requires_grad 关闭参数梯度，no_grad 关闭计算图记录。缺 key 会让某些层使用未加载或不存在的参数，后续输出失去可解释性，strict load 能把问题定位在装配阶段。</p><p><strong>常见误解：</strong>仓库可以只公开推理代码；外部 checkpoint 仍然承载训练阶段得到的参数。</p></details></section>
+<section class="next"><strong>Next action：</strong>打开 <a href="0005-tokenization-and-conditioning.html">第 5 课</a>，把“文本”拆成 token、embedding、hidden state 和 mask。</section>
+</main><footer class="foot"><a href="../reference/evidence-and-sources.html#local-codebase">证据：local-codebase.md</a></footer>
+
+</body></html>

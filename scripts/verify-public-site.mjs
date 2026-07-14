@@ -19,6 +19,8 @@ const EXPECTED_ENTRY_ROUTES = [
   { route: "teach/flux2/index.html", course: "flux2", kind: "course" },
   { route: "teach/ideogram4/index.html", course: "ideogram4", kind: "course" },
   { route: "teach/index.html", course: "catalog", kind: "catalog" },
+  { route: "teach/krea2/course-map.html", course: "krea2", kind: "map" },
+  { route: "teach/krea2/index.html", course: "krea2", kind: "course" },
   { route: "teach/lingbot-video/index.html", course: "lingbot-video", kind: "course" },
   { route: "teach/pi/course-map.html", course: "pi", kind: "map" },
   { route: "teach/pi/index.html", course: "pi", kind: "course" },
@@ -29,6 +31,7 @@ const EXPECTED_ASSETS = [
   "teach/home.css",
   "teach/ideogram4/paper.css",
   "teach/ideogram4/paper.js",
+  "teach/krea2/assets/course.css",
   "teach/lingbot-video/assets/course-runtime.js",
   "teach/lingbot-video/assets/course.css",
   "teach/lingbot-video/assets/ogl-bridge.js",
@@ -47,11 +50,19 @@ const EXPECTED_SYNC_OWNED = [
   "teach/assets/ideogram_logo.svg",
   "teach/flux2/",
   "teach/ideogram4/",
+  "teach/krea2/",
   "teach/lingbot-video/",
   "teach/pi/",
 ];
 
 const EXPECTED_INTERACTIONS = [
+  {
+    id: "krea2-details",
+    route: "teach/krea2/lessons/0001-repository-as-research-object.html",
+    selector: "details",
+    action: "click",
+    expected: "details open state is true",
+  },
   {
     id: "lingbot-next",
     route: "teach/lingbot-video/index.html",
@@ -78,16 +89,34 @@ const EXPECTED_INTERACTIONS = [
 const EXPECTED_DEPENDENCY_HOSTS = {
   runtime: ["cdn.jsdelivr.net", "fonts.googleapis.com", "fonts.gstatic.com"],
   reference: [
+    "arxiv.org",
     "bfl.ai",
     "discord.com",
     "github.com",
     "huggingface.co",
     "keepachangelog.com",
+    "neurips.cc",
     "pi.dev",
     "radius.pi.dev",
     "rfc.earendil.com",
+    "www.acm.org",
+    "www.acmmm.org",
+    "www.ccf.org.cn",
+    "www.krea.ai",
   ],
 };
+
+const KREA_FORBIDDEN_COPY = [
+  /\bnot\s+[^.!?]{0,160}\s+but\b/i,
+  /\bnot part of\b/i,
+  /\b(?:does|do) not require\b/i,
+  /\bnot treated as\b/i,
+  /不是[^。！？]{0,100}而是/,
+  /并非[^。！？]{0,100}而是/,
+  /不只是[^。！？]{0,100}而是/,
+  /不等于/,
+  /而不是/,
+];
 
 const SUPPORT_PATTERNS = [
   /source matrix/i,
@@ -189,6 +218,11 @@ function localReference(value) {
   return !/^(?:[a-z][a-z0-9+.-]*:)?\/\//i.test(value) && !/^(?:mailto:|tel:|data:|javascript:)/i.test(value);
 }
 
+function hasScriptProtocol(value) {
+  const compact = value.replace(/[\u0000-\u0020\u007f-\u009f]/g, "").toLowerCase();
+  return compact.startsWith("javascript:") || compact.startsWith("vbscript:");
+}
+
 function assertLocalLinks() {
   const routes = htmlRoutes();
   const routeSet = new Set(routes);
@@ -237,11 +271,28 @@ function assertPublicContent() {
     }
     if (/issue\s*#1234/i.test(html)) errors.push(`${route}: fabricated issue number`);
     if (/CVE-2024-xxxxx/i.test(html)) errors.push(`${route}: fabricated CVE`);
+    if (route.startsWith("teach/krea2/")) {
+      for (const pattern of KREA_FORBIDDEN_COPY) {
+        if (pattern.test(text)) errors.push(`${route}: forbidden negative-contrast copy ${pattern}`);
+      }
+      if (/<script\b/i.test(html)) errors.push(`${route}: Krea2 pages must remain script-free`);
+      if (/\[[^\]]+\]\([^)]+\)/.test(text)) errors.push(`${route}: raw Markdown link syntax is visible`);
+    }
     for (const element of allElements(document)) {
       const a = attrs(element);
       for (const [name, value] of Object.entries(a)) {
         if (/^(?:href|src|action|data-[\w-]+)$/i.test(name) && /(?:artifacts|proof|showcases)\//i.test(value)) {
           errors.push(`${route}: forbidden support path in ${name}=${value}`);
+        }
+        if (route.startsWith("teach/krea2/") && name === "href") {
+          if (/(?:MISSION|review)\.md|(?:^|\/)sources\//i.test(value)) errors.push(`${route}: Krea2 governance path in href=${value}`);
+          if (!/^https?:/i.test(value) && /\.md(?:#|$)/i.test(value)) errors.push(`${route}: Krea2 local Markdown href=${value}`);
+        }
+        if (route.startsWith("teach/krea2/") && (name.startsWith("on") || name === "srcdoc")) {
+          errors.push(`${route}: Krea2 active content attribute ${name}`);
+        }
+        if (route.startsWith("teach/krea2/") && hasScriptProtocol(value)) {
+          errors.push(`${route}: Krea2 script URL protocol in ${name}`);
         }
       }
     }
@@ -258,7 +309,13 @@ function headElements(document, tagName) {
 function assertStructure() {
   const errors = [];
   for (const route of htmlRoutes()) {
-    const document = parseHtml(route);
+    const source = readFileSync(resolve(docsRoot, route), "utf8");
+    if (/^\s*```/m.test(source)) errors.push(`${route}: raw Markdown fence in HTML`);
+    const parseErrors = [];
+    const document = parse(source, { onParseError: (error) => parseErrors.push(error) });
+    for (const error of parseErrors) {
+      errors.push(`${route}:${error.startLine}:${error.startCol}: HTML parse error ${error.code}`);
+    }
     const elements = allElements(document);
     const html = elements.find((node) => node.tagName === "html");
     const main = elements.filter((node) => node.tagName === "main");
@@ -378,6 +435,7 @@ function assertDependencies() {
   if (JSON.stringify(manifest.allowedReferenceHosts) !== JSON.stringify(EXPECTED_DEPENDENCY_HOSTS.reference)) fail("reference host allowlist mismatch");
   const seen = new Set();
   const declaredUrls = new Set();
+  const declaredPrefixes = [];
   for (const dependency of manifest.dependencies) {
     if (seen.has(dependency.id)) fail(`duplicate dependency id: ${dependency.id}`);
     seen.add(dependency.id);
@@ -388,6 +446,13 @@ function assertDependencies() {
       declaredUrls.add(raw);
       const allowlist = dependency.type === "runtime" ? manifest.allowedRuntimeHosts : manifest.allowedReferenceHosts;
       if (!allowlist.includes(url.hostname)) fail(`dependency host is not allowlisted: ${raw}`);
+    }
+    for (const raw of dependency.urlPrefixes ?? []) {
+      if (dependency.type !== "reference") fail(`runtime dependency cannot use urlPrefixes: ${dependency.id}`);
+      const url = new URL(raw);
+      if (url.protocol !== "https:") fail(`dependency prefix must use HTTPS: ${raw}`);
+      if (!manifest.allowedReferenceHosts.includes(url.hostname)) fail(`dependency prefix host is not allowlisted: ${raw}`);
+      declaredPrefixes.push(raw);
     }
   }
   const runtimeUrls = new Set();
@@ -423,7 +488,9 @@ function assertDependencies() {
   for (const raw of referenceUrls) {
     const url = new URL(raw);
     if (!manifest.allowedReferenceHosts.includes(url.hostname)) errors.push(`reference URL host is not allowlisted: ${raw}`);
-    if (!declaredUrls.has(raw)) errors.push(`reference URL is not declared: ${raw}`);
+    if (!declaredUrls.has(raw) && !declaredPrefixes.some((prefix) => raw.startsWith(prefix))) {
+      errors.push(`reference URL is not declared: ${raw}`);
+    }
   }
   if (errors.length) fail(errors.join("\n"));
   console.log("[OK] external dependency policy");
@@ -435,9 +502,22 @@ function assertA11yStatic() {
     const document = parseHtml(route);
     for (const element of allElements(document)) {
       const a = attrs(element);
+      const classes = (a.class ?? "").split(/\s+/).filter(Boolean);
       if (element.tagName === "img" && !Object.hasOwn(a, "alt")) errors.push(`${route}: img missing alt`);
       if (element.tagName === "button" && !a.type) errors.push(`${route}: button missing type`);
       if (element.tagName === "input" && !a["aria-label"] && !a.id) errors.push(`${route}: input needs label or id`);
+      const kreaScrollRegion = route.startsWith("teach/krea2/")
+        && (element.tagName === "pre" || classes.includes("diagram") || classes.includes("table-wrap"));
+      const lingbotScrollRegion = route.startsWith("teach/lingbot-video/")
+        && (element.tagName === "pre" || element.tagName === "table" || classes.includes("math-block"));
+      const piScrollRegion = route.startsWith("teach/pi/chapters/")
+        && (element.tagName === "pre" || element.tagName === "table" || classes.includes("diagram-container"));
+      const ideogramScrollRegion = route.startsWith("teach/ideogram4/")
+        && (element.tagName === "pre" || element.tagName === "table");
+      if (kreaScrollRegion || lingbotScrollRegion || piScrollRegion || ideogramScrollRegion) {
+        if (a.tabindex !== "0") errors.push(`${route}: scroll region needs tabindex=0`);
+        if (!a["aria-label"]?.trim()) errors.push(`${route}: scroll region needs an accessible name`);
+      }
     }
   }
   if (errors.length) fail(errors.join("\n"));

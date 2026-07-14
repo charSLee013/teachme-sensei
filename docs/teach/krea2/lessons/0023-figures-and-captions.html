@@ -1,0 +1,28 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：图、caption 与视觉证据"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>图、caption 与视觉证据</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Paper Writing</span></div><a href="0022-experiments-and-tables.html">上一课</a><a href="0024-limitations-and-negative-results.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 23 / Paper Writing</p><h1>图、caption 与视觉证据</h1><p class="lede">生成模型论文的图不仅展示“好看的结果”，还要展示过程、比较、失败和读者应该观察的变量。</p><div class="meta"><span>前置：实验表</span><span>产物：pipeline figure + result grid</span><span>练习：caption rewrite</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>一张图必须有观察任务。Caption 要说明对象、设置、变量和读者应得出的有限结论，；单独写“Qualitative comparison”缺少这些信息。</p></section>
+<section><h2>直觉：图是带方向的观察</h2><p>读者看图时会寻找模式。你要通过排列、标注和 caption 告诉他比较什么：同一 prompt 的不同 CFG？同一 seed 的不同 checkpoint？不同 resolution 的失败边界？没有方向的图会把偶然差异伪装成结论。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">Figure 1: system pipeline
+prompt -&gt; encoder -&gt; text states
+noise  -&gt; packer   -&gt; image tokens -&gt; MMDiT -&gt; VAE -&gt; output
+                 time / CFG / resolution controls
+
+Figure 2: same prompt + same seed
+columns = Raw baseline | Raw ablation | Turbo baseline
+caption states metrics, steps, cfg, resolution and seed count</div></section>
+<section><h2>公式：caption 的信息密度</h2><p>一个完整 caption 至少编码：</p><p><code>caption = object + comparison + condition + observation + scope</code></p><p>例如：对象是“same prompts and seeds 的输出”，比较是“Raw/Turbo”，条件是“1024px、推荐 steps/CFG”，观察是“latency and alignment trade-off”，scope 是“测试集合和 H100 环境”。</p></section>
+<section><h2>代码：图必须可从 records 生成</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>plot_grid(
+    images=sorted_outputs,
+    rows="prompt_id",
+    columns="setting",
+    annotate=["seed", "steps", "cfg"],
+    output="figures/qualitative-grid.png",
+)
+</code></pre><p>不要手动从文件夹挑图。排序规则、失败样本和选择理由都应可追踪；若使用人工挑选，论文中要说明选择协议。</p></section>
+<section><h2>实验：caption 盲读测试</h2><ol><li>让同伴只读 caption，不看正文。</li><li>让他回答图比较了什么、固定了什么、结论范围是什么。</li><li>若答不出来，补充条件或拆图。</li><li>把“看起来更好”改成可观察的描述。</li></ol><div class="answer"><p class="label">Caption example</p><p>Qualitative comparison of Raw and Turbo under matched prompts, resolutions and seeds. Each column uses the checkpoint-specific recommended denoising configuration; the grid illustrates representative prompt adherence and failure modes, while aggregate alignment and quality statistics are reported in Table 2. Images are shown for visual inspection and are not a substitute for the quantitative evaluation.</p></div></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong>项目 <a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/docs/prompting.md">prompting examples</a>、实验记录和论文图表结构。</p><p><strong>Teaching use：</strong>将真实生成图从展示素材变成受控视觉证据。</p><p><strong>Scope：</strong>示例 caption 不包含未经实验验证的优越性结论。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么同一张图既不能同时证明质量提升和速度提升？</li><li>caption 需要写 seed 吗？</li><li>什么时候应展示失败样本？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>不同 claim 需要不同测量；一张图可能帮助说明多个现象，但不能替代速度表或统计质量指标。只要 seed 影响可见结果且涉及公平比较，就应写明。失败样本在研究问题涉及稳定性、边界或 trade-off 时必须展示。</p><p><strong>常见误解：</strong>图越漂亮越能支持论文；事实上代表性选择可能造成 selection bias。</p></details></section>
+<section class="next"><strong>Next action：</strong>把一个最不理想但有信息量的结果放进 <a href="0024-limitations-and-negative-results.html">限制与负结果</a>。</section></main><footer class="foot"><a href="../reference/paper-writing-checklist.html">参考：Paper writing checklist</a></footer>
+</body></html>

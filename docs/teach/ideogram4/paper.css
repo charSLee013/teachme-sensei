@@ -168,3 +168,20 @@ summary { cursor: pointer; font-weight: 700; }
   .hero { min-height: auto; }
   .two { grid-template-columns: 1fr; }
 }
+
+
+@media (max-width: 880px) {
+  table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  th,
+  td {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}

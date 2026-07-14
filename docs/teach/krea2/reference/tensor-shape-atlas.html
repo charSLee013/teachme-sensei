@@ -1,0 +1,43 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：Tensor Shape Atlas"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>Tensor Shape Atlas</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Reference</span></div><a href="../lessons/0002-tensors-and-shapes.html">回到第 2 课</a></header>
+<main>
+<section class="hero"><p class="kicker">Reference / Shape Contract</p><h1>Tensor Shape Atlas</h1><p class="lede">查 shape 时同时查 axis 语义、dtype、device 和元素总数。数字相同不代表接口相同。</p></section>
+<section class="remember"><p class="label">先记住</p><p>每次看到 <code>(B,N,D)</code>，都要把 B、N、D 翻译成名词：batch、sequence/token count、feature dimension。若不能翻译，就还没有读懂这行代码。</p></section>
+<section><h2>主路径 shape 表</h2><div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table><thead><tr><th>状态</th><th>典型 shape</th><th>axis 语义</th><th>检查问题</th></tr></thead><tbody>
+<tr><td>输出像素</td><td><code>(B,3,H,W)</code></td><td>batch、RGB、height、width</td><td>是否在 [0,255] byte 或 [0,1] float？</td></tr>
+<tr><td>VAE latent</td><td><code>(B,16,H/8,W/8)</code></td><td>batch、latent channels、latent grid</td><td>H/W 是否能被 compression=8 整除？</td></tr>
+<tr><td>image token</td><td><code>(B,N,64)</code></td><td>N=(H/16)*(W/16)，64=16*2*2</td><td>patch=2 后元素总数是否保持？</td></tr>
+<tr><td>text hidden</td><td><code>(B,512,12,2560)</code></td><td>batch、文本 token、选中的层、hidden size</td><td>前缀切掉后是否仍有 512 个位置？</td></tr>
+<tr><td>combined sequence</td><td><code>(B,512+N,features)</code></td><td>文本在前，image 在后</td><td>mask 和 pos 是否有完全一样的序列长度？</td></tr>
+<tr><td>position</td><td><code>(B,512+N,3)</code></td><td>文本通常是零坐标，image 为 t/h/w 三轴坐标</td><td>是否误把位置向量当 hidden feature？</td></tr>
+<tr><td>model output</td><td><code>(B,N,64)</code></td><td>只保留 image token 的 velocity</td><td>unpatchify 的 h、w 是否使用 padded 尺寸？</td></tr>
+</tbody></table></div></section>
+<section><h2>元素总数的 sanity checks</h2><p>VAE latent 到 image token 的重排不能改变元素总数：</p><p><code>16 * (H/8) * (W/8) = ((H/16)*(W/16)) * (16*2*2)</code></p><p>例如 1024x1024 时，latent 是 <code>(B,16,128,128)</code>，image token 是 <code>(B,4096,64)</code>。如果 token 数、patch size 或 channel 数任何一个不匹配，错误通常应该在 round-trip 检查处暴露。</p><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>import torch
+from einops import rearrange
+
+x = torch.randn(2, 16, 128, 128)
+tokens = rearrange(x, "b c (h ph) (w pw) -&gt; b (h w) (c ph pw)", ph=2, pw=2)
+y = rearrange(tokens, "b (h w) (c ph pw) -&gt; b c (h ph) (w pw)",
+              h=64, w=64, c=16, ph=2, pw=2)
+assert tokens.shape == (2, 4096, 64)
+assert torch.equal(x, y)
+</code></pre></section>
+<section><h2>对齐规则</h2><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">pixel width/height
+        divisible by ae.compression=8
+        and by patch=2 after latent conversion
+        =&gt; original width/height divisible by 16
+
+1024 -&gt; latent 128 -&gt; token grid 64 -&gt; N=4096
+1030 -&gt; roundup to 1040 -&gt; latent 130 -&gt; token grid 65 -&gt; N=4225</div><p>当前 sampler 会把不满足 16 倍数的输入向上补齐；这意味着“请求尺寸”和“实际计算尺寸”可能不同。实验日志必须同时记录二者，输出裁剪策略也要写清楚。</p></section>
+<section><h2>错误定位表</h2><div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table><thead><tr><th>症状</th><th>优先检查</th><th>不要先做的事</th></tr></thead><tbody>
+<tr><td><code>mat1 and mat2 shapes cannot be multiplied</code></td><td>patchify 最后一维是否等于 <code>channels*patch**2</code>，以及 Linear 配置。</td><td>不要先增大显存或改 batch。</td></tr>
+<tr><td>attention mask shape error</td><td>text mask 是否 bool；combined mask 是否与 text+image 长度一致。</td><td>不要用全 1 mask 掩盖 padding。</td></tr>
+<tr><td>坏图但代码不报错</td><td>unpatchify 的 h/w、通道顺序、VAE decode dtype 与范围。</td><td>不要只检查最终 PIL 能否保存。</td></tr>
+<tr><td>位置编码不匹配</td><td><code>pos.shape[-1]==3</code>，且 image grid 的行列坐标与 token 顺序一致。</td><td>不要把 position 直接 reshape 成 hidden state。</td></tr>
+</tbody></table></div></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L16-L35">sampling.py:prepare</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L115-L132">sampling.py:unpatchify</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/encoder.py#L55-L72">encoder.py:stack hidden states</a>。</p><p><strong>Teaching use：</strong>把每一层的 shape 变成可复制的 notebook 检查项。</p><p><strong>Scope：</strong>shape 表按当前代码的默认配置解释；若 checkpoint config 或 prompt processor 改变，必须重新生成 contract。</p></section>
+<section class="next"><strong>用法：</strong>先复制主路径表到实验记录，再阅读 <a href="krea2-architecture.html">architecture atlas</a> 解释这些张量为什么相互连接。</section>
+</main><footer class="foot"><a href="sampler-and-scheduler.html">下一页：Sampler and scheduler</a></footer>
+</body></html>

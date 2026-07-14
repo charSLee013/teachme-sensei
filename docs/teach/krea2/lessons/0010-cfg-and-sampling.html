@@ -1,0 +1,30 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：CFG、Euler 与采样步数"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>CFG、Euler 与采样步数</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Mechanism</span></div><a href="0009-diffusion-and-flow-matching.html">上一课</a><a href="0011-dit-and-mmdit.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 10 / Mechanism</p><h1>CFG、Euler 与采样步数</h1><p class="lede">CFG 用一次有条件预测和一次无条件预测构造更强的条件方向；它提高控制力，也增加计算和过度引导的风险。</p><div class="meta"><span>前置：flow matching</span><span>产物：CFG 实验表</span><span>实验：向量几何 + sampler</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>Krea 2 采用 <code>cond + guidance * (cond - uncond)</code>。这里的 guidance=0 会跳过 CFG；它不是传统“scale=1 才等于无引导”的同一命名约定。</p></section>
+<section><h2>直觉：把条件差异放大</h2><p>无条件预测告诉模型“当前 latent 自然会往哪里走”，有条件预测告诉它“加入 prompt 后往哪里走”。两者的差值近似是文本条件带来的方向。CFG 沿这个差值继续走，但 guidance 太大可能过饱和、过锐化或牺牲多样性。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">uncond -----&gt; natural direction
+   |
+   +---- cond - uncond ----&gt; prompt-specific direction
+                                |
+cond + g * (cond - uncond) ---&gt; guided velocity</div></section>
+<section><h2>公式：条件速度的外推</h2><p>设 <code>v_c = v_θ(x,t,c)</code>，<code>v_u = v_θ(x,t,empty)</code>，则：</p><p><code>v_cfg = v_c + g(v_c-v_u) = (1+g)v_c - g v_u</code></p><p>当 <code>g=0</code>，使用 <code>v_c</code>；当 <code>g&gt;0</code>，沿条件差异外推。若实验报告使用别的库，要明确它的 guidance_scale 定义，不能只比较数字。</p></section>
+<section><h2>代码：两次模型调用</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code># sampling.py
+cond = model(img=img, context=txt, t=t, pos=pos, mask=mask)
+if cfg:
+    uncond = model(img=img, context=untxt, t=t, pos=unpos, mask=unmask)
+    v = cond + guidance * (cond - uncond)
+else:
+    v = cond
+img = img + (tprev - tcurr) * v
+</code></pre><p>CFG 让每个时间步至少多一次 MMDiT forward，也让 negative prompt 只在 <code>guidance&gt;0</code> 时参与。若只改 CFG，必须固定 steps、mu、seed 和 prompt。</p></section>
+<section><h2>实验：先用二维向量理解外推</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>cond = torch.tensor([2., 1.])
+uncond = torch.tensor([1., 1.])
+for g in [0., .5, 1., 3.5, 8.]:
+    print(g, cond + g * (cond - uncond))
+</code></pre><p>再在真实 Krea 2 上对 Raw 使用 guidance=0、3.5、4.5、7.0，对 Turbo 使用 0 和 3.5，比较同 seed 的文本对齐、饱和度、结构错误、耗时和显存。不要只看“更像 prompt”而忽略伪影。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L85-L115">CFG 分支</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/README.md#L43-L60">Raw/Turbo 推荐设置</a>。</p><p><strong>Teaching use：</strong>把 guidance 数值放回明确的向量公式和计算成本。</p><p><strong>Scope：</strong>当前代码没有 CLI negative prompt 选项；课程实验可以直接调用 Python API 或另写临时 harness。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么 CFG 通常会让推理变慢约一倍？主干模型增加了哪些计算？</li><li>为什么 Turbo 推荐 CFG=0 和 mu=1.15？</li><li>什么情况下“更高 guidance”不能写成“质量更高”？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>cond 和 uncond 都要各跑一次主干模型。Turbo 是针对少步和固定 shift 蒸馏的 checkpoint，文档推荐关闭 CFG 并使用固定 mu；这是训练/推理约定，不是通用规律。高 guidance 可能提高 prompt 对齐，却带来过饱和、构图僵硬、细节错误或多样性下降，因此必须报告多指标。</p><p><strong>常见误解：</strong>CFG 不是一个“更高画质”按钮；它是条件控制与分布外推的 trade-off。</p></details></section>
+<section class="next"><strong>Next action：</strong>打开 <a href="0011-dit-and-mmdit.html">第 11 课</a>，看模型如何同时处理 text token 和 image token。</section></main><footer class="foot"><a href="../reference/sampler-and-scheduler.html">参考：Sampler and scheduler</a></footer>
+</body></html>

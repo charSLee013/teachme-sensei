@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：Paper Writing Checklist"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>Paper Writing Checklist</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Reference</span></div><a href="../lessons/0021-method-and-equations.html">回到第 21 课</a></header>
+<main>
+<section class="hero"><p class="kicker">Reference / Research Writing</p><h1>Paper Writing Checklist</h1><p class="lede">把“我跑了很多实验”整理成英文论文中的 claim、evidence、scope 和 limitation。每一项都要能回指日志或代码。</p></section>
+<section class="remember"><p class="label">先记住</p><p>论文是一条可审计的推理链：问题为何重要，方法改变了什么，证据支持哪些结论，以及当前证据留下哪些空白。</p></section>
+<section><h2>Claim audit table</h2><div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table><thead><tr><th>字段</th><th>必须回答</th><th>证据位置</th><th>危险写法</th></tr></thead><tbody>
+<tr><td>Claim</td><td>在什么条件下，哪个变量带来什么可观察变化？</td><td>结果表中的列和比较对象</td><td>“显著提升质量”但没有指标、基线和范围。</td></tr>
+<tr><td>Mechanism</td><td>为什么变化可能发生？是模型机制还是实现成本？</td><td>公式、代码路径、控制实验</td><td>把相关性写成因果性。</td></tr>
+<tr><td>Evidence</td><td>多少 prompt、多少 seed、哪个 checkpoint、哪些统计？</td><td>experiment record、脚本、图表</td><td>只放最好的一张图。</td></tr>
+<tr><td>Scope</td><td>结论适用于哪些分辨率、硬件、参数区间？</td><td>protocol 和 limitation</td><td>把一个 inference sweep 写成普遍定律。</td></tr>
+<tr><td>Uncertainty</td><td>方差、失败样本、测量误差如何处理？</td><td>原始结果和错误分析</td><td>隐藏 outlier 或失败运行。</td></tr>
+</tbody></table></div></section>
+<section><h2>英文句型库</h2><div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table><thead><tr><th>目的</th><th>可改写句型</th><th>必须补的限定</th></tr></thead><tbody>
+<tr><td>报告结果</td><td><code>Under [protocol], [setting] changes [metric] by [amount] relative to [baseline].</code></td><td>protocol、baseline、样本量和单位。</td></tr>
+<tr><td>解释机制</td><td><code>We attribute this trend to [mechanism], as supported by [control/evidence].</code></td><td>把“推断”标成 attribute，不冒充直接观测。</td></tr>
+<tr><td>说明代价</td><td><code>The gain in [metric] comes at the cost of [latency/memory/failure mode].</code></td><td>代价的测量方式。</td></tr>
+<tr><td>限制外推</td><td><code>This observation is limited to [checkpoint/resolution/prompt family].</code></td><td>明确没有测到的范围。</td></tr>
+<tr><td>承认负结果</td><td><code>We do not observe a consistent improvement in [metric] across [conditions].</code></td><td>列出条件，不用“偶尔有效”糊过去。</td></tr>
+</tbody></table></div></section>
+<section><h2>Section-by-section gate</h2><ol><li><strong>Abstract：</strong>问题、方法、最重要的数字结果、限制和意义都出现；不塞未解释的缩写。</li><li><strong>Introduction：</strong>从任务痛点到研究问题，再到贡献；每个 contribution 都能在实验或分析中找到对应证据。</li><li><strong>Related work：</strong>按问题维度比较，不按论文年份堆引用；指出现有工作没有回答的具体问题。</li><li><strong>Method：</strong>变量、输入输出、公式、算法、实现细节足够让读者复现；定义符号后始终保持一致。</li><li><strong>Experiments：</strong>数据、prompt/seed、checkpoint、硬件、软件版本、指标和统计方式可核查。</li><li><strong>Results：</strong>先回答研究问题，再解释数字；表格 caption 能独立说明比较条件。</li><li><strong>Limitations：</strong>写出失败模式、未测试范围、测量偏差和下一步；形式化免责声明无法提供这些信息。</li><li><strong>References：</strong>引用原始论文和官方实现；每条引用在正文中承担明确支持作用。</li></ol></section>
+<section class="warning"><p class="label">提交前的禁止清单</p><ul><li>不把“更高 CLIP 分数”直接写成“视觉质量更高”。</li><li>不把同 seed 当作统计显著性。</li><li>不把官方推荐参数当作自己的实验结论。</li><li>不把本地实现的重建写成官方未公开的训练细节。</li><li>不在 rebuttal 中补造原文没有运行过的实验。</li></ul></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://www.acm.org/publications/proceedings-template">ACM proceedings template guidance</a>、<a href="../lessons/0020-abstract-and-introduction.html">第 20 课</a>、<a href="../lessons/0022-experiments-and-tables.html">第 22 课</a>、<a href="../lessons/0024-limitations-and-negative-results.html">第 24 课</a>。</p><p><strong>Teaching use：</strong>让每个英文段落都能回到实验记录，并在此基础上训练句法。</p><p><strong>Scope：</strong>具体会议格式、页数和匿名要求以目标 venue 当期官方 CFP 为准；本页提供研究写作检查，不替代投稿规则。</p></section>
+<section class="next"><strong>用法：</strong>写完草稿后逐行填 claim audit，再打开 <a href="experiment-record-template.html">实验记录模板</a>检查是否真的有证据。</section>
+</main><footer class="foot"><a href="experiment-record-template.html">下一页：Experiment record template</a></footer>
+</body></html>

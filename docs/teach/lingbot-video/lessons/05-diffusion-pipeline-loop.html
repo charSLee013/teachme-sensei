@@ -38,7 +38,7 @@
     <h2>Flow Matching 的数学基础</h2>
     <p>LingBot-Video 的 scheduler 基于 <strong>Rectified Flow</strong>（Liu et al., 2022）框架，而非传统 DDPM。其核心思想是在数据分布 $x_0$ 与噪声分布 $x_1 \sim \mathcal{N}(0,I)$ 之间定义一条直线插值路径，并学习沿该路径的速度场。</p>
 
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       <p><strong>Rectified Flow 插值路径：</strong></p>
       $$x_t = (1-t)\,x_0 + t\,x_1, \quad t \in [0,1]$$
 
@@ -54,7 +54,7 @@
 
     <p>与此对比，DDPM 的正向过程是布朗运动驱动的随机微分方程（SDE），其轨迹是随机弯曲的。DDPM 的反向过程需要小步长离散化才能稳定积分，导致典型 NFE 在 50—1000 步之间。Rectified Flow 的直线轨迹在几何上是最短路径，理论上可以用更大步长积分而不引入过大离散化误差，典型 NFE 可降至 4—20 步。</p>
 
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       <p><strong>Classifier-Free Guidance（速度场线性外推）：</strong></p>
       $$v_{\text{guided}} = v_{\text{uncond}} + w \cdot \bigl(v_{\text{cond}} - v_{\text{uncond}}\bigr)$$
 
@@ -80,7 +80,7 @@
 
     <div class="design-note">
       <strong>与 DDPM/DDIM 的关键对比</strong>
-      <table>
+      <table tabindex="0" aria-label="可横向滚动的数据表">
         <thead>
           <tr><th>属性</th><th>DDPM</th><th>DDIM</th><th>Rectified Flow</th></tr>
         </thead>
@@ -104,7 +104,7 @@
     <h2>输入检查和 latent 形状</h2>
     <p><code>check_inputs</code> 规定视频帧数必须是 1 或 $4n+1$（$n \geq 1$），原因是 VAE temporal stride 为 4：$T_{\text{latent}} = (T_{\text{frames}} - 1) / 4 + 1$ 需要整除。height 和 width 必须是 16 的倍数（patch size 2 $\times$ VAE spatial scale 8）。</p>
     <p><code>prepare_latents</code> 生成形状为 $[B, C, T_L, H_L, W_L]$ 的随机高斯噪声张量，其中：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$T_L = \frac{T_{\text{frames}}-1}{4}+1, \quad H_L = \frac{H}{8}, \quad W_L = \frac{W}{8}$$
     </div>
 
@@ -112,7 +112,7 @@
     <p><code>encode_prompt</code> 使用 processor 构造 Qwen 风格输入，再调用 text encoder 取得 hidden states。随后它裁掉 prompt template 前缀，只保留用户内容对应的 token 表示。对于 batch=1 的情况，右侧 padding 会被移除，以减少后续 DiT 处理长度——这是 LingBot-Video 针对推理效率的工程决策。</p>
 
     <h2>CFG 的三种执行方式</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <thead>
         <tr><th>方式</th><th>机制</th><th>公式</th><th>适用场景</th></tr>
       </thead>

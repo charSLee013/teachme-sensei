@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：限制、负结果与诚实结论"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>限制、负结果与诚实结论</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Paper Writing</span></div><a href="0023-figures-and-captions.html">上一课</a><a href="0025-reviewer-objections.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 24 / Paper Writing</p><h1>限制、负结果与诚实结论</h1><p class="lede">高质量研究写作主动说明限制结论的条件，并把失败整理成下一位研究者可复用的信息。</p><div class="meta"><span>前置：图表与统计</span><span>产物：limitations section</span><span>练习：claim narrowing</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>限制定义结论的边界函数：它明确观察成立的 prompt、分辨率、硬件、版本、指标和 seed 范围。未来工作应从这些边界出发。</p></section>
+<section><h2>直觉：给结论画边框</h2><p>一张地图没有边界会误导使用者。实验结论同样需要边框：你测了什么，没有测什么，哪个变量可能改变结果，哪个失败暂时无法解释。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">claim: Turbo reduces latency under tested settings
+boundary 1: prompt set
+boundary 2: resolution
+boundary 3: recommended steps/cfg/mu
+boundary 4: H100 + software revision
+unknown: other hardware, languages, unseen prompt types</div></section>
+<section><h2>公式：结论的条件化</h2><p>不要写：</p><p><code>Turbo is better.</code></p><p>写成：</p><p><code>Under C, Turbo improves Y1 while changing Y2, with the observation supported by S samples and M metrics.</code></p><p>如果实验没有测质量，就不能在速度结论后顺手加“without quality loss”。这是从 observation 跳到 unsupported claim。</p></section>
+<section><h2>代码：失败也要成为 record</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>try:
+    image = sample(...)
+    record["status"] = "ok"
+except Exception as exc:
+    record["status"] = "failed"
+    record["error_type"] = type(exc).__name__
+    record["error"] = str(exc)
+    save_record(record)
+</code></pre><p>当前项目的实际 sampler 对 steps、dtype、device、负 prompt 长度等输入缺少边界校验；课程将这些观察写进 limitation 和工程改进，并明确当前可用设置的证据范围。</p></section>
+<section><h2>实验：负结果三问</h2><ol><li>失败是否由实现错误、资源不足、指标不合适还是模型能力造成？</li><li>这个失败是否可重复？</li><li>它会缩小哪条 claim 的范围，或提出哪条新问题？</li></ol><div class="warning"><p class="label">不要这样写</p><p>“由于时间有限，我们没有测试其他分辨率，但模型应该同样有效。”</p><p>更好的写法是：“本研究未测量其他分辨率，因此不对该范围做结论；分辨率外推是后续实验。”</p></div></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="../reference/evidence-and-sources.html#reproducibility-and-evaluation">实验与复现来源</a>、实际运行记录。</p><p><strong>Teaching use：</strong>训练 claim narrowing 和负结果记录。</p><p><strong>Scope：</strong>限制的具体内容要由真实实验产生；本页给出方法和示例，不预设 Krea 2 的最终结果。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么“未来工作”不能替代当前 limitation？</li><li>一个 OOM 能否证明模型质量差？</li><li>当指标和人工判断冲突时，结论应如何写？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>未来工作没有说明当前结论的有效范围。OOM 首先证明当前资源/规模配置不可用，不能直接推出质量差。冲突应被报告，并解释指标 scope、人工协议和可能偏差；只保留有利结果会产生选择偏差。</p><p><strong>常见误解：</strong>诚实报告限制不会降低论文质量，隐藏限制才会损害可信度。</p></details></section>
+<section class="next"><strong>Next action：</strong>用 reviewer 的视角提出三条最可能的质疑，进入 <a href="0025-reviewer-objections.html">模拟审稿</a>。</section></main><footer class="foot"><a href="../reference/paper-writing-checklist.html">参考：Paper writing checklist</a></footer>
+</body></html>

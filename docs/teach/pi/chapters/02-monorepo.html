@@ -76,7 +76,7 @@
 
         <section>
             <h2>2.2 5 个包的职责</h2>
-            <table class="comparison-table">
+            <table tabindex="0" aria-label="可横向滚动的数据表" class="comparison-table">
                 <thead>
                     <tr>
                         <th>包名</th>
@@ -122,7 +122,7 @@
 
         <section>
             <h2>2.3 依赖关系图</h2>
-            <div class="diagram-container">
+            <div tabindex="0" aria-label="可横向滚动的课程图示" class="diagram-container">
                 <svg viewBox="0 0 600 350" class="diagram">
                     <!-- orchestrator -->
                     <a href="13-orchestrator.html">
@@ -181,7 +181,7 @@
         <section>
             <h2>2.4 npm workspaces 配置</h2>
             <p>根目录的 <code>package.json</code> 定义了 workspaces：</p>
-            <pre class="language-json collapsible"><code>{
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-json collapsible"><code>{
   "name": "pi-monorepo",
   "workspaces": [
     "packages/*",
@@ -200,7 +200,7 @@
             <p>Pi 使用两层 TypeScript 配置：</p>
 
             <h3>tsconfig.base.json — 共享编译器选项</h3>
-            <pre class="language-json"><code>{
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-json"><code>{
   "compilerOptions": {
     "target": "ES2022",
     "module": "Node16",
@@ -219,7 +219,7 @@
             </div>
 
             <h3>tsconfig.json — 路径映射</h3>
-            <pre class="language-json collapsible"><code>{
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-json collapsible"><code>{
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "paths": {
@@ -237,7 +237,7 @@
         <section>
             <h2>2.6 构建顺序</h2>
             <p>Pi 的构建脚本按依赖顺序编译：</p>
-            <pre class="language-bash"><code>"build": "cd packages/tui && npm run build && cd ../ai && npm run build && cd ../agent && npm run build && cd ../coding-agent && npm run build && cd ../orchestrator && npm run build"</code></pre>
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-bash"><code>"build": "cd packages/tui && npm run build && cd ../ai && npm run build && cd ../agent && npm run build && cd ../coding-agent && npm run build && cd ../orchestrator && npm run build"</code></pre>
             <p>为什么是这个顺序？因为：</p>
             <ol>
                 <li><code>tui</code> — 无依赖，最先构建</li>
@@ -251,7 +251,7 @@
         <section>
             <h2>2.7 锁步版本策略</h2>
             <p>所有包共享一个版本号（当前 <code>v0.80.3</code>）。发布时：</p>
-            <pre class="language-bash"><code># 升级所有包的 patch 版本
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-bash"><code># 升级所有包的 patch 版本
 npm run version:patch
 
 # 升级所有包的 minor 版本
@@ -261,7 +261,7 @@ npm run version:minor</code></pre>
 
         <section>
             <h2>2.8 开发工具链</h2>
-            <table class="comparison-table">
+            <table tabindex="0" aria-label="可横向滚动的数据表" class="comparison-table">
                 <thead>
                     <tr>
                         <th>工具</th>
@@ -303,7 +303,7 @@ npm run version:minor</code></pre>
                 </tbody>
             </table>
 
-            <pre class="language-bash"><code># 完整检查（lint + format + type check + 依赖检查）
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-bash"><code># 完整检查（lint + format + type check + 依赖检查）
 npm run check
 
 # 运行测试（无 API key 的本地测试）

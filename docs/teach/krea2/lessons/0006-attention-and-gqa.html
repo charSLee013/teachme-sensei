@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：Attention、multi-head attention 与 GQA"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>Attention、multi-head attention 与 GQA</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Mechanism</span></div><a href="0005-tokenization-and-conditioning.html">上一课</a><a href="0007-rope-and-position.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 06 / Mechanism</p><h1>Attention、multi-head attention 与 GQA</h1><p class="lede">Attention 由可计算的相似度、归一化和加权求和构成；“模型注意力集中”只是缺少数学定义的直觉描述。</p><div class="meta"><span>前置：token + shape</span><span>产物：attention trace</span><span>实验：CPU 小矩阵</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>Q 决定“我在找什么”，K 决定“我有什么标签”，V 决定“被取走的内容”。attention 输出的是 V 的加权组合，不是把 token 直接复制。</p></section>
+<section><h2>直觉：查询、标签、内容</h2><p>假设一个 token 想知道句子里的“颜色”信息：它产生 query；每个 token 产生 key 表示“我可能包含什么”；对应的 value 携带真正内容。query 与 key 越相似，value 的权重越大。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">Q: current question       K: searchable labels       V: content
+       |                         |                    |
+       +-------- similarity ------+                    |
+                         softmax weights --------------+
+                                      weighted values -&gt; output</div></section>
+<section><h2>公式：从点积到输出</h2><p>对单个 head：</p><p><code>Attention(Q,K,V) = softmax(QK^T / sqrt(d_k) + M)V</code></p><p><code>M</code> 是 mask；无效位置可以被设成极小值，等价于 softmax 后权重为零。multi-head 将 hidden dimension 切成多个子空间并行计算，再拼回去。</p><p>Krea 2 的 MMDiT 使用 <code>heads=48</code>、<code>kvheads=12</code>，query 有 48 个 head，而 key/value 只有 12 个。每个 KV head 被多个 query head 共享，这就是 grouped-query attention。</p></section>
+<section><h2>代码：QKV、head reshape 和 SDPA</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code># mmdit.py
+q, k, v = self.wq(qkv), self.wk(qkv), self.wv(qkv)
+q = rearrange(q, "B L (H D) -&gt; B H L D", H=self.heads)
+k = rearrange(k, "B L (H D) -&gt; B H L D", H=self.kvheads)
+v = rearrange(v, "B L (H D) -&gt; B H L D", H=self.kvheads)
+q, k, v = self.qknorm(q, k, v)
+out = F.scaled_dot_product_attention(q, k, v,
+                                     attn_mask=mask,
+                                     enable_gqa=self.gqa)
+</code></pre><p>关键 shape 是 <code>Q=(B,48,L,128)</code>、<code>K/V=(B,12,L,128)</code>。真正的 backend 在 <a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/mmdit.py#L32-L44">mmdit.py:40-44</a> 被固定为 CUDNN attention，这解释了后面硬件实验的重要性。</p></section>
+<section><h2>实验：手工验证 mask 和 GQA</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>q = torch.randn(1, 4, 3, 8)
+k = torch.randn(1, 2, 3, 8)
+v = torch.randn(1, 2, 3, 8)
+mask = torch.tensor([[[[True, True, False],
+                       [True, True, False],
+                       [True, True, False]]]])
+out = torch.nn.functional.scaled_dot_product_attention(
+    q, k, v, attn_mask=mask, enable_gqa=True
+)
+assert out.shape == q.shape
+</code></pre><p>再把第三列 mask 改成 True，比较输出变化；再把所有 mask 设为 False，观察 backend 和数值行为。实验的教学目标是把“mask 屏蔽未来/无效 token”变成可观察差异。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/mmdit.py#L32-L50">mmdit.py attention/_mask</a>；Attention 公式来自 Transformer 原始论文。</p><p><strong>Teaching use：</strong>把抽象 Q/K/V 映射到真实 GQA tensor contract。</p><p><strong>Scope：</strong>公式解释 attention 机制；实际速度和可用 backend 必须以目标 Torch、GPU 和 mask 形状实验为准。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么 Q 的 head 数可以和 K/V 不同？</li><li>mask 在 softmax 前后分别意味着什么？</li><li>为什么一个 attention 公式在 CPU 上能算，不代表本项目能在 CPU 上跑？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>GQA 让多个 query head 共享较少的 K/V head，减少 KV 参数和缓存。mask 在 logits 上加限制，softmax 后无效位置的权重接近零。项目显式选择 CUDNN backend，且还依赖 CUDA/Triton/compile，所以数学可计算性与工程 backend 可用性是两件事。</p><p><strong>常见误解：</strong>GQA 不是把 query 数量删掉；它只改变 K/V 的共享方式。</p></details></section>
+<section class="next"><strong>Next action：</strong>打开 <a href="0007-rope-and-position.html">第 7 课</a>，回答“如果 attention 不知道位置，会发生什么”。</section></main><footer class="foot"><a href="../reference/evidence-and-sources.html#transformer-and-dit-papers">来源：Transformer 与 DiT 论文</a></footer>
+</body></html>

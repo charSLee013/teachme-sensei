@@ -1,0 +1,26 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：研究问题、变量与实验矩阵"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>研究问题、变量与实验矩阵</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Research Method</span></div><a href="0014-hardware-and-performance.html">上一课</a><a href="0016-metrics-and-error-analysis.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 15 / Research Method</p><h1>研究问题、变量与实验矩阵</h1><p class="lede">论文实验用最小的受控变化回答明确问题；参数组合和截图只有进入完整协议后才构成证据。</p><div class="meta"><span>前置：hardware matrix</span><span>产物：预注册实验表</span><span>实验：pilot study</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>先写“如果 X 改变，我预计 Y 如何改变，为什么”，再写代码。没有可证伪的预期，实验就只能产生素材，不能产生证据。</p></section>
+<section><h2>直觉：从旋钮到问题</h2><p>steps、CFG、mu、resolution、Raw/Turbo 都像旋钮，但研究不是测旋钮本身。问题必须包含对象、变化、结果和条件，例如：“在固定 prompt、seed 和硬件下，Raw 的 resolution-aware shift 是否改善文本对齐/质量效率比？”</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">question -&gt; hypothesis -&gt; independent variable -&gt; controlled baseline
+                                      |
+                                      +-&gt; metrics + seeds + failure policy
+                                      |
+                                result -&gt; interpretation -&gt; claim scope</div></section>
+<section><h2>公式：因果比较的最小结构</h2><p>设因素为 <code>X</code>，结果为 <code>Y</code>，控制变量为 <code>C</code>。一个可解释的比较要求近似：</p><p><code>ΔY = Y(X_1, C) - Y(X_0, C)</code></p><p>如果同时改变 checkpoint、steps、CFG 和 seed，那么观测到的 <code>ΔY</code> 无法归因于单一因素。交互项也要预先设计，并按记录解释。</p></section>
+<section><h2>代码：把矩阵变成配置</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>experiments = [
+    {"checkpoint": "oss_raw", "steps": 52, "cfg": 3.5, "mu": None},
+    {"checkpoint": "oss_raw", "steps": 28, "cfg": 4.5, "mu": None},
+    {"checkpoint": "oss_turbo", "steps": 8, "cfg": 0.0, "mu": 1.15},
+]
+for config in experiments:
+    run(config, prompts=PROMPTS, seeds=SEEDS,
+        width=1024, height=1024, dtype=torch.bfloat16)
+</code></pre><p>配置应保存为结构化数据，命令由配置生成。每次运行保存完整 config、环境和结果路径，让论文表格可以从记录重建。</p></section>
+<section><h2>实验：先做小 pilot</h2><ol><li>选 6 个 prompt：照片、插画、文字、复杂构图、人物和非英语风险案例。</li><li>每个设置跑 2 个 seed，检查指标是否有区分度。</li><li>发现指标不稳定或成本过高时，修改方案并记录修改理由。</li><li>pilot 通过后再扩大到正式 seed 集合。</li></ol><p>pilot 不是偷看答案后删掉失败结果；它是设计验证，必须保留记录。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="../course-map.html#course-contract">课程固定毕业问题</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/inference.py#L62-L134">CLI 参数</a>。</p><p><strong>Teaching use：</strong>把 Krea 2 参数表转换为一个可解释的实验设计。</p><p><strong>Scope：</strong>本课不承诺这些变量存在因果关系；实验只是让关系可被公平检验。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么“把所有参数都试一遍”不是一个好研究问题？</li><li>什么是控制变量？在毕业实验中至少列出五个。</li><li>pilot 结果能不能直接写成最终结论？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>全组合会产生大量比较和多重解释，缺少中心问题。控制变量应包括 checkpoint、prompt 集合、seed、resolution、dtype、GPU、模型 revision 等。pilot 用于验证设计和指标，不足以支撑最终结论；正式实验需要扩大样本、预先定义分析规则并报告不确定性。</p><p><strong>常见误解：</strong>证据强度主要来自变量控制、重复测量和清楚的解释边界，实验数量只是覆盖范围的一部分。</p></details></section>
+<section class="next"><strong>Next action：</strong>填好 <a href="../reference/experiment-record-template.html">experiment record template</a>，再进入指标和错误分析。</section></main><footer class="foot"><a href="../reference/experiment-record-template.html">参考：Experiment record template</a></footer>
+</body></html>

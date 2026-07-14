@@ -43,6 +43,8 @@ try {
   requireText(staticJob, "run: npm ci", "static npm ci");
   requireText(staticJob, "npx playwright install --with-deps chromium", "static Chromium install");
   requireText(staticJob, "run: npm run verify:public", "static public verification");
+  requireText(staticJob, "run: npm run verify:workflow", "static workflow verification");
+  requireText(staticJob, "run: npm run test:krea2-adapter", "static Krea2 adapter verification");
   requireText(staticJob, "run: npm run test:sync-fixture", "static fixture verification");
 
   const smokeJob = jobSection("smoke");

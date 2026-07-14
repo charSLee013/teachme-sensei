@@ -1,0 +1,75 @@
+{
+  "lessons/0002-tensors-and-shapes.html": [
+    ["，错误应该在这里暴露，而不是十层之后才表现成坏图。", "，错误应该在当前转换处暴露，避免十层之后才表现成坏图。"]
+  ],
+  "lessons/0004-neural-network-inference.html": [
+    ["，而不是", "，采样期间保持"],
+    ["而不是模型参数？", "，同时保持模型参数固定？"]
+  ],
+  "lessons/0005-tokenization-and-conditioning.html": [
+    ["为什么 Krea 2 选择多层 hidden states，而不是只取最后一层？", "Krea 2 选择多层 hidden states 会带来哪些信息？"]
+  ],
+  "lessons/0008-vae-latent-space.html": [
+    ["为什么 MMDiT 的 channels 是 16，而不是 RGB 的 3？", "为什么 MMDiT 使用 16 个 latent channels，RGB 图像则使用 3 个通道？"]
+  ],
+  "lessons/0010-cfg-and-sampling.html": [
+    ["为什么 CFG 通常会让推理变慢约一倍，而不是只增加一个标量运算？", "为什么 CFG 通常会让推理变慢约一倍？主干模型增加了哪些计算？"]
+  ],
+  "lessons/0011-dit-and-mmdit.html": [
+    ["时间调制为什么出现在 block 内，而不是只在输入端添加一个 scalar？", "时间调制放在每个 block 内会提供哪些额外表达能力？"]
+  ],
+  "lessons/0012-krea2-pipeline-trace.html": [
+    ["读 pipeline 的方法是沿着状态变量走，而不是沿着文件名跳。一次采样中最重要的状态是 prompt representation、latent tokens、time、velocity 和 decoded image。", "读 pipeline 时沿状态变量追踪转换；文件名用于定位实现。一次采样中最重要的状态是 prompt representation、latent tokens、time、velocity 和 decoded image。"],
+    ["任何一个研究主张都应该指向其中一个状态或状态之间的转换。例如“CFG 更强”应观察 S4 的 velocity 差异和最终 S7 的指标，而不是只看一个 CLI 参数。", "任何研究主张都应指向一个状态或状态转换。例如“CFG 更强”需要同时观察 S4 的 velocity 差异与最终 S7 指标；CLI 参数只记录配置。"]
+  ],
+  "lessons/0013-code-to-tensor-trace.html": [
+    ["device/dtype/宽高/negative prompt 数量等输入契约应在入口验证，而不是让深层 kernel 报错。", "device、dtype、宽高和 negative prompt 数量等输入契约应在入口验证，让错误在进入深层 kernel 前出现。"]
+  ],
+  "lessons/0014-hardware-and-performance.html": [
+    ["研究者必须把硬件前提写进实验，而不是把环境错误误认为模型错误。", "研究者必须把硬件前提写进实验，并将环境错误与模型错误分别诊断。"]
+  ],
+  "lessons/0015-experiment-design.html": [
+    ["交互项也要有意识地设计，而不是事后挑解释。", "交互项也要预先设计，并按记录解释。"],
+    ["配置应是数据，而不是复制粘贴命令。", "配置应保存为结构化数据，命令由配置生成。"]
+  ],
+  "lessons/0016-metrics-and-error-analysis.html": [
+    ["论文可信度来自多把尺子之间的关系和冲突，而不是挑最高的数。", "论文可信度来自多种指标之间的关系和冲突；挑选最高数字会引入选择偏差。"],
+    ["负结果应进入原始记录、错误分析表、论文 limitation 和补充材料，而不是静默删除。", "负结果应进入原始记录、错误分析表、论文 limitation 和补充材料，并保留其出现条件。"]
+  ],
+  "lessons/0019-related-work.html": [
+    ["把文献按问题和机制排布，而不是按年份逐篇摘要。", "把文献按问题和机制排布，年份用于标记发展顺序。"]
+  ],
+  "lessons/0020-abstract-and-introduction.html": [
+    ["代码不是论文正文，但结构化记录可以防止英文写作把 scope 丢掉。论文句子必须从真实记录生成，而不是从印象生成。", "代码为论文正文提供可追溯依据，结构化记录用于保留 scope。论文句子必须从真实记录生成，凭印象写作会扩大主张。"],
+    ["把英文写作当作 claim compression，而不是翻译比赛。", "把英文写作作为 claim compression：压缩主张时保留条件和证据。"]
+  ],
+  "lessons/0021-method-and-equations.html": [
+    ["并回到 source/experiment，而不是自行补全。", "并回到 source 或 experiment 继续验证；自行补全会把假设写成事实。"]
+  ],
+  "lessons/0022-experiments-and-tables.html": [
+    ["要考虑分层统计，而不是把所有样本混成一个数字。", "要采用分层统计，并同时报告整体与分组结果。"]
+  ],
+  "lessons/0023-figures-and-captions.html": [
+    ["而不是只写“Qualitative comparison”。", "；单独写“Qualitative comparison”缺少这些信息。"]
+  ],
+  "lessons/0024-limitations-and-negative-results.html": [
+    ["课程将这些观察写进 limitation 和工程改进，而不是伪造“所有设置都可用”。", "课程将这些观察写进 limitation 和工程改进，并明确当前可用设置的证据范围。"],
+    ["冲突应被报告并解释指标 scope、人工协议和可能偏差，而不是只保留更有利的一方。", "冲突应被报告，并解释指标 scope、人工协议和可能偏差；只保留有利结果会产生选择偏差。"]
+  ],
+  "lessons/0026-rebuttal-and-defense.html": [
+    ["Rebuttal 的任务是减少不确定性，而不是把审稿人辩倒；答辩的任务是让别人能复述你的证据边界。", "Rebuttal 的任务是减少不确定性；答辩的任务是让别人能复述你的证据边界。"]
+  ],
+  "lessons/0027-capstone-paper.html": [
+    ["毕业标准是证据链完整，而不是结果一定漂亮：", "毕业标准是证据链完整；结果的视觉吸引力无法替代以下要求："],
+    ["为什么论文包必须包含 raw results，而不是只有 PDF？", "为什么论文包必须同时包含 raw results 和 PDF？"],
+    ["研究成果可以是可靠地排除一个直觉，而不是一定找到提升。", "研究成果可以可靠地排除一个直觉；找到提升只是可能结果之一。"]
+  ],
+  "reference/krea2-architecture.html": [
+    ["encoder 输出的最后两个轴为什么是“layer 选择”和“hidden feature”，而不是额外的 batch？", "encoder 输出的最后两个轴为何分别表示“layer 选择”和“hidden feature”？"],
+    ["为什么 model 输出叫 velocity 而不是 image？", "为什么 model 输出 velocity，图像又在哪个阶段形成？"]
+  ],
+  "reference/paper-writing-checklist.html": [
+    ["写出失败模式、未测试范围、测量偏差和下一步，而不是一句形式化免责声明。", "写出失败模式、未测试范围、测量偏差和下一步；形式化免责声明无法提供这些信息。"],
+    ["让每个英文段落都能回到实验记录，而不是只练句法。", "让每个英文段落都能回到实验记录，并在此基础上训练句法。"]
+  ]
+}

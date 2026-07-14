@@ -38,7 +38,7 @@
     <h2>为什么要 MoE？Capacity-Compute Decoupling 的数学</h2>
     <p>一个 dense FFN 层对每个 token 都要过完整的前馈网络。若隐藏维 $d$、中间维 $d_{ff}$，则每 token 的 FFN FLOPs 约为：</p>
 
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       <p><strong>Dense FFN 每 token 计算量：</strong></p>
       $$C_{\text{dense}} \approx 2 \cdot 2 \cdot d \cdot d_{ff} = 4\,d\,d_{ff}$$
       <p>（两个线性层 gate/up 与 down，每个矩阵乘约 $2\,d\,d_{ff}$ FLOPs。）</p>
@@ -46,7 +46,7 @@
 
     <p>MoE 用 $E$ 个独立 expert（每个是一个 FFN）替换单个 FFN，但每个 token 只激活其中 $k$ 个。于是：</p>
 
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       <p><strong>MoE 参数量 vs 激活计算量：</strong></p>
       $$P_{\text{MoE}} \approx E \cdot P_{\text{expert}}, \qquad C_{\text{MoE}} \approx k \cdot C_{\text{expert}}$$
       <p>参数容量随 $E$ 线性增长，而每 token 计算只随 $k$ 增长。当 $E=64, k=8$ 时，容量是 dense 的 $64\times$，计算却只有 $8\times$（相对单 expert）。</p>
@@ -60,7 +60,7 @@
     <h2>Router 的数学：选择与门控的非对称性</h2>
     <p>router 的 forward（<code>LingBotVideoRouter.forward</code>）严格保留了一个容易被忽略但至关重要的非对称设计。以下每一步都对应源码：</p>
 
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       <p><strong>1. fp32 affinity logits（禁用 autocast 保证数值稳定）：</strong></p>
       $$\ell = W_r\, x, \quad W_r \in \mathbb{R}^{E \times d}$$
 
@@ -88,7 +88,7 @@
     <h2>Group-Limited Top-K</h2>
     <p>朴素 top-$k$ 在全部 $E$ 个 expert 上选择。group-limited 版本先把 expert 分成 $n_{\text{group}}$ 组，做两级选择：</p>
 
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       <p><strong>组打分（每组取 top-2 分数之和）：</strong></p>
       $$\text{group\_score}_j = \sum_{\text{top-2}} s_{\text{choice}}[\text{group}_j]$$
       <p><strong>选出 topk_group 个组，组外 expert 置 $-\infty$，再在存活 expert 上取 top-$k$：</strong></p>
@@ -106,7 +106,7 @@
 <div data-course-diagram="0"></div>
 
     <h2>Expert 执行路径</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <thead>
         <tr><th>路径</th><th>触发条件</th><th>教学含义</th></tr>
       </thead>
@@ -122,7 +122,7 @@
     <h2>设计选择：与其他 MoE 系统的对比</h2>
     <div class="design-note">
       <strong>相关工作定位</strong>
-      <table>
+      <table tabindex="0" aria-label="可横向滚动的数据表">
         <thead>
           <tr><th>系统</th><th>路由粒度</th><th>负载均衡机制</th><th>门控 bias</th></tr>
         </thead>

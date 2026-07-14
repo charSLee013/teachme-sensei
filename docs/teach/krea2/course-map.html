@@ -1,0 +1,106 @@
+<!DOCTYPE html><html lang="zh-CN"><head>
+  <meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：从读懂推理代码，到写出可复现的生成模型论文">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <title>从读懂推理代码，到写出可复现的生成模型论文</title>
+  <link rel="stylesheet" href="assets/course.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="crumbs"><a href="course-map.html">课程地图</a><span>/</span><span>研究型长课</span></div>
+    <a href="../index.html">回到项目 README</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="kicker">Krea 2 / Multimodal Generation / Research Writing</p>
+      <h1>从读懂推理代码，到写出可复现的生成模型论文</h1>
+      <p class="lede">本课程把 Krea 2 作为可拆解、可测量、可质疑、可重建的研究对象，带你从基础心智模型走到 ACM MM 风格的完整论文草稿。</p>
+      <div class="remember"><p class="label">先记住</p><p>熟悉概念只是起点。研究能力要求把主张连接到公式、代码、实验和证据，并诚实说明它成立的条件。</p></div>
+    </section>
+
+    <section class="section">
+      <h2>唯一毕业主线</h2>
+      <p>在不改变 Krea 2 checkpoint 的前提下，固定 prompt、seed、硬件和环境，系统测量分辨率感知的 flow-matching 时间调度、CFG、Raw/Turbo 设置对图像质量、文本对齐、推理速度和显存的影响，最后写成可复现 inference protocol。</p>
+      <div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">prompt
+  |
+  v
+Qwen3-VL hidden states + mask ----+
+                                     |
+noise -&gt; patchify -&gt; positions ----&gt; Krea 2 MMDiT -&gt; Euler flow path -&gt; VAE -&gt; image
+                                     |
+                             quality / alignment / time / memory
+                                     |
+                              baseline -&gt; ablation -&gt; claim -&gt; paper</div>
+    </section>
+
+    <section class="section" id="course-contract">
+      <h2>课程契约</h2>
+      <div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table>
+        <thead><tr><th>项目</th><th>本课程的决定</th></tr></thead>
+        <tbody>
+          <tr><td>学习者</td><td>会基础 Python，缺少 ML、生成模型和科研写作体系。</td></tr>
+          <tr><td>语言</td><td>中文讲解；英文摘要、方法、图表说明和 rebuttal 逐步训练。</td></tr>
+          <tr><td>路径</td><td>直觉 -&gt; 公式 -&gt; 代码 -&gt; 实验；每个核心机制都完整走完四层。</td></tr>
+          <tr><td>实验</td><td>CPU toy tests 用于基础验证；真实 checkpoint 实验需要另行记录可用 GPU、显存、软件环境和测量结果。</td></tr>
+          <tr><td>结果</td><td>一篇完整研究论文草稿、一套实验记录和一次模拟审稿答辩。</td></tr>
+          <tr><td>边界</td><td>训练的是可验证的 CCF 高水平研究写作能力，不承诺论文录用。</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section class="section">
+      <h2>学习路线</h2>
+      <p>按依赖顺序阅读。每课结束后，先完成 retrieval practice，再执行 next action；不要只向下滚动看答案。</p>
+      <ol class="path-list">
+        <li><a href="lessons/0001-repository-as-research-object.html">如何把 GitHub 仓库读成研究对象</a><span>建立角色、对象、接口、证据和研究问题。</span></li>
+        <li><a href="lessons/0002-tensors-and-shapes.html">PyTorch 张量与 shape 思维</a><span>先学会看懂每个维度，再看模型。</span></li>
+        <li><a href="lessons/0003-probability-and-noise.html">概率、噪声与可复现随机性</a><span>理解生成的随机起点。</span></li>
+        <li><a href="lessons/0004-neural-network-inference.html">神经网络从训练到推理</a><span>明确参数、状态、梯度和推理的区别。</span></li>
+        <li><a href="lessons/0005-tokenization-and-conditioning.html">Token、embedding 与条件输入</a><span>从文字走到 hidden states。</span></li>
+        <li><a href="lessons/0006-attention-and-gqa.html">Attention、multi-head attention 与 GQA</a><span>理解信息如何混合。</span></li>
+        <li><a href="lessons/0007-rope-and-position.html">RoPE 与三轴位置</a><span>理解 token 为什么知道自己在哪。</span></li>
+        <li><a href="lessons/0008-vae-latent-space.html">VAE 与 latent space</a><span>理解图像为何先被压缩。</span></li>
+        <li><a href="lessons/0009-diffusion-and-flow-matching.html">Diffusion、噪声路径与 flow matching</a><span>建立连续生成的过程模型。</span></li>
+        <li><a href="lessons/0010-cfg-and-sampling.html">CFG、Euler 和采样步数</a><span>把模型输出变成一条可控轨迹。</span></li>
+        <li><a href="lessons/0011-dit-and-mmdit.html">DiT 与 MMDiT</a><span>看懂 Krea 2 的主干网络。</span></li>
+        <li><a href="lessons/0012-krea2-pipeline-trace.html">Krea 2 完整 pipeline trace</a><span>把四个模块接成一条数据流。</span></li>
+        <li><a href="lessons/0013-code-to-tensor-trace.html">从代码到张量状态</a><span>逐行追踪 encoder、sampler 与 model。</span></li>
+        <li><a href="lessons/0014-hardware-and-performance.html">编译、注意力 kernel、显存与性能</a><span>理解从“能运行”走到“可部署”还需要哪些条件。</span></li>
+        <li><a href="lessons/0015-experiment-design.html">研究问题、变量与实验矩阵</a><span>把好奇心变成可检验问题。</span></li>
+        <li><a href="lessons/0016-metrics-and-error-analysis.html">指标、统计与错误分析</a><span>避免只挑好看的图片。</span></li>
+        <li><a href="lessons/0017-reproducibility-protocol.html">可复现 inference protocol</a><span>固定环境、记录失败、保存证据。</span></li>
+        <li><a href="lessons/0018-paper-reading.html">如何读生成模型原始论文</a><span>从摘要读到 claim-evidence。</span></li>
+        <li><a href="lessons/0019-related-work.html">Related work 与研究空白</a><span>避免把背景堆成论文。</span></li>
+        <li><a href="lessons/0020-abstract-and-introduction.html">英文摘要与 Introduction</a><span>让读者知道问题为何值得解决。</span></li>
+        <li><a href="lessons/0021-method-and-equations.html">Method 与公式写作</a><span>把实现写成别人可以复核的模型。</span></li>
+        <li><a href="lessons/0022-experiments-and-tables.html">Experiments、表格与统计叙事</a><span>让数字回答研究问题。</span></li>
+        <li><a href="lessons/0023-figures-and-captions.html">图、caption 与视觉证据</a><span>让图表本身承担论证。</span></li>
+        <li><a href="lessons/0024-limitations-and-negative-results.html">限制、负结果与诚实结论</a><span>把边界写成可信度。</span></li>
+        <li><a href="lessons/0025-reviewer-objections.html">模拟审稿人与 objection map</a><span>提前寻找会被质疑的地方。</span></li>
+        <li><a href="lessons/0026-rebuttal-and-defense.html">Rebuttal 与答辩</a><span>用证据回应质疑。</span></li>
+        <li><a href="lessons/0027-capstone-paper.html">毕业论文包</a><span>把实验记录整合成一篇研究论文。</span></li>
+        <li><a href="lessons/0028-final-synthesis.html">最终综合与迁移</a><span>从 Krea 2 迁移到新的生成系统。</span></li>
+      </ol>
+    </section>
+
+    <section class="band">
+      <h2>参考与工具页</h2>
+      <ul>
+        <li><a href="reference/krea2-architecture.html">Krea 2 architecture atlas</a></li>
+        <li><a href="reference/tensor-shape-atlas.html">Tensor shape atlas</a></li>
+        <li><a href="reference/sampler-and-scheduler.html">Sampler and scheduler reference</a></li>
+        <li><a href="reference/paper-writing-checklist.html">Paper writing checklist</a></li>
+        <li><a href="reference/experiment-record-template.html">Experiment record template</a></li>
+        <li><a href="reference/terminology.html">Terminology and scope</a></li>
+      </ul>
+      <p>课程使用的代码、论文和官方资料汇总在 <a href="reference/evidence-and-sources.html#local-codebase">sources/</a>。。</p>
+    </section>
+
+    <section class="next"><strong>下一步：</strong>先打开 <a href="lessons/0001-repository-as-research-object.html">第 1 课</a>，不要跳到模型公式。顶级论文作者首先要能准确说出“我正在观察什么”。</section>
+  </main>
+  <footer class="foot">Krea 2 course package. Student pages separate source evidence, teaching reconstruction and transfer guidance.</footer>
+
+
+</body></html>

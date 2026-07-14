@@ -41,18 +41,18 @@
 
     <h3>帧数：4n+1 对齐</h3>
     <p><code>num_frames_from_duration(duration, fps)</code>（utils.py:16-18）先把时长换算成原始帧数 $\lfloor d\cdot\text{fps}\rfloor$，再向上对齐到 $4n{+}1$：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ N = \Big(\big\lfloor \tfrac{\lfloor d\cdot\text{fps}\rfloor-1}{4}\big\rfloor + 1\Big)\cdot 4 + 1 $$
     </div>
     <p>为什么是 $4n{+}1$ 而不是 $4n$？因为 VAE 的时间压缩是"首帧独立 + 其余 4 帧一组"的因果结构：1 个 latent 帧解码回 1 个像素帧（首帧），之后每 1 个 latent 帧解码回 4 个像素帧。于是像素帧数 $N=4(T'-1)+1=4T'-3$，反解得 latent 帧数：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ T' = \frac{N-1}{4} + 1 $$
     </div>
     <p>举例：$d=5,\ \text{fps}=24 \Rightarrow \lfloor120\rfloor$，$\lfloor(120-1)/4\rfloor+1=30$，$N=30\cdot4+1=121$ 像素帧；对应 $T'=(121-1)/4+1=31$ 个 latent 帧。T2I 是这条链的退化情形：$N=1 \Rightarrow T'=1$。</p>
 
     <h3>空间维与最终张量</h3>
     <p>空间上 VAE 做 8 倍压缩，同时 <code>check_inputs</code>（pipeline_lingbot_video.py:132-134）要求 $H,W$ 是 16 的倍数（保证 patch 与 VAE 双重对齐无余数）。合起来，送进 DiT 的 latent 张量形状是：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ x \in \mathbb{R}^{[\,1,\ C,\ T',\ H/8,\ W/8\,]},\qquad
          T'=\frac{N-1}{4}+1,\quad N\in\{1\}\cup\{4n{+}1\},\quad 16\mid H,\ 16\mid W $$
     </div>
@@ -60,7 +60,7 @@
 
 
     <h2>三种模式的契约</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <thead>
         <tr><th>Mode</th><th>输入</th><th>Runner 行为</th><th>输出</th></tr>
       </thead>
@@ -73,7 +73,7 @@
 
     <h2>分辨率桶（RESOLUTION_BUCKETS，runner.py:235-269）</h2>
     <p>分辨率不是任意像素数，而是查表：<code>--resolution</code>（如 720）和 <code>--ratio</code>（如 16:9）共同索引出确切的 $(W,H)$。二者必须同时给（runner.py:1069-1072），否则报错。所有桶值都满足 $16\mid H,\ 16\mid W$，所以查表结果天然通过 <code>check_inputs</code>。注意 1080p 的高取 1088 而非 1080（$1080$ 不是 16 的倍数，$1088=16\cdot68$ 才是）。</p>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <thead>
         <tr><th>resolution</th><th>1:1</th><th>16:9 (W×H)</th><th>9:16 (W×H)</th></tr>
       </thead>

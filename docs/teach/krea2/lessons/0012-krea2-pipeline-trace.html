@@ -1,0 +1,34 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：Krea 2 完整 pipeline trace"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>Krea 2 完整 pipeline trace</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Code Reconstruction</span></div><a href="0011-dit-and-mmdit.html">上一课</a><a href="0013-code-to-tensor-trace.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 12 / Code Reconstruction</p><h1>Krea 2 完整 pipeline trace</h1><p class="lede">现在把前十一课压缩成一次可追踪的运行：每一步都写出状态、接口和可验证问题。</p><div class="meta"><span>前置：第 1-11 课</span><span>产物：端到端 trace sheet</span><span>实验：dummy pipeline</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>读 pipeline 时沿状态变量追踪转换；文件名用于定位实现。一次采样中最重要的状态是 prompt representation、latent tokens、time、velocity 和 decoded image。</p></section>
+<section><h2>直觉：一次运行的状态机</h2><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">S0 prompt string
+  -&gt; S1 text hidden states + text mask
+  -&gt; S2 Gaussian latent + image positions
+  -&gt; S3 packed image tokens + joint mask
+  -&gt; S4 guided velocity at t_k
+  -&gt; S5 updated tokens at t_{k+1}
+  -&gt; repeat S4/S5
+  -&gt; S6 unpatched normalized latent
+  -&gt; S7 pixel image</div><p>任何研究主张都应指向一个状态或状态转换。例如“CFG 更强”需要同时观察 S4 的 velocity 差异与最终 S7 指标；CLI 参数只记录配置。</p></section>
+<section><h2>公式：组合函数</h2><p>将 pipeline 写成：</p><p><code>c, m_t = E(prompt)</code></p><p><code>x_1 = N(0,I)</code></p><p><code>p, m = P(x_1, m_t)</code></p><p><code>x_{k+1} = x_k + Δt_k G(v_θ(x_k,c,t_k), v_θ(x_k,c_empty,t_k))</code></p><p><code>image = D(U(x_0))</code></p><p>其中 <code>E</code> 是文本编码，<code>P</code> 是 patch/position/mask 准备，<code>G</code> 是 CFG，<code>U</code> 是 unpatchify，<code>D</code> 是 VAE decode。</p></section>
+<section><h2>代码：入口与边界</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code># inference.py
+dit, ae, encoder = _pipeline(checkpoint=checkpoint)
+images = sample(
+    dit, ae, encoder, [prompt] * num_images,
+    width=width, height=height, steps=steps,
+    guidance=cfg, seed=seed, y1=y1, y2=y2, mu=mu,
+)
+for i, image in enumerate(images):
+    image.save(f"{output}_{i}.png")
+</code></pre><p>CLI 是外部接口；<code>sample</code> 是更好的测试 seam，因为它接收 model、ae、encoder，可以使用 dummy adapter。研究时先在 seam 上验证，再触碰真实权重。</p></section>
+<section><h2>实验：dummy pipeline 的端到端检查</h2><ol><li>用 dummy encoder 返回固定 hidden states/mask。</li><li>用 dummy model 返回零 velocity，验证 steps 循环和 shape。</li><li>用 dummy VAE 放大 latent，验证图像尺寸和 padding 规则。</li><li>分别打开 CFG=0 和 CFG&gt;0，数 model call 次数。</li></ol><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>assert len(images) == num_images
+assert cond_calls == steps
+assert uncond_calls == (steps if guidance &gt; 0 else 0)
+</code></pre><p>零 velocity 的输出不会是好图，但它能证明控制流。把“控制流正确”和“模型质量正确”分成两类测试，是研究工程的基本纪律。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/inference.py#L62-L138">CLI main</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L56-L146">sample</a>。</p><p><strong>Teaching use：</strong>把多个文件重构成可复用的状态机和函数组合。</p><p><strong>Scope：</strong>本 trace 描述当前 open inference code，不声称涵盖 ComfyUI、SGLang 或 hosted API 的额外行为。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>哪一个状态最适合研究 CFG 对 velocity 的影响？</li><li>为什么 dummy model 能验证控制流但不能证明图像质量？</li><li>哪个函数是最自然的测试 seam？为什么？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>CFG 直接改变每个时间步的 S4 guided velocity；dummy model 能验证参数传递、调用次数、shape 和输出，但它没有训练后的语义能力，不能证明视觉质量。<code>sample(model, ae, encoder,...)</code> 是自然 seam，因为三大模块可以替换成小 adapter 而不改采样控制流。</p><p><strong>常见误解：</strong>端到端运行成功只证明接口接通，不证明研究结论成立。</p></details></section>
+<section class="next"><strong>Next action：</strong>在 <a href="0013-code-to-tensor-trace.html">第 13 课</a> 中选择一个具体 prompt，逐行记录每个状态的 shape。</section></main><footer class="foot"><a href="../reference/krea2-architecture.html">参考：Krea 2 architecture atlas</a></footer>
+</body></html>

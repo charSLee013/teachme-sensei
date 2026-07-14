@@ -28,7 +28,7 @@
 
   <section>
     <h2>模型身份</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <tbody>
         <tr><th>名称</th><td>Ideogram 4</td></tr>
         <tr><th>仓库包名</th><td>`ideogram-4` Python 推理包</td></tr>
@@ -41,7 +41,7 @@
 
   <section id="runtime">
     <h2>变体与运行时</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <thead><tr><th>变体</th><th>权重仓库</th><th>加载路径</th><th>运行时约束</th></tr></thead>
       <tbody>
         <tr><td>nf4</td><td>`ideogram-ai/ideogram-4-nf4`</td><td>bitsandbytes `Linear4bit` 与预量化 state dict</td><td>当前实现要求 CUDA。</td></tr>
@@ -52,7 +52,7 @@
 
   <section>
     <h2>输入与输出</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <thead><tr><th>字段</th><th>契约</th><th>作用</th></tr></thead>
       <tbody>
         <tr><td>提示文本</td><td>字符串；更推荐结构化 JSON caption。</td><td>在 Qwen3-VL 隐状态提取之后提供文本条件。</td></tr>

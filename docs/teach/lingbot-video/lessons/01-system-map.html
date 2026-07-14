@@ -46,7 +46,7 @@
 
     <h2>Structured JSON Prompt 的真实结构</h2>
     <p>以下是 <code>assets/cases/ti2v/example_1/prompt.json</code> 的缩略版（141行完整文件，此处省略部分元素字段）：</p>
-    <pre><code>{
+    <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>{
   "caption": {
     "camera_info": {
       "color": "Warm",
@@ -105,14 +105,14 @@
     <h2>数学基础：贯穿全书的张量符号</h2>
     <p>在读任何一章之前，先建立整本课程共用的符号体系。视频在两个空间中流动：<b>像素空间</b>（人能看的 RGB 帧）与 <b>latent 空间</b>（VAE 压缩后、DiT 真正操作的低维表示）。二者由一个 3D VAE 相连，压缩比是固定的。</p>
 
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ \underbrace{x_{\text{pixel}} \in \mathbb{R}^{B\times 3\times F\times H\times W}}_{\text{像素视频}}
          \;\xrightarrow{\ \text{VAE.encode}\ }\;
          \underbrace{z \in \mathbb{R}^{B\times C\times T'\times H'\times W'}}_{\text{latent 视频}} $$
     </div>
 
     <p>其中 $F$ 是像素帧数、$H\times W$ 是像素分辨率。VAE 在时间维压缩 $4\times$、在空间两维各压缩 $8\times$，因此：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ T' = \frac{F-1}{4}+1,\qquad H' = \frac{H}{8},\qquad W' = \frac{W}{8},\qquad C = \text{latent 通道数} $$
     </div>
     <p>时间维的 $\frac{F-1}{4}+1$ 不是普通除法：因果式的 3D VAE 单独保留第一帧、再对其余帧按 4 分组，所以像素帧数必须满足 $F=4n+1$ 才能整除。这正是第 <a href="02-public-workflow.html">02 章</a>帧公式 <code>num_frames_from_duration</code> 强制对齐 $4n+1$ 的根本原因。举例：$F=121$（5 秒 @ 24fps 对齐后）$\Rightarrow T'=\frac{120}{4}+1=31$ 个 latent 帧。</p>
@@ -128,7 +128,7 @@
 <div data-course-diagram="0"></div>
 
     <h2>系统分层</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <thead>
         <tr><th>层次</th><th>课程中的含义</th><th>主要来源</th></tr>
       </thead>

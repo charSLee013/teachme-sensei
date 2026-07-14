@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：可复现 inference protocol"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>可复现 inference protocol</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Research Method</span></div><a href="0016-metrics-and-error-analysis.html">上一课</a><a href="0018-paper-reading.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 17 / Reproducibility</p><h1>可复现 inference protocol</h1><p class="lede">可复现协议需要记录资源来源、环境、运行步骤和失败情况；seed 只是其中一个字段。</p><div class="meta"><span>前置：metrics</span><span>产物：protocol + manifest</span><span>实验：复跑一致性</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>一份结果只有在别人能重建其条件时才是研究证据。版本、权重 revision、prompt、seed、resolution、steps、CFG、mu、dtype、设备和输出后处理都属于结果。</p></section>
+<section><h2>直觉：菜谱不只写“煮熟”</h2><p>“用 Krea 2 生成一张图”像菜谱里的“煮熟”。可复现实验需要写食材版本、设备、温度、时间和判断标准。尤其是 Krea 2 的 compile、CUDNN backend 和外部 Hugging Face 模型，会把环境差异带进输出。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">artifact manifest
+  code commit
+  package lock + Python
+  checkpoint path + SHA256 + revision
+  tokenizer/VAE revision
+  prompt set + seed set
+  width/height/steps/CFG/mu/dtype/device
+  metrics version + raw outputs + failures</div></section>
+<section><h2>公式：结果是条件函数</h2><p>将结果写成：</p><p><code>R = F(code, weights, environment, prompt, seed, sampler_config)</code></p><p>复现目标包括让 <code>R</code> 相同，并让函数参数透明。跨硬件可能无法 bitwise 相同，因此需要定义可接受差异，例如指标区间、图像统计或人工判断协议。</p></section>
+<section><h2>代码：运行配置必须可序列化</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>manifest = {
+    "git_commit": "...",
+    "checkpoint": {"name": "oss_turbo", "sha256": "..."},
+    "python": "3.12.x",
+    "torch": "...",
+    "cuda": "...",
+    "prompt_file": "prompts.jsonl",
+    "seeds": [0, 1, 2, 3, 4],
+    "width": 1024, "height": 1024,
+    "steps": 8, "cfg": 0.0, "mu": 1.15,
+    "dtype": "bfloat16",
+}
+</code></pre><p>当前仓库没有完整 protocol writer；课程中的这段代码是 transfer artifact，不能伪装成项目已有功能。</p></section>
+<section><h2>实验：同机复跑与跨条件复跑</h2><ol><li>同一环境、同一 seed 重跑两次，检查输出 hash 和指标。</li><li>只改 seed，检查平均值/方差。</li><li>只改 Torch 或 GPU，记录 bitwise 差异和质量差异。</li><li>故意删除一个 revision 字段，要求 reviewer 判断是否还能复现。</li></ol><p>实验结束后写一段范围声明：“本 protocol 支持在 X 环境下复现 Y；不保证在 Z 上 bitwise identical。”</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/pyproject.toml">pyproject.toml/uv.lock</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/inference.py#L28-L57">checkpoint 与加载</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L90-L105">seed</a>。</p><p><strong>Teaching use：</strong>从项目的真实版本与硬件风险抽象出研究 protocol。</p><p><strong>Scope：</strong>可复现协议要随 checkpoint、软件和硬件版本更新；它不是永久不变的保证。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么 checkpoint 身份还需要文件哈希与来源 revision？</li><li>bitwise reproducibility 和 scientific reproducibility 有什么区别？</li><li>哪些失败必须写进 manifest？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>同名文件可能被替换，必须记录 hash/revision。bitwise 是逐元素完全相同，scientific reproducibility 允许硬件浮点差异但要求结论在预定义范围内保持。OOM、compile error、NaN、坏图、缺失 prompt 和指标异常都应记录，因为它们改变结果范围。</p><p><strong>常见误解：</strong>复现不是隐藏失败后展示成功样本。</p></details></section>
+<section class="next"><strong>Next action：</strong>把 protocol 作为一个假想 reviewer，进入 <a href="0018-paper-reading.html">论文阅读</a>。</section></main><footer class="foot"><a href="../reference/experiment-record-template.html">参考：Experiment record template</a></footer>
+</body></html>

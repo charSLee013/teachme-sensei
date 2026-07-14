@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：Method 与公式写作"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>Method 与公式写作</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Paper Writing</span></div><a href="0020-abstract-and-introduction.html">上一课</a><a href="0022-experiments-and-tables.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 21 / Paper Writing</p><h1>Method 与公式写作</h1><p class="lede">Method 提供足够的表示、过程和约束，让读者判断实验测量的对象；源码行号用于追溯实现。</p><div class="meta"><span>前置：pipeline trace</span><span>产物：method section</span><span>练习：公式-代码对照</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>每个公式都要回答“这个量从哪里来、如何更新、何时停止、怎样被测量”。漂亮的符号如果没有代码和实验锚点，只会增加歧义。</p></section>
+<section><h2>直觉：给别人一张可复核的地图</h2><p>Method 让读者在没有阅读全部仓库的情况下理解系统，但不隐藏关键条件。先给组件和数据流，再给每个机制的最小公式，最后给实现选择和复杂度。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">Text encoder E(prompt) -&gt; c, mask
+Latent initialization        -&gt; x_1 ~ N(0,I)
+Packing P(x_1)               -&gt; image tokens + positions
+Velocity model v_theta       -&gt; cond / uncond predictions
+Guidance G                   -&gt; guided velocity
+Euler integration            -&gt; x_0
+VAE decode D                 -&gt; image</div></section>
+<section><h2>公式：从变量定义开始</h2><p>先定义：</p><ul><li><code>c ∈ R^{B×L_t×12×2560}</code>：选定 Qwen hidden states。</li><li><code>x_k ∈ R^{B×L_i×64}</code>：packed image tokens。</li><li><code>t_k</code>：从 1 到 0 的 resolution-aware time grid。</li><li><code>v_c, v_u</code>：条件和无条件 velocity。</li></ul><p>再写算法：</p><p><code>v_k = v_c + g(v_c-v_u)</code></p><p><code>x_{k+1} = x_k + (t_{k+1}-t_k)v_k</code></p><p>最后说明 <code>x_0</code> 如何 unpatchify、反归一化并送入 VAE。</p></section>
+<section><h2>代码：公式旁边放实现锚点</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code># Equation: v_k = v_c + g(v_c - v_u)
+cond = model(img=img, context=txt, t=t, pos=pos, mask=mask)
+uncond = model(img=img, context=untxt, t=t, pos=unpos, mask=unmask)
+v = cond + guidance * (cond - uncond)
+
+# Equation: x_{k+1} = x_k + Delta_t * v_k
+img = img + (tprev - tcurr) * v
+</code></pre><p>方法章节不要只写“we use Euler sampling”；要告诉读者时间顺序、CFG convention、steps、mu 来源和 padding 规则。</p></section>
+<section><h2>实验：公式审计</h2><ol><li>从 Method 每个变量找到一个本地代码定义。</li><li>从代码每个关键分支找到 Method 的一句说明。</li><li>用 tiny example 手算一次 Euler update。</li><li>标记尚未被实验验证的假设。</li></ol><p>若公式、代码、实验三者不能互相指向，Method 尚未完成。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L117-L146">sampling schedule and update</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/encoder.py#L40-L76">text conditioning</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/autoencoder.py#L19-L22">decode</a>。</p><p><strong>Teaching use：</strong>演示如何把实际实现压缩成可复核的数学描述。</p><p><strong>Scope：</strong>公式描述当前 inference implementation，不等同于训练目标或论文中未公开的模型内部细节。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么 Method 必须说明 CFG 的具体 convention？</li><li>为什么把 all constants 塞进一个公式会降低可复核性？</li><li>一条公式找不到代码锚点时，应该怎么办？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>不同库对 guidance scale 的定义可能相差 1；不写 convention 会造成数字不可比。变量、配置和算法步骤分开才能知道每项如何变化。找不到代码锚点时标为外部假设或未确认，并回到 source 或 experiment 继续验证；自行补全会把假设写成事实。</p><p><strong>常见误解：</strong>公式越复杂越像研究；清楚、可计算、可验证才是目标。</p></details></section>
+<section class="next"><strong>Next action：</strong>把 Method 的每个公式转成实验表中的一列，进入 <a href="0022-experiments-and-tables.html">实验写作</a>。</section></main><footer class="foot"><a href="../reference/krea2-architecture.html">参考：Architecture atlas</a></footer>
+</body></html>

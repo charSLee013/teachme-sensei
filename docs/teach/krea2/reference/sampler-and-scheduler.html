@@ -1,0 +1,40 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：Sampler and Scheduler Reference"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>Sampler and Scheduler Reference</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Reference</span></div><a href="../lessons/0010-cfg-and-sampling.html">回到第 10 课</a></header>
+<main>
+<section class="hero"><p class="kicker">Reference / Flow Matching</p><h1>Sampler and Scheduler Reference</h1><p class="lede">记录 timestep schedule、Euler 更新、CFG 和分辨率对齐时，使用同一套定义，避免把不同库的参数名当成同一个变量。</p></section>
+<section class="remember"><p class="label">先记住</p><p>sampler 决定如何沿着模型预测的速度场走；scheduler 决定在哪些时间点走。两者都改变输出，不能只报告“用了 28 steps”而不报告时间网格。</p></section>
+<section><h2>默认与 checkpoint-specific 起点</h2><div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table><thead><tr><th>变量</th><th>当前默认</th><th>Raw 起点</th><th>Turbo 起点</th><th>实验记录要求</th></tr></thead><tbody>
+<tr><td>steps</td><td>28</td><td>README 示例 52</td><td>README 示例 8</td><td>写总步数和实际 <code>len(ts)-1</code>。</td></tr>
+<tr><td>CFG</td><td>4.5</td><td>README 示例 3.5</td><td>README 示例 0</td><td>记录代码语义；当前 <code>0</code> 会跳过 uncond branch。</td></tr>
+<tr><td>mu</td><td>None</td><td>由 seq_len 在 y1/y2 间插值</td><td>官方示例固定 1.15</td><td>记录显式 mu，以及若为 None 时的 x1/x2/y1/y2。</td></tr>
+<tr><td>resolution</td><td>1024x1024</td><td>模型 README 约 1k</td><td>示例 2048x2048</td><td>同时记录 requested 和 padded size。</td></tr>
+</tbody></table></div><p>Raw/Turbo 是官方 README 的起始协议，不是课程预先宣布的结论。课程的结论只能来自固定 seed、固定 prompt 和明确指标下的测量。</p></section>
+<section><h2>Resolution-aware timestep shift</h2><p>当前实现先构造从 1 到 0 的均匀网格，再将每个时间点变换：</p><p><code>s(t;mu,sigma) = exp(mu) / (exp(mu) + (1/t - 1)^sigma)</code></p><p>当 <code>mu</code> 未显式传入时，先令 <code>S=N</code> 为 image sequence length，按照两端点线性插值：</p><p><code>mu(S) = y1 + (S-x1) * (y2-y1)/(x2-x1)</code></p><p>这里的 <code>x1=(minres/16)^2</code>、<code>x2=(maxres/16)^2</code> 只是当前代码定义的分辨率参考点；改变 patch、compression 或 min/max resolution 就会改变解释。不要把 <code>mu</code> 误读为“模型权重里的一个参数”。</p><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>ts = torch.linspace(1, 0, steps + 1)
+if mu is None:
+    slope = (y2 - y1) / (x2 - x1)
+    mu = slope * seq_len + (y1 - slope * x1)
+ts = math.exp(mu) / (math.exp(mu) + (1.0 / ts - 1.0) ** sigma)
+</code></pre></section>
+<section><h2>Euler + CFG 的逐步语义</h2><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">t0=1 ------------------------------&gt; tK=0
+       dt = t_next - t_current (negative)
+       v_cond = model(x_t, context, t)
+       v_uncond = model(x_t, empty_context, t)  [only if cfg &gt; 0]
+       v = v_cond + g * (v_cond - v_uncond)
+       x_next = x_t + dt * v</div><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>for tcurrent, tnext in zip(ts[:-1], ts[1:]):
+    t = torch.full((batch,), tcurrent, device=device, dtype=x.dtype)
+    cond = model(img=x, context=txt, t=t, pos=pos, mask=mask)
+    if guidance &gt; 0:
+        uncond = model(img=x, context=untxt, t=t, pos=unpos, mask=unmask)
+        velocity = cond + guidance * (cond - uncond)
+    else:
+        velocity = cond
+    x = x + (tnext - tcurrent) * velocity
+</code></pre><p>注意 <code>dt</code> 为负，因为当前代码从 1 积分到 0。若把符号改成正数，模型仍然可能运行，但轨迹方向已经被改变，不能把它称为同一个 sampler。</p></section>
+<section><h2>公平消融 protocol</h2><ol><li>只改变一个因素：steps、guidance、mu 或 resolution；其余参数写入配置快照。</li><li>同一 prompt 集合使用同一 seed 集合；批次内第 <code>i</code> 张使用 <code>seed+i</code> 的规则也要固定。</li><li>预热编译和 kernel 后再计时；分别记录 encode、denoise、decode 和端到端耗时。</li><li>报告 peak allocated/reserved memory，并说明是否包含模型加载和编译缓存。</li><li>质量、文本对齐、速度、显存一起看；某项变好不能自动代表总效用变好。</li><li>保存完整 timestep list 或可重建它的所有参数，不只保存 steps 数。</li></ol></section>
+<section class="warning"><p class="label">边界提醒</p><p>不同框架可能把 CFG scale 定义为 <code>v_u + s(v_c-v_u)</code>，而当前代码使用 <code>v_c + g(v_c-v_u)</code>。这两套参数相差一个平移关系。跨实现比较时必须写出公式，不能只把数字放在同一列。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L37-L59">timesteps</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L99-L115">Euler + CFG loop</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/README.md#L39-L67">官方 CLI 示例与选项</a>、<a href="https://arxiv.org/abs/2210.02747">Flow Matching</a>、<a href="https://arxiv.org/abs/2207.12598">Classifier-Free Guidance</a>。</p><p><strong>Teaching use：</strong>把采样配置变成可以复查、重建和公平比较的 protocol。</p><p><strong>Scope：</strong>本页不保证某一组参数在所有硬件、prompt、分辨率或未来 checkpoint 上最优。</p></section>
+<section class="next"><strong>用法：</strong>复制“公平消融 protocol”到 <a href="experiment-record-template.html">实验记录模板</a>，再开始真实 GPU sweep。</section>
+</main><footer class="foot"><a href="paper-writing-checklist.html">下一页：Paper writing checklist</a></footer>
+</body></html>

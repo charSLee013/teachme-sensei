@@ -85,7 +85,7 @@
         <!-- ================================================================ -->
         <p>当你运行 <code>pi "hello"</code> 时，操作系统执行的是 <code>packages/coding-agent/src/cli.ts</code>。这是整个应用的入口点：</p>
 
-        <pre><code class="language-typescript">// src/cli.ts — CLI 入口
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/cli.ts — CLI 入口
 import { APP_NAME } from "./config.ts";
 import { configureHttpDispatcher } from "./core/http-dispatcher.ts";
 import { main } from "./main.ts";
@@ -109,7 +109,7 @@ main(process.argv.slice(2));</code></pre>
 
         <p>真正的逻辑在 <code>main.ts</code> 中。它的核心流程如下：</p>
 
-        <pre><code class="language-ts">// 启动流程概览（src/main.ts）
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts">// 启动流程概览（src/main.ts）
 export async function main(args: string[], options?: MainOptions) {
     resetTimings();
 
@@ -161,7 +161,7 @@ export async function main(args: string[], options?: MainOptions) {
 }</code></pre>
 
         <h3>启动流程图</h3>
-        <pre><code class="language-ts">&lt;svg viewBox="0 0 800 900" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;background:#1a1a2e;border-radius:12px;padding:20px;"&gt;
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts">&lt;svg viewBox="0 0 800 900" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;background:#1a1a2e;border-radius:12px;padding:20px;"&gt;
   &lt;defs&gt;
     &lt;marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"&gt;
       &lt;polygon points="0 0, 10 3.5, 0 7" fill="#6c7086"/&gt;
@@ -263,7 +263,7 @@ export async function main(args: string[], options?: MainOptions) {
         <!-- ================================================================ -->
         <p>Pi 支持三种运行模式，由 <code>resolveAppMode()</code> 函数决定：</p>
 
-        <pre><code class="language-typescript">// src/main.ts — 模式判断逻辑
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/main.ts — 模式判断逻辑
 function resolveAppMode(parsed: Args, stdinIsTTY: boolean, stdoutIsTTY: boolean): AppMode {
     if (parsed.mode === "rpc") {
         return "rpc";
@@ -278,7 +278,7 @@ function resolveAppMode(parsed: Args, stdinIsTTY: boolean, stdoutIsTTY: boolean)
 }</code></pre>
 
         <p>模式判断规则：</p>
-        <table>
+        <table tabindex="0" aria-label="可横向滚动的数据表">
             <thead>
                 <tr>
                     <th>条件</th>
@@ -313,7 +313,7 @@ function resolveAppMode(parsed: Args, stdinIsTTY: boolean, stdoutIsTTY: boolean)
         <h3>Interactive 模式</h3>
         <p>Interactive 模式是默认模式，当你直接在终端中运行 <code>pi</code> 时进入。它使用 <code>pi-tui</code> 库渲染终端用户界面：</p>
 
-        <pre><code class="language-typescript">// src/modes/interactive/interactive-mode.ts
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/modes/interactive/interactive-mode.ts
 export class InteractiveMode {
     private runtime: AgentSessionRuntime;
     private tui: TUI;
@@ -338,7 +338,7 @@ export class InteractiveMode {
         <h3>Print 模式</h3>
         <p>Print 模式用于脚本和管道操作——发送一个 prompt，收到输出后退出：</p>
 
-        <pre><code class="language-typescript">// src/modes/print-mode.ts
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/modes/print-mode.ts
 export async function runPrintMode(
     runtimeHost: AgentSessionRuntime,
     options: PrintModeOptions
@@ -352,7 +352,7 @@ export async function runPrintMode(
 }</code></pre>
 
         <p>使用示例：</p>
-        <pre><code class="language-bash"># 文本输出
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-bash"># 文本输出
 $ pi -p "总结这个项目的架构"
 
 # JSON 事件流
@@ -364,7 +364,7 @@ $ cat error.log | pi -p "分析这个错误日志"</code></pre>
         <h3>RPC 模式</h3>
         <p>RPC 模式通过 stdio 使用 JSON-RPC 协议与外部程序通信，是 IDE 集成和自动化工具的基础：</p>
 
-        <pre><code class="language-typescript">// src/modes/rpc/rpc-mode.ts
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/modes/rpc/rpc-mode.ts
 /**
  * RPC 模式：无头操作 + JSON stdin/stdout 协议。
  *
@@ -385,7 +385,7 @@ export async function runRpcMode(runtimeHost: AgentSessionRuntime): Promise&lt;v
             <p>RPC 模式是 Pi 与外部工具集成的核心。IDE 扩展、CI/CD 流水线、自动化测试框架都可以通过 JSON-RPC 协议驱动 Pi，而无需解析终端输出。</p>
         </div>
 
-        <table>
+        <table tabindex="0" aria-label="可横向滚动的数据表">
             <thead>
                 <tr>
                     <th>特性</th>
@@ -445,7 +445,7 @@ export async function runRpcMode(runtimeHost: AgentSessionRuntime): Promise&lt;v
         </div>
 
         <h3>类结构概览</h3>
-        <pre><code class="language-typescript">// src/core/agent-session.ts
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/core/agent-session.ts
 export class AgentSession {
     readonly agent: Agent;              // 来自 pi-agent-core 的核心 Agent
     readonly sessionManager: SessionManager;  // 会话持久化（JSONL 文件）
@@ -481,7 +481,7 @@ export class AgentSession {
         <h3>构造函数</h3>
         <p>构造函数接收一个 <code>AgentSessionConfig</code> 对象，并立即完成三项关键设置：</p>
 
-        <pre><code class="language-typescript">constructor(config: AgentSessionConfig) {
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">constructor(config: AgentSessionConfig) {
     this.agent = config.agent;
     this.sessionManager = config.sessionManager;
     this.settingsManager = config.settingsManager;
@@ -509,7 +509,7 @@ export class AgentSession {
         <h3>事件订阅机制</h3>
         <p><code>AgentSession</code> 的事件系统连接了底层 Agent 和上层 UI：</p>
 
-        <pre><code class="language-typescript">// 订阅事件——返回取消订阅函数
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// 订阅事件——返回取消订阅函数
 subscribe(listener: AgentSessionEventListener): () =&gt; void {
     this._eventListeners.push(listener);
     return () =&gt; {
@@ -548,7 +548,7 @@ private _handleAgentEvent = async (event: AgentEvent): Promise&lt;void&gt; {
         <h3>prompt() 方法</h3>
         <p><code>prompt()</code> 是发送用户消息的核心方法。它处理了命令拦截、模板扩展、流式排队、模型验证和压缩检查：</p>
 
-        <pre><code class="language-typescript" class="collapsible">async prompt(text: string, options?: PromptOptions): Promise&lt;void&gt; {
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">async prompt(text: string, options?: PromptOptions): Promise&lt;void&gt; {
     const expandPromptTemplates = options?.expandPromptTemplates ?? true;
 
     // 1. 处理扩展命令（如 /session, /tree, /help）
@@ -606,7 +606,7 @@ private _handleAgentEvent = async (event: AgentEvent): Promise&lt;void&gt; {
         <h3>steer() 和 followUp()</h3>
         <p>当 agent 正在流式响应时，用户发送的新消息需要排队。Pi 支持两种排队策略：</p>
 
-        <pre><code class="language-typescript">// steer——中断当前响应，立即处理新消息
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// steer——中断当前响应，立即处理新消息
 async steer(text: string, images?: ImageContent[]): Promise&lt;void&gt; {
     let expandedText = this._expandSkillCommand(text);
     expandedText = expandPromptTemplate(expandedText, [...this.promptTemplates]);
@@ -640,7 +640,7 @@ private async _queueFollowUp(text: string, images?: ImageContent[]): Promise&lt;
         <h3>模型管理</h3>
         <p><code>AgentSession</code> 管理模型的设置和切换：</p>
 
-        <pre><code class="language-typescript">// 设置模型（验证 auth 已配置）
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// 设置模型（验证 auth 已配置）
 async setModel(model: Model&lt;any&gt;): Promise&lt;void&gt; {
     if (!this._modelRegistry.hasConfiguredAuth(model)) {
         throw new Error(`No API key for ${model.provider}/${model.id}`);
@@ -676,7 +676,7 @@ setThinkingLevel(level: ThinkingLevel): void {
         <h3>Compaction（压缩）</h3>
         <p>当会话上下文接近模型窗口限制时，<code>AgentSession</code> 自动触发压缩——将历史消息总结为摘要，释放 token 空间：</p>
 
-        <pre><code class="language-typescript" class="collapsible">// 手动压缩
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// 手动压缩
 async compact(customInstructions?: string): Promise&lt;CompactionResult&gt; {
     this._disconnectFromAgent();       // 暂停事件处理
     await this.abort();                // 中止当前操作
@@ -718,7 +718,7 @@ async compact(customInstructions?: string): Promise&lt;CompactionResult&gt; {
         <h3>dispose() 方法</h3>
         <p>当会话被替换或关闭时，<code>dispose()</code> 清理所有资源：</p>
 
-        <pre><code class="language-typescript">dispose(): void {
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">dispose(): void {
     try {
         this.abortRetry();
         this.abortCompaction();
@@ -742,7 +742,7 @@ async compact(customInstructions?: string): Promise&lt;CompactionResult&gt; {
         <!-- ================================================================ -->
         <p><code>AgentSessionRuntime</code> 拥有当前的 <code>AgentSession</code> 和其 cwd-bound 服务。它负责会话替换时的生命周期管理——销毁旧运行时，创建新运行时，通知相关方。</p>
 
-        <pre><code class="language-typescript">// src/core/agent-session-runtime.ts
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/core/agent-session-runtime.ts
 export class AgentSessionRuntime {
     private _session: AgentSession;
     private _services: AgentSessionServices;
@@ -762,7 +762,7 @@ export class AgentSessionRuntime {
         <h3>会话切换</h3>
         <p><code>AgentSessionRuntime</code> 的会话切换方法是理解 Pi 多会话管理的关键：</p>
 
-        <pre><code class="language-typescript" class="collapsible">// 切换到另一个会话（resume）
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// 切换到另一个会话（resume）
 async switchSession(sessionPath: string, options?: {
     cwdOverride?: string;
     withSession?: (ctx: ReplacedSessionContext) =&gt; Promise&lt;void&gt;;
@@ -846,7 +846,7 @@ private async teardownCurrent(reason: SessionShutdownEvent["reason"], targetSess
         <h3>.pi/ 目录结构</h3>
         <p>配置目录由 <code>config.ts</code> 中的函数定义：</p>
 
-        <pre><code class="language-typescript">// src/config.ts — 配置路径定义
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/config.ts — 配置路径定义
 export const CONFIG_DIR_NAME = pkg.piConfig?.configDir || ".pi";
 export const ENV_AGENT_DIR = `${APP_NAME.toUpperCase()}_CODING_AGENT_DIR`;
 
@@ -868,7 +868,7 @@ export function getPromptsDir(): string { return join(getAgentDir(), "prompts");
 export function getCustomThemesDir(): string { return join(getAgentDir(), "themes"); }</code></pre>
 
         <p>完整的 <code>.pi/</code> 目录结构：</p>
-        <pre><code class="language-bash">~/.pi/
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-bash">~/.pi/
 ├── agent/
 │   ├── auth.json          # API keys 和 OAuth tokens
 │   ├── settings.json      # 全局设置
@@ -884,7 +884,7 @@ export function getCustomThemesDir(): string { return join(getAgentDir(), "theme
     └── .pi/
         ├── settings.json    # 项目级设置
         └── agents/          # 项目上下文文件
-```
+</code></pre>
 
         <h3>SettingsManager</h3>
         <p><code>SettingsManager</code> 管理配置的加载、合并和持久化。它支持两层配置：</p>
@@ -893,7 +893,7 @@ export function getCustomThemesDir(): string { return join(getAgentDir(), "theme
             <li><strong>项目配置</strong>：<code>.pi/settings.json</code>——当前项目专用</li>
         </ul>
 
-        <pre><code class="language-typescript">// src/core/settings-manager.ts
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/core/settings-manager.ts
 export class SettingsManager {
     private storage: SettingsStorage;
     private globalSettings: Settings;
@@ -928,7 +928,7 @@ function deepMergeSettings(base: Settings, overrides: Settings): Settings {
 
         <p>Settings 接口定义了所有可配置项：</p>
 
-        <pre><code class="language-typescript" class="collapsible">export interface Settings {
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">export interface Settings {
     defaultProvider?: string;
     defaultModel?: string;
     defaultThinkingLevel?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
@@ -970,7 +970,7 @@ function deepMergeSettings(base: Settings, overrides: Settings): Settings {
         <h3>ModelRegistry</h3>
         <p><code>ModelRegistry</code> 管理内置和自定义模型，提供 API key 解析：</p>
 
-        <pre><code class="language-typescript">// src/core/model-registry.ts
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/core/model-registry.ts
 export class ModelRegistry {
     private models: Model&lt;Api&gt;[] = [];
     private providerRequestConfigs: Map&lt;string, ProviderRequestConfig&gt; = new Map();
@@ -1001,7 +1001,7 @@ export class ModelRegistry {
         <h3>默认模型</h3>
         <p>每个 provider 都有一个默认模型，定义在 <code>model-resolver.ts</code> 中：</p>
 
-        <pre><code class="language-typescript">// src/core/model-resolver.ts
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/core/model-resolver.ts
 export const defaultModelPerProvider: Record&lt;KnownProvider, string&gt; = {
     "amazon-bedrock": "us.anthropic.claude-opus-4-6-v1",
     anthropic: "claude-opus-4-8",
@@ -1019,7 +1019,7 @@ export const defaultModelPerProvider: Record&lt;KnownProvider, string&gt; = {
         <h3>模型作用域解析</h3>
         <p><code>resolveModelScope()</code> 解析 <code>--models</code> 标志中的模型模式（支持 glob）：</p>
 
-        <pre><code class="language-typescript" class="collapsible">export async function resolveModelScope(
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">export async function resolveModelScope(
     patterns: string[],
     modelRegistry: ModelRegistry
 ): Promise&lt;ScopedModel[]&gt; {
@@ -1055,7 +1055,7 @@ export const defaultModelPerProvider: Record&lt;KnownProvider, string&gt; = {
         <h3>CLI 模型解析</h3>
         <p><code>resolveCliModel()</code> 处理 <code>--provider</code> + <code>--model</code> 参数：</p>
 
-        <pre><code class="language-typescript">// src/core/model-resolver.ts
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/core/model-resolver.ts
 export function resolveCliModel(options: {
     cliProvider?: string;
     cliModel?: string;
@@ -1093,7 +1093,7 @@ export function resolveCliModel(options: {
         <!-- ================================================================ -->
         <p><code>AuthStorage</code> 管理 API keys 和 OAuth tokens 的加载、保存和刷新。它使用文件锁定防止多个 pi 实例同时刷新 token。</p>
 
-        <pre><code class="language-typescript">// src/core/auth-storage.ts
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/core/auth-storage.ts
 export class AuthStorage {
     private data: AuthStorageData = {};
     private runtimeOverrides: Map&lt;string, string&gt; = new Map();
@@ -1124,7 +1124,7 @@ export class AuthStorage {
         <h3>存储后端</h3>
         <p><code>AuthStorage</code> 支持两种存储后端：</p>
 
-        <pre><code class="language-typescript">// 文件后端（生产环境使用）
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// 文件后端（生产环境使用）
 export class FileAuthStorageBackend implements AuthStorageBackend {
     private authPath: string;
 
@@ -1168,7 +1168,7 @@ export class InMemoryAuthStorageBackend implements AuthStorageBackend {
 }</code></pre>
 
         <h3>Credential 类型</h3>
-        <pre><code class="language-typescript">export type ApiKeyCredential = {
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">export type ApiKeyCredential = {
     type: "api_key";
     key: string;
     env?: Record&lt;string, string&gt;;
@@ -1196,7 +1196,7 @@ export type AuthStatus = {
         <!-- ================================================================ -->
         <p><code>system-prompt.ts</code> 负责构建发送给 LLM 的系统提示。它组合了工具描述、指导原则、项目上下文、技能列表和当前日期。</p>
 
-        <pre><code class="language-typescript" class="collapsible">// src/core/system-prompt.ts
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/core/system-prompt.ts
 export interface BuildSystemPromptOptions {
     customPrompt?: string;           // 自定义 prompt（替换默认）
     selectedTools?: string[];        // 工具列表
@@ -1275,7 +1275,7 @@ Pi documentation (read only when the user asks about pi itself):
         <!-- ================================================================ -->
         <p><code>SessionManager</code> 管理会话的 JSONL 文件——每个会话是一个 JSONL 文件，每行是一个 session entry（消息、压缩、模型变更等）。</p>
 
-        <pre><code class="language-typescript">// src/core/session-manager.ts
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/core/session-manager.ts
 export const CURRENT_SESSION_VERSION = 3;
 
 export class SessionManager {
@@ -1315,7 +1315,7 @@ export class SessionManager {
 }</code></pre>
 
         <h3>Session Entry 类型</h3>
-        <pre><code class="language-typescript">export interface SessionEntryBase {
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">export interface SessionEntryBase {
     type: string;
     id: string;
     parentId: string | null;

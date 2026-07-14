@@ -38,7 +38,7 @@
     <h2>自注意力的数学基础</h2>
     <p>Transformer 的核心是缩放点积注意力。对一个长度为 $N$ 的 token 序列，每个 token 投影出 query、key、value，注意力权重由 query-key 内积经 softmax 归一化得到：</p>
 
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       <p><strong>缩放点积注意力：</strong></p>
       $$\text{Attn}(Q,K,V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V$$
       <p>其中 $Q,K \in \mathbb{R}^{N \times d_k}$，$V \in \mathbb{R}^{N \times d_v}$，$\sqrt{d_k}$ 是防止内积随维度增大而饱和 softmax 的缩放因子。</p>
@@ -46,7 +46,7 @@
 
     <p>在 single-stream 设计中，序列 $N = N_{\text{video}} + N_{\text{text}}$ 是视觉 token 与文本 token 的<strong>拼接总长</strong>。这意味着一次 attention 同时建模了「视觉-视觉」「文本-文本」和「视觉-文本」三类交互，无需额外的 cross-attention 层。</p>
 
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       <p><strong>QK-Norm（LingBotVideoRMSNorm 作用于 q/k）：</strong></p>
       $$\hat{q} = \frac{q}{\sqrt{\frac{1}{d}\sum_i q_i^2 + \epsilon}} \cdot \gamma, \quad \hat{k} = \frac{k}{\sqrt{\frac{1}{d}\sum_i k_i^2 + \epsilon}} \cdot \gamma$$
       <p>归一化后 $\|\hat{q}\|,\|\hat{k}\|$ 被约束在稳定范围，使 $\hat{q}\hat{k}^\top$ 的尺度不随训练漂移，避免 attention logits 爆炸导致 softmax 饱和。</p>
@@ -55,7 +55,7 @@
     <h2>Multi-Modal 3D RoPE 的数学</h2>
     <p>旋转位置编码（RoPE）通过对 query/key 施加与位置相关的旋转，使注意力内积<strong>只依赖相对位置</strong>。一维 RoPE 对位置 $m$ 的向量施加旋转矩阵 $R_m$：</p>
 
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       <p><strong>一维 RoPE 的相对位置性质：</strong></p>
       $$\langle R_m q,\; R_n k \rangle = \langle q,\; R_{n-m} k \rangle$$
       <p>旋转角频率：$\theta_j = \text{base}^{-2j/d}$，代码中 <code>rope_theta = 256.0</code>。</p>
@@ -63,7 +63,7 @@
 
     <p>LingBot-Video 的 <strong>3D RoPE</strong> 把 head 维度切成三段，分别编码时间 $t$、高度 $h$、宽度 $w$ 坐标。每个 token 的位置是一个三元组 $(t, h, w)$。关键在于 <code>make_joint_position_ids</code> 如何为不同模态分配坐标：</p>
 
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       <p><strong>坐标分配（代码 make_joint_position_ids）：</strong></p>
       $$\text{text token } i:\quad (t,h,w) = (i+1,\; 0,\; 0), \quad i \in [0, L)$$
       $$\text{video token }(t',h',w'):\quad (t' + L + 1,\; h',\; w')$$
@@ -81,7 +81,7 @@
 <div data-course-diagram="0"></div>
 
     <h2>Block 内部的稳定机制</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <thead>
         <tr><th>机制</th><th>代码对象</th><th>数学作用</th></tr>
       </thead>
@@ -108,7 +108,7 @@
 
     <div class="design-note">
       <strong>相关工作定位对比</strong>
-      <table>
+      <table tabindex="0" aria-label="可横向滚动的数据表">
         <thead>
           <tr><th>系统</th><th>文本-视频融合方式</th><th>attention 结构</th></tr>
         </thead>

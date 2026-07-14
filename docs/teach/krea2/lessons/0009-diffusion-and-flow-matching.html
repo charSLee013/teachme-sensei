@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：Diffusion、噪声路径与 flow matching"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>Diffusion、噪声路径与 flow matching</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Mechanism</span></div><a href="0008-vae-latent-space.html">上一课</a><a href="0010-cfg-and-sampling.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 09 / Mechanism</p><h1>Diffusion、噪声路径与 flow matching</h1><p class="lede">生成过程学习一条从随机状态走向数据状态的路径，图像是整条轨迹结束后的结果。</p><div class="meta"><span>前置：latent + 概率</span><span>产物：时间路径图</span><span>实验：线性 flow toy</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>在 flow matching 的视角下，模型预测的是速度场 <code>v_θ(x_t,t,c)</code>；采样器把速度乘以时间差，重复积分得到下一状态。</p></section>
+<section><h2>直觉：给噪声一个方向</h2><p>从噪声到图像不是一条预先画好的直线，因为不同 prompt、不同当前位置和不同时间需要不同方向。模型的任务是：看到当前状态、条件和时间，回答“现在往哪里走”。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">t=1.0  noise  -----&gt;  partially organized  -----&gt;  t=0.0  image
+          v_theta(x_t, t, c) changes with state, time and text
+
+Euler step: x_next = x_current + (t_next - t_current) * velocity</div></section>
+<section><h2>公式：路径与速度</h2><p>设数据样本为 <code>x_0</code>，噪声为 <code>x_1</code>，最简单的线性插值是：</p><p><code>x_t = (1-t)x_0 + t x_1</code></p><p>其目标速度是：</p><p><code>dx_t/dt = x_1 - x_0</code></p><p>实际模型学习条件速度场，使许多样本路径在统计上指向数据分布。推理时使用离散网格 <code>t_0,...,t_K</code>，Euler 更新为：</p><p><code>x_{k+1} = x_k + (t_{k+1}-t_k)v_θ(x_k,t_k,c)</code></p></section>
+<section><h2>代码：Krea 2 的时间 grid</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code># sampling.py
+ts = torch.linspace(1, 0, steps + 1)
+if mu is None:
+    slope = (y2 - y1) / (x2 - x1)
+    mu = slope * seq_len + (y1 - slope * x1)
+ts = math.exp(mu) / (math.exp(mu) + (1.0 / ts - 1.0) ** sigma)
+
+for tcurr, tprev in zip(ts[:-1], ts[1:]):
+    v = model(img=img, context=txt, t=t, pos=pos, mask=mask)
+    img = img + (tprev - tcurr) * v
+</code></pre><p>注意时间从 1 走向 0，因此 <code>tprev-tcurr</code> 是负数。模型预测的是速度，代码并不是简单地“减去噪声”。</p></section>
+<section><h2>实验：线性 flow 的 Euler 误差</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>x0, x1 = torch.tensor(0.), torch.tensor(10.)
+def exact(t): return (1-t)*x0 + t*x1
+def velocity(t): return x1 - x0
+
+for steps in [1, 2, 4, 8]:
+    ts = torch.linspace(1, 0, steps + 1)
+    x = x1.clone()
+    for a, b in zip(ts[:-1], ts[1:]):
+        x = x + (b-a) * velocity(a)
+    print(steps, x.item(), exact(torch.tensor(0.)).item())
+</code></pre><p>线性例子可以精确积分；再把 velocity 改成随 x 变化的函数，观察 steps 增加如何减少离散化误差。这为后续 Raw/Turbo steps 实验建立“数值误差 vs 计算成本”的直觉。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L40-L53">timesteps</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L122-L133">Euler loop</a>；理论来源见 <a href="../reference/evidence-and-sources.html#flow-matching-papers">flow matching source note</a>。</p><p><strong>Teaching use：</strong>把连续时间模型重构为初学者可模拟的离散状态转移。</p><p><strong>Scope：</strong>课程解释 Krea 2 当前 sampler 的 flow-matching 视角，不推断其训练数据或内部损失实现。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么同一个 steps 数不代表同一个计算轨迹？</li><li><code>mu</code> 改变的是模型参数还是时间点？</li><li>为什么 steps 越多通常更慢，但不保证视觉质量必然更高？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>steps 只是网格数量，时间 shift、模型、CFG、seed 和分辨率共同决定轨迹。<code>mu</code> 改变时间 grid，不改 checkpoint 参数。更多 steps 减少数值离散误差但增加 forward 次数，过多步骤也可能偏离 distilled checkpoint 的训练分布。</p><p><strong>常见误解：</strong>Turbo 的 8 steps 不是 Raw 的 8 steps 只少算几次；Turbo checkpoint 的训练目标已经针对少步采样改变。</p></details></section>
+<section class="next"><strong>Next action：</strong>在 <a href="0010-cfg-and-sampling.html">第 10 课</a> 中把“条件方向”和“无条件方向”画在同一张图上。</section></main><footer class="foot"><a href="../reference/evidence-and-sources.html#flow-matching-papers">来源：Flow Matching</a></footer>
+</body></html>

@@ -22,11 +22,13 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { buildSearchIndex, writeSearchIndex } from "./generate-pi-search-index.mjs";
 import { normalizePiPages } from "./normalize-pi-pages.mjs";
 import { normalizePublicMetadata } from "./normalize-public-metadata.mjs";
+import { buildKrea2Course } from "./course-adapters/krea2.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const docsRoot = resolve(repoRoot, "docs");
 const defaultLockPath = resolve(repoRoot, "scripts/teaching-source-lock.json");
 const canonicalFaviconPath = resolve(repoRoot, "scripts/canonical-favicon.svg");
+const publicManifestPath = resolve(repoRoot, "scripts/public-site-manifest.json");
 
 export const PACKAGE_DEFINITIONS = [
   {
@@ -69,6 +71,12 @@ export const PACKAGE_DEFINITIONS = [
     ],
   },
   {
+    id: "krea2",
+    sourcePath: "kera2-course",
+    outputPath: "teach/krea2",
+    include: ["course-map.html", "assets/course.css", "lessons/", "reference/", "sources/"],
+  },
+  {
     id: "lingbot-video",
     sourcePath: "lingbot-video-course",
     outputPath: "teach/lingbot-video",
@@ -105,6 +113,7 @@ export const SYNC_OWNED_PATHS = [
   "teach/assets/ideogram_logo.svg",
   "teach/flux2/",
   "teach/ideogram4/",
+  "teach/krea2/",
   "teach/lingbot-video/",
   "teach/pi/",
 ];
@@ -496,8 +505,54 @@ function replaceFile(target, replacer) {
   writeFileSync(target, next.replace(/\n+$/, "\n"));
 }
 
+function addKeyboardScrollAttributes(html, { mathBlocks = false, diagramContainers = false } = {}) {
+  const addToTags = (source, tag, label, predicate = () => true) => source.replace(
+    new RegExp(`<${tag}\\b([^>]*)>`, "gi"),
+    (match, rawAttributes) => {
+      if (!predicate(rawAttributes) || /\btabindex\s*=/i.test(rawAttributes)) return match;
+      return `<${tag} tabindex="0" aria-label="${label}"${rawAttributes}>`;
+    },
+  );
+  const hasClass = (className) => (attributes) => {
+    const match = /\bclass\s*=\s*(["'])(.*?)\1/i.exec(attributes);
+    return match ? match[2].split(/\s+/).includes(className) : false;
+  };
+  let next = addToTags(html, "pre", "可横向滚动的代码示例");
+  next = addToTags(next, "table", "可横向滚动的数据表");
+  if (mathBlocks) next = addToTags(next, "div", "可横向滚动的公式", hasClass("math-block"));
+  if (diagramContainers) next = addToTags(next, "div", "可横向滚动的课程图示", hasClass("diagram-container"));
+  return next;
+}
+
 function sanitizeLingbot(target) {
   replaceFile(resolve(target, "assets/course.css"), (css) => `${css.replace("--muted: #657168", "--muted: #4c5a50")}\n\n.hero-placeholder {\n  height: 849px;\n  margin: 42px 0 46px;\n}\n\n[data-course-diagram] {\n  min-height: 647px;\n  margin: 22px 0 10px;\n}\n\n.story-diagram .flow-column h4,\n.story-diagram .route-arrow {\n  color: var(--accent);\n  opacity: 1;\n}\n\n.story-diagram .flow-card.is-dim {\n  opacity: 1;\n}\n\n.story-diagram .flow-card p {\n  color: var(--muted);\n  opacity: 1;\n}\n\n@media (max-width: 760px) {\n  .hero-placeholder {\n    height: 1080px;\n  }\n\n  [data-course-diagram] {\n    min-height: 900px;\n  }\n}\n`);
+  replaceFile(resolve(target, "assets/course.css"), (css) => `${css}\n
+main,
+.page,
+section {
+  min-width: 0;
+}
+
+pre,
+table,
+.math-block {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.math-block {
+  width: 100%;
+}
+
+.page p,
+.page li,
+.page td,
+.page a,
+.page :not(pre) > code {
+  overflow-wrap: anywhere;
+}
+`);
   replaceFile(resolve(target, "assets/course-runtime.js"), (source) => source
     .replace(
       '  anchor.insertAdjacentElement("afterend", hero);',
@@ -541,8 +596,34 @@ function sanitizeLingbot(target) {
       : html.replace(/(<p class="meta">[\s\S]*?<\/p>)/, '$1\n    <div class="hero-placeholder" aria-hidden="true"></div>'));
   }
   for (const file of htmlFiles(target)) {
+    replaceFile(file, (html) => addKeyboardScrollAttributes(html, { mathBlocks: true }));
+  }
+  for (const file of htmlFiles(target)) {
     const html = readFileSync(file, "utf8");
     if (/(?:artifacts|proof|showcases)\//i.test(html)) throw new SyncError(`LingBot public page references excluded material: ${relative(target, file)}`);
+  }
+}
+
+function sanitizeIdeogram(target) {
+  replaceFile(resolve(target, "paper.css"), (css) => `${css}\n
+@media (max-width: 880px) {
+  table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  th,
+  td {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+`);
+  for (const file of htmlFiles(target)) {
+    replaceFile(file, (html) => addKeyboardScrollAttributes(html));
   }
 }
 
@@ -557,14 +638,99 @@ function sanitizePi(target) {
     .replaceAll("#0f9b8e", "#0b756b")
     .replace(".search-results .result-item {", ".search-results .result-item {\n    display: block;\n    color: inherit;\n    text-decoration: none;")
     .replace(".search-results .result-item:hover {", ".search-results .result-item:focus-visible {\n    outline: 2px solid var(--accent-primary);\n    outline-offset: 2px;\n}\n\n.search-results .result-item:hover {"));
+  replaceFile(resolve(target, "assets/style.css"), (css) => `${css}\n
+.content {
+    flex: 1;
+    width: calc(100% - var(--sidebar-width));
+    max-width: calc(100% - var(--sidebar-width));
+    min-width: 0;
+    margin-left: var(--sidebar-width);
+    padding: 2.5rem 2rem 2rem;
+}
+
+.main-content {
+    width: calc(100% - var(--sidebar-width));
+    max-width: calc(100% - var(--sidebar-width));
+    min-width: 0;
+}
+
+.main-content > .content-wrapper {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.content > * {
+    min-width: 0;
+}
+
+.content table,
+.content .diagram-container,
+.main-content table,
+.main-content .diagram-container {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.content table,
+.main-content table {
+    display: block;
+}
+
+.content p,
+.content li,
+.content td,
+.content a,
+.content :not(pre) > code {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .content {
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
+        padding: 1.5rem 1rem 1.5rem 3.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .content {
+        padding: 1rem 0.75rem 1rem 3rem;
+    }
+}
+`);
+  const codingAgent = resolve(target, "chapters/06-coding-agent.html");
+  if (existsSync(codingAgent)) {
+    replaceFile(codingAgent, (html) => {
+      const malformedEnding = "\n```\n\n        <h3>SettingsManager</h3>";
+      if (/^\s*```/m.test(html) && !html.includes(malformedEnding)) {
+        throw new SyncError("Pi chapter 06 malformed code fence pattern drifted");
+      }
+      return html
+        .replace(malformedEnding, "\n</code></pre>\n\n        <h3>SettingsManager</h3>")
+        .replace(/<code class="([^"]+)" class="collapsible">/g, '<code class="$1">');
+    });
+  }
   for (const file of htmlFiles(target)) {
-    replaceFile(file, (html) => html
+    replaceFile(file, (html) => addKeyboardScrollAttributes(html
       .replace(/<a\s+href="#">([^<]+)<\/a>/g, "$1")
+      .replace("$ cat > fib.ts << 'EOF'", "$ cat > fib.ts &lt;&lt; 'EOF'")
+      .replace("if (n <= 0) return 0;", "if (n &lt;= 0) return 0;")
+      .replace("for (let i = 2; i <= n; i++)", "for (let i = 2; i &lt;= n; i++)")
+      .replace("if (version < 2) migrateV1ToV2(entries);", "if (version &lt; 2) migrateV1ToV2(entries);")
+      .replace("if (version < 3) migrateV2ToV3(entries);", "if (version &lt; 3) migrateV2ToV3(entries);")
       .replaceAll("regression: issue #1234", "regression: empty-system-prompt")
       .replaceAll("CVE-2024-xxxxx", "a dependency vulnerability")
       .replaceAll("#7a8a9a", "#94a3b8")
       .replaceAll("#e94560", "#ff7088")
-      .replaceAll("#0f9b8e", "#0b756b"));
+      .replaceAll("#0f9b8e", "#0b756b"), { diagramContainers: true }));
   }
 }
 
@@ -614,11 +780,18 @@ function buildStage(sourceRoot, stageRoot) {
   copyGeneratedFiles(sourceRoot, stageRoot);
   for (const pkg of PACKAGE_DEFINITIONS) {
     if (pkg.id === "anima") syncAnima(sourceRoot, stageRoot);
+    else if (pkg.id === "krea2") {
+      buildKrea2Course({
+        packageRoot: resolve(sourceRoot, pkg.sourcePath),
+        outputRoot: resolve(stageRoot, pkg.outputPath),
+      });
+    }
     else {
       copySelectedPackage(sourceRoot, stageRoot, pkg);
       if (pkg.id === "flux2") createFluxEntry(stageRoot);
     }
   }
+  sanitizeIdeogram(resolve(stageRoot, "teach/ideogram4"));
   sanitizeLingbot(resolve(stageRoot, "teach/lingbot-video"));
   sanitizePi(resolve(stageRoot, "teach/pi"));
   sanitizeFlux2(resolve(stageRoot, "teach/flux2"));
@@ -630,7 +803,13 @@ function buildStage(sourceRoot, stageRoot) {
 
 function validateStage(stageRoot) {
   const html = htmlFiles(stageRoot);
-  if (html.length !== 73) throw new SyncError(`staging HTML count is ${html.length}, expected 73 course pages`);
+  const publicManifest = JSON.parse(readFileSync(publicManifestPath, "utf8"));
+  const expectedRoutes = publicManifest.htmlRoutes.filter((route) =>
+    route.endsWith(".html") && SYNC_OWNED_PATHS.some((owned) => owned.endsWith("/") && route.startsWith(owned)),
+  );
+  if (html.length !== expectedRoutes.length) {
+    throw new SyncError(`staging HTML count is ${html.length}, expected ${expectedRoutes.length} sync-owned routes`);
+  }
   for (const file of html) {
     const source = readFileSync(file, "utf8");
     if (/(?:artifacts|proof|showcases)\//i.test(source)) throw new SyncError(`staging contains excluded support path: ${file}`);

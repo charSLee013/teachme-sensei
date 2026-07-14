@@ -1,0 +1,40 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：DiT 与 MMDiT"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>DiT 与 MMDiT</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Mechanism</span></div><a href="0010-cfg-and-sampling.html">上一课</a><a href="0012-krea2-pipeline-trace.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 11 / Mechanism</p><h1>DiT 与 MMDiT</h1><p class="lede">Krea 2 主干先把文本与图像整理为 token，再送入联合 Transformer 流进行处理。</p><div class="meta"><span>前置：attention + latent</span><span>产物：主干 block 图</span><span>实验：tiny forward</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>MMDiT 的关键接口是联合序列：先融合文本条件，再把 text token 和 image token 拼接，让同一套 attention 在两个模态之间传递信息。</p></section>
+<section><h2>直觉：两种语言进入同一张桌子</h2><p>文本 token 说“我要什么”，图像 token 说“当前 latent 长什么样”。如果两者永远分开，图像只能在最后被弱条件影响；联合 sequence 让图像 token 在每个 block 都能访问文本信息。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">context: (B, text_len, 2560)
+          -&gt; txtfusion -&gt; txtmlp -&gt; (B, text_len, 6144)
+
+image:   (B, image_len, 64)
+          -&gt; first -&gt; (B, image_len, 6144)
+
+combined = [context | image]
+          -&gt; 28 x SingleStreamBlock
+          -&gt; select image part -&gt; velocity tokens</div></section>
+<section><h2>公式：条件残差 block</h2><p>每个 block 通过时间向量 <code>t</code> 产生调制参数。简化表示：</p><p><code>x' = x + gate_a · Attention((1+scale_a)Norm(x)+shift_a)</code></p><p><code>x'' = x' + gate_m · MLP((1+scale_m)Norm(x')+shift_m)</code></p><p>时间 embedding 不只是拼接到输入，它调节每个 block 的 scale、shift 和 gate，使网络知道当前处于哪一个采样时间。</p></section>
+<section><h2>代码：text fusion 与联合序列</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code># mmdit.py
+context = self.txtfusion(context, mask=txtmask)
+context = self.txtmlp(context)
+combined = torch.cat((context, img), dim=1)
+...
+for block in self.blocks:
+    combined = block(combined, tvec, freqs, mask)
+final = self.last(combined, t)
+output = final[:, txtlen : txtlen + imglen, :]
+</code></pre><p>注意最后只取 image 区间，因为 text 区间是条件上下文，不是要 decode 的 latent velocity。<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/mmdit.py#L379-L417">forward</a> 里每个切片都对应一个明确的语义。</p></section>
+<section><h2>实验：tiny MMDiT 的 shape 和 finite check</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>cfg = SingleMMDiTConfig(
+    features=128, tdim=32, txtdim=64,
+    heads=4, kvheads=2, multiplier=2,
+    layers=1, patch=2, channels=4,
+    txtlayers=3, txtheads=4, txtkvheads=4,
+)
+out = model(img, context, t, pos, mask)
+assert out.shape == (1, image_len, 16)
+assert torch.isfinite(out).all()
+</code></pre><p>tiny 实验用于验证接口：它检查 QKV、GQA、RoPE、text fusion、padding 和输出切片能在小配置上连通。质量结论需要真实 checkpoint、正式协议和测量结果。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/mmdit.py#L229-L318">text fusion/block</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/mmdit.py#L321-L417">SingleStreamDiT</a>；官方 <a href="https://huggingface.co/krea/Krea-2-Raw/blob/main/transformer/config.json">Krea2 transformer config</a>。</p><p><strong>Teaching use：</strong>用一条 forward 解释多模态 token 的联合建模。</p><p><strong>Scope：</strong>当前仓库只实现推理主干；训练策略、数据配比和蒸馏过程不由这些类直接证明。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么 text 和 image 的 feature dimension 在进入 combined 前必须相同？</li><li>为什么最终只取 image token 输出？</li><li>时间调制放在每个 block 内会提供哪些额外表达能力？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>combined 是沿 sequence 维拼接，所以最后 feature 维必须一致。只有 image token 对应 latent 的 velocity；text token 是条件。block 内调制让每层都能根据 t 改变归一化后的表示、残差门控和 MLP 行为，表达更丰富的时间依赖。</p><p><strong>常见误解：</strong>MMDiT 的“multi-modal”表示条件先经过专门融合，再进入联合流；各模态在同一主干中发生信息交换。</p></details></section>
+<section class="next"><strong>Next action：</strong>用 <a href="0012-krea2-pipeline-trace.html">第 12 课</a> 把所有模块按一次真实推理顺序串起来。</section></main><footer class="foot"><a href="../reference/evidence-and-sources.html#transformer-and-dit-papers">来源：DiT 与 Transformer</a></footer>
+</body></html>

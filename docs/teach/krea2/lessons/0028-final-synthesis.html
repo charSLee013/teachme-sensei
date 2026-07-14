@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：最终综合与迁移"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>最终综合与迁移</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Synthesis</span></div><a href="0027-capstone-paper.html">上一课</a><a href="../course-map.html">课程地图</a></header>
+<main><section class="hero"><p class="kicker">Lesson 28 / Synthesis</p><h1>最终综合与迁移</h1><p class="lede">课程终点是把这套研究方法迁移到新的生成模型、仓库和论文问题；Krea 2 常量仅服务于当前案例。</p><div class="meta"><span>前置：毕业论文包</span><span>产物：迁移审查</span><span>终点：独立研究循环</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>面对新模型，先重建对象地图和接口 contract，再重建机制、实验和证据。不要把 Krea 2 的参数、prompt 模板和结论复制到不满足相同条件的系统。</p></section>
+<section><h2>直觉：带走方法，不带走答案</h2><p>换成新的 text encoder、VAE、scheduler 或 backbone 时，具体 shape 会变，但“对象 -&gt; 表示 -&gt; 过程 -&gt; 约束 -&gt; 验证”的阅读方法仍然适用。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">new repository
+  -&gt; inventory and source map
+  -&gt; shape/interface contracts
+  -&gt; intuition/formula/code/experiment
+  -&gt; controlled question
+  -&gt; evidence graph
+  -&gt; paper claim with scope</div></section>
+<section><h2>公式：研究循环</h2><p>把独立研究写成：</p><p><code>Observe -&gt; Model -&gt; Predict -&gt; Measure -&gt; Revise -&gt; Communicate</code></p><p>如果观察和模型冲突，检查实现；如果预测和实验冲突，检查假设和变量；如果沟通超出证据，缩小 claim。这个循环比任何一个特定模型名称更值得记住。</p></section>
+<section><h2>代码：迁移时先写 contract</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>contract = {
+    "conditioner": {"input": "text", "output": "..."},
+    "latent": {"shape": "...", "normalization": "..."},
+    "sampler": {"state": "...", "time_direction": "..."},
+    "backbone": {"tokens": "...", "mask": "..."},
+    "decoder": {"dtype": "...", "output_range": "..."},
+}
+</code></pre><p>先填未知项，不要猜。未知项会变成下一轮 source search 或实验；这就是从初学者向研究作者升级的核心行为。</p></section>
+<section><h2>实验：迁移审查</h2><ol><li>选择一个新 diffusion/flow-matching 仓库。</li><li>只用 30 分钟画出模块和数据流，不运行大模型。</li><li>列出三条与 Krea 2 相同的契约和三条不同的契约。</li><li>提出一个可复现问题，写出固定项、变化项和 scope。</li><li>用 90 秒向别人讲清楚你知道什么、尚不知道什么。</li></ol><p>迁移审查要求把事实、假设和待验证问题分开，并为每项标注来源或下一步验证。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong>全课程的 local code、官方 source notes、实验 protocol 和毕业 rubric。</p><p><strong>Teaching use：</strong>把 Krea 2 具体知识抽象成可迁移的科研工作流。</p><p><strong>Scope：</strong>迁移到新仓库时必须重新核验版本、license、模型配置和实验条件。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>新模型没有 README 时，你的第一步是什么？</li><li>哪些 Krea 2 结论不能直接迁移？</li><li>什么行为最能证明你已经不再只是“会跟着教程跑”？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>先建立文件/入口/依赖/对象/来源地图。具体的 34/5 token 常量、16 latent channels、mu 推荐值、CUDNN backend 和质量结论都不能无条件迁移。能够提出受控问题、建立 contract、记录失败、解释证据范围并写出可复核结论，才是独立研究能力。</p><p><strong>常见误解：</strong>独立研究能力表现为提出可验证的问题、检查答案，并对采用的帮助保留证据记录。</p></details></section>
+<section class="next"><strong>毕业动作：</strong>回到 <a href="../course-map.html">课程地图</a>，打开你的论文包、实验 manifest 和 objection map，做一次完整的自审与答辩。</section></main><footer class="foot"><a href="../course-map.html#course-contract">课程 mission</a> · </footer>
+</body></html>

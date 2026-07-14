@@ -274,5 +274,42 @@ Non-goals: 明确不能修改的文件/行为
 
 ## 备注
 
+## 2026-07-14 Krea2 扩展规格
+
+### 目标
+
+- 将 `/private/tmp/kera2-course/` 作为第六个教学源包纳入确定性同步流程，在 `docs/teach/krea2/` 发布 37 个 HTML 路由和 1 个 CSS 资产，使公开路由总数从 75 增至 112。
+- 保留 28 个 lesson、6 个 reference 和 course map；新增课程入口与面向读者的 evidence-and-sources 页面。
+- 把 9 份结构化 source Markdown 汇总成公开 HTML。`MISSION.md` 与 `review.md` 仅用于源包治理，不进入公开目录。
+- 将代码引用固定到 Krea 官方仓库 revision `cf3c9102c924168699b90d97a2cb15059d761488`，并校验路径与行号上界。
+- 全面改写 Krea2 公开可见文本中的否定对照套式，改用范围、条件、证据和结果的正向陈述；必要的风险与限制必须保留。
+
+### 输入与输出契约
+
+- package id：`krea2`；sourcePath：`kera2-course`；outputPath：`teach/krea2`。
+- 输入白名单固定为 `course-map.html`、`assets/course.css`、`lessons/`、`reference/`、`sources/`，共 45 个普通文件。目录、父目录和文件均拒绝符号链接；额外源文件不进入 lock 或输出。
+- 输出固定为 `index.html`、`course-map.html`、28 个 `lessons/*.html`、6 个原始 `reference/*.html`、`reference/evidence-and-sources.html`、`assets/course.css`。
+- `scripts/course-adapters/krea2.mjs` 暴露 `buildKrea2Course({ packageRoot, outputRoot })`。主同步器只负责 lock、staging、事务和适配器调度，其余五个课程适配流程保持现状。
+- 9 个 source 文件必须满足 H1 和 `Source`、`What It Supports`、`Teaching Use`、`Scope` 四节结构；缺节、重节、空节或未知结构都使 staging 失败。
+- Krea2 HTML 禁止 `<script>`，禁止 `.md` href、越出 package 的相对链接、公开 `MISSION.md`/`review.md`/`sources/` 路径和未解析 Markdown 语法。
+- Krea2 CSS 保留源样式，并由适配器加入确定性的 focus-visible 与窄屏 overflow 保护。
+
+### 内容约束
+
+- 公开可见文本禁止 `not X ... but Y`、`not part of`、`does not require`、`do not require`、`not treated as` 及其变体。
+- 公开可见中文禁止 `不是 X 而是 Y`、`并非 X 而是 Y`、`不只是 X 而是 Y`、`不等于` 等否定对照模板；涉及风险时直接写明适用范围、先决条件、证据强度和失败后果。
+- 文案修订必须由适配器内的确定性规则完成。每条精确替换记录原文、改写文本和预期次数；原文漂移或次数变化使构建失败。
+- `autoencoder.py` 引用行号上界按固定 revision 的 22 行校正；课程中两处原始 Markdown 链接转向聚合证据页。
+- 无公开实测支撑的 H100 表述改为硬件规划提示，不写成已经完成的基准结论。
+
+### 验收标准
+
+- public manifest 与 `docs/` 精确匹配 112 个 HTML；Krea2 的 37 页均具有 description、favicon、唯一 main、唯一 h1、合法 heading 顺序和可解析本地链接。
+- source lock 包含 Krea2 的 45 个输入文件；缺文件、schema 破坏、hash 漂移、输出差异、两次构建不一致均失败且不改 committed docs。
+- 静态验证证明 Krea2 没有脚本、原始 Markdown、治理路径、package escape、禁用文案套式和孤儿页面。
+- Playwright 在 112 个路由的 desktop 与 390px mobile 视口完成加载、样式响应和水平溢出检查；Krea2 details 可交互，代表页 axe 无 critical/serious 问题。
+- 本地资源和 required runtime 失败为 hard failure；Google Fonts 等 optional 字体失败仅记录 warning，页面 console 不重复把同一可选网络失败升级为 hard failure。
+- `npm test` 与 CI static job都包含 workflow verifier；CI 仍只验证 committed `docs/`，不访问本机 source root。
+
 - 本文件是冻结后的规格说明；如需扩 scope，先更新本文件再更新 `Plan.md`。
 - 不允许在收尾阶段删除主交付物或 `Documentation.md`。

@@ -16,7 +16,7 @@
     <div class="hero-placeholder" aria-hidden="true"></div>
 
     <h2>输入与输出</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <tr><th>参数</th><th>作用</th></tr>
       <tr><td>`--model_dir`</td><td>LingBot-Video 模型根目录，必填。</td></tr>
       <tr><td>`--mode`</td><td>`t2i`、`t2v` 或 `ti2v`。</td></tr>
@@ -27,14 +27,14 @@
     </table>
 
     <h2>Prompt 与 Negative</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <tr><th>参数</th><th>作用</th></tr>
       <tr><td>`--negative_prompt`</td><td>手写 negative prompt。</td></tr>
       <tr><td>`--negative_prompt_json`</td><td>读取 auto negative 输出；与 `--negative_prompt` 互斥。</td></tr>
     </table>
 
     <h2>几何与采样</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <tr><th>参数</th><th>作用</th></tr>
       <tr><td>`--height`, `--width`</td><td>输出几何；需要满足 Pipeline input checks。</td></tr>
       <tr><td>`--resolution`, `--ratio`</td><td>使用预设 bucket；必须同时提供。</td></tr>
@@ -44,7 +44,7 @@
     </table>
 
     <h2>精度与组件加载</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <tr><th>参数</th><th>作用</th></tr>
       <tr><td>`--default_dtype`</td><td>未被组件级参数覆盖时的默认 dtype。</td></tr>
       <tr><td>`--transformer_dtype`</td><td>DiT transformer 主体加载 dtype。</td></tr>
@@ -57,7 +57,7 @@
     </table>
 
     <h2>Backend 与并行</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <tr><th>参数</th><th>作用</th></tr>
       <tr><td>`--backend`</td><td>`diffusers` 或 `sglang`。</td></tr>
       <tr><td>`--batch_cfg`</td><td>批量计算 CFG 两支。</td></tr>
@@ -70,7 +70,7 @@
     </table>
 
     <h2>Refiner</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <tr><th>参数</th><th>作用</th></tr>
       <tr><td>`--run_refiner`</td><td>启用视频 refiner。</td></tr>
       <tr><td>`--refiner_model_dir`</td><td>非标准模型布局时覆盖 refiner 根目录。</td></tr>

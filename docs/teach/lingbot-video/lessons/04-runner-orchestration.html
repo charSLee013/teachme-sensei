@@ -39,21 +39,21 @@
 
     <p>多卡推理的核心问题是:给定 $N$ 张 GPU(<code>world_size</code>),如何把它们分配到不同的并行维度?LingBot-Video 用两个正交维度:</p>
 
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ \text{world\_size} = D_{\text{cfg}} \times D_{\text{cp}} $$
     </div>
 
     <p>其中 $D_{\text{cfg}}$ 是 <b>CFG 并行度</b>(把 classifier-free guidance 的 conditional/unconditional 两条分支拆到不同进程组),$D_{\text{cp}}$ 是 <b>context parallel 并行度</b>(把注意力的序列维切到不同进程,即 Ulysses,见 <a href="10-serving-fsdp-sglang.html">Lesson 10</a>)。这个乘法关系意味着进程被组织成一个 $D_{\text{cfg}}\times D_{\text{cp}}$ 的二维网格:同一 CFG lane 内的进程协作完成一条 guidance 分支的序列并行注意力,不同 CFG lane 并行处理两条 guidance 分支。</p>
 
     <p>每个 rank 的坐标可以写成:</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ \text{rank} = r_{\text{cfg}}\cdot D_{\text{cp}} + r_{\text{cp}},\qquad r_{\text{cfg}}\in[0,D_{\text{cfg}}),\; r_{\text{cp}}\in[0,D_{\text{cp}}) $$
     </div>
     <p>这正是 <code>DeviceMesh</code>(runner.py:347)构造的二维网格索引方式:先按 context lane 展开,再按 cfg lane 分组。</p>
 
     <h3>为什么 $D_{\text{cfg}}>1$ 与 batch_cfg 互斥?</h3>
     <p>CFG 需要同时算 conditional 和 unconditional 两条前向。有两种把它们"并行化"的方式,它们在物理上争抢同一份工作,不能叠加:</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ \underbrace{D_{\text{cfg}}=2}_{\text{进程并行:两条分支放到两个进程组}} \quad\text{vs}\quad \underbrace{\texttt{batch\_cfg}}_{\text{batch 并行:两条分支拼进同一次前向的 batch 维}} $$
     </div>
     <p>如果 $D_{\text{cfg}}=2$ 已经把两条分支分给了两个进程,再要求 <code>batch_cfg</code> 把它们拼进同一个 batch 就自相矛盾——同一份分支工作不能既在进程 A 又在进程 B 的 batch 里。所以 runner.py:1100-1101 直接报错。<code>--refiner_batch_cfg</code> 同理(1102-1104)。</p>
@@ -76,7 +76,7 @@
     </div>
 
     <h3>backend/engine 解析对照</h3>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <thead>
         <tr><th>用户输入</th><th>解析 engine</th><th>不可用时</th><th>典型场景</th></tr>
       </thead>

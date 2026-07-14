@@ -95,7 +95,7 @@
         <!-- ================================================================ -->
         <p>每行一个 JSON 对象。第一行永远是 <span class="term" data-term="session header">SessionHeader</span>，后续行是各种 <span class="term" data-term="session entry">SessionEntry</span>。</p>
 
-        <pre><code class="language-ts">// 一个典型的 session.jsonl 文件（每行一个 JSON）
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts">// 一个典型的 session.jsonl 文件（每行一个 JSON）
 {"type":"session","version":3,"id":"0192ef8e-...","timestamp":"2025-11-01T10:00:00.000Z","cwd":"/Users/alice/project"}
 {"type":"message","id":"a1b2c3d4","parentId":null,"timestamp":"2025-11-01T10:00:01.000Z","message":{"role":"user","content":[{"type":"text","text":"帮我写一个排序函数"}]}}
 {"type":"message","id":"e5f6g7h8","parentId":"a1b2c3d4","timestamp":"2025-11-01T10:00:05.000Z","message":{"role":"assistant","content":[{"type":"text","text":"好的，我来写一个快速排序："},{"type":"toolCall","name":"write","arguments":{"path":"sort.ts","content":"..."}}]}}
@@ -114,7 +114,7 @@
         <!-- ================================================================ -->
         <p>每个会话文件的第一行是 header，包含会话的元数据：</p>
 
-        <pre><code class="language-ts">export const CURRENT_SESSION_VERSION = 3;
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts">export const CURRENT_SESSION_VERSION = 3;
 
 export interface SessionHeader {
     type: "session";
@@ -137,7 +137,7 @@ export interface SessionHeader {
         <!-- ================================================================ -->
         <p>每个 entry 都有 <code>id</code>、<code>parentId</code>、<code>timestamp</code> 三个基础字段。<code>id</code> 是 8 字符短 UUID（碰撞检测），<code>parentId</code> 指向上一个 entry，形成树结构。</p>
 
-        <pre><code class="language-ts">export interface SessionEntryBase {
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts">export interface SessionEntryBase {
     type: string;
     id: string;
     parentId: string | null;
@@ -146,7 +146,7 @@ export interface SessionHeader {
 
         <p>共有 <strong>9 种 entry 类型</strong>：</p>
 
-        <pre><code class="language-ts collapsible">// 1. 用户/助手消息
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts collapsible">// 1. 用户/助手消息
 export interface SessionMessageEntry extends SessionEntryBase {
     type: "message";
     message: AgentMessage;
@@ -235,7 +235,7 @@ export type SessionEntry =
         <!-- ================================================================ -->
         <p>每个 entry 通过 <code>parentId</code> 指向父节点，形成一棵树。<span class="term" data-term="leaf pointer">leaf 指针</span> 指向当前对话位置。</p>
 
-        <div class="diagram-container">
+        <div tabindex="0" aria-label="可横向滚动的课程图示" class="diagram-container">
             <svg viewBox="0 0 520 340" xmlns="http://www.w3.org/2000/svg" class="diagram-svg">
                 <!-- Header -->
                 <rect x="10" y="10" width="500" height="30" rx="4" fill="#1e2a3a" stroke="#3a4a5a"/>
@@ -314,7 +314,7 @@ export type SessionEntry =
         <!-- ================================================================ -->
         <p><code>SessionManager</code> 是会话系统的核心类，提供读写、树遍历和工厂方法。</p>
 
-        <pre><code class="language-ts collapsible">export class SessionManager {
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts collapsible">export class SessionManager {
     private sessionId: string;
     private sessionFile: string | undefined;
     private fileEntries: FileEntry[];
@@ -356,7 +356,7 @@ export type SessionEntry =
         <h3>buildSessionContext()</h3>
         <p>这是最重要的读取方法——它从 leaf 向根遍历，收集消息，并处理压缩摘要和分支摘要：</p>
 
-        <pre><code class="language-ts">export function buildSessionContext(
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts">export function buildSessionContext(
     entries: SessionEntry[],
     leafId?: string | null,
     byId?: Map&lt;string, SessionEntry&gt;,
@@ -378,7 +378,7 @@ export type SessionEntry =
         <!-- ================================================================ -->
         <p>会话文件支持向前兼容。加载时检测到旧版本会自动迁移并覆写文件：</p>
 
-        <pre><code class="language-ts">/** v1 -> v2: 添加 id/parentId 树结构 */
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-ts">/** v1 -> v2: 添加 id/parentId 树结构 */
 function migrateV1ToV2(entries: FileEntry[]): void {
     let prevId: string | null = null;
     for (const entry of entries) {
@@ -415,8 +415,8 @@ function migrateToCurrentVersion(entries: FileEntry[]): boolean {
     const header = entries.find((e) => e.type === "session") as SessionHeader;
     const version = header?.version ?? 1;
     if (version >= CURRENT_SESSION_VERSION) return false;
-    if (version < 2) migrateV1ToV2(entries);
-    if (version < 3) migrateV2ToV3(entries);
+    if (version &lt; 2) migrateV1ToV2(entries);
+    if (version &lt; 3) migrateV2ToV3(entries);
     return true;
 }</code></pre>
 

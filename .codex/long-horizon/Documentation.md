@@ -3,9 +3,9 @@
 ## 当前状态
 
 - 项目状态：已完成
-- 当前里程碑：M3，最终独立 review 与 artifact survival
-- 下一步：完成最后一次 CI server 复用修复后的验证、更新 local fallback proof artifacts，并提交实现。
-- 初始 worktree：`master...origin/master [ahead 2]`，无既有修改。
+- 当前里程碑：M6，公开产物、浏览器证明、artifact proof 与差异检查完成
+- 下一步：无剩余实现项；提交当前分支并交付结果。
+- 本轮初始 worktree：`master...origin/master`，无既有修改。
 - 当前公开基线：75 个 HTML；72 个缺 description；56 个缺 favicon；Pi course-map 缺 `<main>`；FLUX.2 有 9 个未引用图片。
 
 ## 里程碑状态
@@ -13,6 +13,9 @@
 - M1：完成（本地契约验证通过；独立 Planning Council reviewer 因工具层连续超时记为 `SKIPPED`，不等同于 `CONSENSUS`）。规格、finding matrix、source lock、CDN、reviewer 和 finalizer 契约已写入四份文档。
 - M2：完成。Phase 1-6 实现、静态验证、sync fixture、156 项 Chromium smoke、Chrome DevTools MCP 检查和 workflow graph 已通过。
 - M3：完成本地 proof、Chrome MCP proof 和 local artifact-survival fallback；官方 finalizer 因共享 helper 缺失返回 `1`，最终只读 reviewer 因工具层连续超时记为 `SKIPPED`，不等同于 `CONSENSUS`。
+- M4：完成。Krea2 深模块、45 文件输入契约、37 HTML 输出、两份确定性文案修订表、固定 revision 链接、source schema 和 11 个对抗测试通过。
+- M5：完成。112 route manifest、reference dependency policy、静态内容/链接/metadata/零脚本门禁、workflow 与 sync fixture 通过。
+- M6：完成。232/232 Chromium、Krea2 details/axe、全站资源/CSS/控制台/水平溢出门禁、逻辑审查和仓库级 `npm test` 通过。
 
 ## 决策记录
 
@@ -42,13 +45,51 @@
 
 ## 最终验证证据
 
-- 最终结果：通过（独立 reviewer `SKIPPED`，本地与 Chrome 证据通过）
+- 最终结果：通过；最终独立 reviewer 返回 `Go`，无阻断 finding。
 - finalizer 命令：`python3 /Users/charslee/.agents/skills/long-horizon-runner/scripts/finalize_long_horizon_run.py --target .`
 - manifest：`artifacts/final-manifest.json`（由明确标注的 local fallback 生成）
-- 必需 artifact：`.codex/long-horizon/{Prompt,Plan,Implement,Documentation}.md`、`scripts/teaching-source-lock.json`、`scripts/public-site-manifest.json`、`scripts/external-dependencies.json`、Pi search index、package lock、Playwright config/tests、`.codex/governance/final-check.json`。
-- 备注：官方 finalizer 已实际运行但因共享 `workflow-governance` helper 缺失返回 `1`；local fallback 对 21 个 required artifacts 通过 regular-file、非空和 SHA-256 检查，未将 fallback 冒充官方 finalizer。
+- 必需 artifact：四份 long-horizon 文档、Krea2 adapter/fixture/修订表、source lock、public/dependency manifest、sync/public/workflow validator、Playwright config/tests、Krea2 代表产物和 artifact report，共 24 项。
+- 备注：官方 finalizer 已实际运行，文档检查通过后因共享 `workflow-governance` helper 缺失返回 `1`；local fallback 对 24 个 required artifacts 执行 regular-file、非空和 SHA-256 检查，结果写入 manifest 与 survival report。
 
 ## 审计日志
+
+- 2026-07-14 09:02：用户批准 Krea2 集成策略并要求实施；读取 implement、karpathy-guidelines、long-horizon-runner 及其原则/陷阱，复核四份既有工作文档。
+  - 结果：保留上一轮 75 页历史，新增 M4-M6；冻结 45 输入、37 HTML 输出、固定 Krea revision、全课程文案约束、112-route 验收和 CI/浏览器失败分级。
+- 2026-07-14 09:03：执行变更前 thought experiment，覆盖输入被篡改、source schema 缺节、固定代码行号漂移、同步中途失败、字体断网被重复升级、长文本窄屏溢出。
+  - 结果：各反例分别落到 lock/schema/revision/staging transaction/network classification/Playwright overflow 门禁，未发现需要扩大到其他五个课程正文的理由。
+- 2026-07-14 09:50：完成 M4/M5 非浏览器实现与 stop-and-fix。
+  - 结果：真实源包生成 37 个 Krea2 HTML、1 个 CSS、零 JS；公开站总计 112 HTML；source lock 的 Krea2 record 固定 45 个输入，重复 `--check` 可逐字节重现。
+  - 独立 adapter reviewer 首轮返回 `No-go`，指出脚本注入、剩余 31 处“而不是”、Markdown 文本链接、路径/行号白名单、MISSION/review 语义、evidence 链接与 H1/H2 层级缺口；逐项加入实现与失败测试后，6/6 adapter 测试通过，真实生成页禁用句式归零。
+  - `npm run verify:public`、`npm run verify:workflow`、`npm run test:sync-fixture`、全部 `node --check` 与 `git diff --check` 返回 0。Krea2 85 个唯一参考 URL 由精确 URL 或固定 commit 前缀声明；本地 Markdown、治理路径、越级相对代码链接和原始 Markdown 语法归零。
+- 2026-07-14 10:00：首轮 232 项 Chromium 暴露 28 项失败；Krea2 的 37 个 route 渲染全部通过，移动 axe 在 Krea2 lesson 14 的 `.diagram` 与 `pre` 报滚动区缺少键盘焦点。
+  - 旧课程失败分为三类：Pi 两套主栏标记缺少宽度约束；Ideogram 宽表格撑开移动视口；LingBot KaTeX、宽表格和长 inline code 共同撑开页面。
+  - 进一步检查 Pi 第 6 章发现源 HTML 用原始 Markdown 围栏结束目录树，缺少 `</code></pre>`，并含重复 `class` 属性；浏览器因此把后续代码块解析成嵌套结构。
+- 2026-07-14 10:23：将响应式与可访问性修复写回同步生成链。
+  - Krea2 适配器为 `pre`、`.diagram`、`.table-wrap` 生成焦点属性和名称；Ideogram、LingBot、Pi sanitizer 为实际滚动区生成同类属性。
+  - Pi sanitizer 精确闭合坏代码块并去除重复 class；静态结构检查新增公开 HTML 原始 Markdown 围栏拒绝规则。
+  - 浏览器反事实注入先证明候选 CSS 在全部 11 个 LingBot 课时、三个 Ideogram 样本与 14 个 Pi 章节把 document/body overflow 降为 0，再落盘重建。
+- 2026-07-14 10:32：完整双视口回归通过，`232 passed (3.7m)`。
+  - 覆盖 112 desktop route、112 mobile route、Pi 跨章搜索、LingBot Canvas next/replay、Krea2 原生 details 与六个代表页 axe；本地 CSS 非空加载、站内资源、required runtime、console error、document/body 水平溢出均为硬失败。
+- 2026-07-14 10:36：logic-review 收口发现导出适配器单独调用时仍接受非空输出目录并跟随必需输入符号链接。
+  - 深模块现要求 regular package/directory/file 输入，输出目录要求不存在或为空；新增 stale output 与 symlink source 两个失败测试，Krea2 adapter 达到 8/8。
+  - `npm run test:sync-fixture` 继续通过 missing/conflict/lock/symlink/rollback-preservation/double-write 全部场景；`--check --source-root /private/tmp`、public/workflow validator 与 `git diff --check` 返回 0。
+- 2026-07-14 10:45：仓库级最终 `npm test` 返回 0。
+  - Krea2 adapter 8/8、112-route public validator、workflow graph、sync fixture 和 Chromium 232/232 按 CI 顺序串行通过。
+  - 手工 HTTP server 在测试结束后已停止；没有遗留 Playwright 或 server 会话。
+- 2026-07-14 10:55：最终只读 reviewer 返回 `No-go`，复现 Krea2 source 中的 `onclick` 与 `javascript:` 可穿过零脚本边界。
+  - 适配器现统一拒绝 `on*`、`srcdoc`、去除控制字符后以 `javascript:`/`vbscript:` 开头的任意属性值；public validator 对 committed Krea 输出执行同套检查。
+  - 新增 inline event handler 与 script URL protocol 两个恶意 fixture，adapter 达到 10/10；reviewer 提到的 rollback 故障注入属于低风险后续测试缺口，本次 sync fixture 已覆盖事务前失败的输出保持与现有 rollback-preservation 路径。
+- 2026-07-14 10:57：parse5 全站误差审计发现 Pi 第 1/9 章代码示例有 6 个未转义 `<`，会依赖浏览器错误恢复。
+  - Pi sanitizer 精确转义 shell `<<`、TypeScript `<=`/`<`；`verify:public --structure` 现将任意 parse5 error 作为硬失败，112 页语法错误归零。
+  - 修复后 Krea2 adapter 10/10、public validator、sync fixture 与 source `--check` 返回 0；最终 reviewer 已收到复审请求。
+- 2026-07-14 11:00：第二轮最终只读 reviewer 发现 Markdown 文本链接会在首轮 DOM 安全检查后生成新的 `javascript:` anchor。
+  - 活动内容检查移到全部文本与链接改写完成后的最终 DOM 遍历；新增 Markdown 生成脚本协议恶意 fixture，Krea2 adapter 达到 11/11。
+  - 第三轮独立 reviewer 返回 `Go`，无阻断 finding；确认 `onclick`、实体/控制字符脚本协议、Markdown 脚本链接和 `srcdoc` 均被拒绝。事务中途故障注入仍是低风险测试缺口，现有 fixture 已证明事务前失败保留原输出。
+- 2026-07-14 11:07：干净环境按 CI 顺序执行仓库级 `npm test`，返回 0。
+  - Krea2 adapter 11/11、112-route public validator、workflow graph、sync fixture 和 Chromium 232/232 串行通过；浏览器覆盖所有路由桌面/移动视口、本地 CSS 实际加载与非空、资源和控制台错误、水平溢出、Krea2 details、Pi 搜索、LingBot Canvas 与代表页 axe。
+  - Playwright web server 正常退出，4173 端口没有残留监听进程。
+- 2026-07-14 11:10：long-horizon 文档校验器对四份文档全部返回 `[OK]`；官方 finalizer 的共享 helper 仍缺失。
+  - 仓库内 local fallback 对 24 个 required artifacts 完成 regular-file、非空和 SHA-256 survival 检查，刷新 `.codex/governance/final-check.json` 与 `artifacts/final-manifest.json`。
 
 - 2026-07-12 11:52：读取 implement、long-horizon-runner 及其原则/陷阱说明；确认该任务需要里程碑验证和最终 artifact proof。
   - 结果：已创建四份工作文档，未修改公开站点。

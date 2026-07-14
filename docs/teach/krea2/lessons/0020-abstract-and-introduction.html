@@ -1,0 +1,23 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：英文摘要与 Introduction"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>英文摘要与 Introduction</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Paper Writing</span></div><a href="0019-related-work.html">上一课</a><a href="0021-method-and-equations.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 20 / Paper Writing</p><h1>英文摘要与 Introduction</h1><p class="lede">Introduction 要把读者从重要问题带到可验证贡献；背景知识只保留支撑这条路径的部分。</p><div class="meta"><span>前置：研究空白</span><span>产物：中英摘要 + intro</span><span>练习：claim rewrite</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>摘要回答四件事：问题是什么、你做了什么、发现了什么、为什么重要。每句话都要能在正文某个实验或定义中找到对应。</p></section>
+<section><h2>直觉：给读者一条下坡路</h2><p>好的 introduction 让读者不需要跳跃：先说明领域需求，再指出现有理解不足，随后定义你的问题和方法，最后用贡献清单告诉读者如何验证。不要从“生成模型近年来蓬勃发展”这种无承诺的背景开始。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">context -&gt; concrete problem -&gt; evidence gap -&gt; research question
+                                      |
+                                      v
+                         method/protocol -&gt; findings -&gt; contributions</div></section>
+<section><h2>公式：claim 的可追踪句法</h2><p>一个可检验的英文句子通常包含：</p><p><code>We study X under condition C, measure Y, and find Z.</code></p><p>把“显著提升”“更高质量”改成带对象、条件和指标的句子。摘要不能先写结论，再临时寻找实验。</p></section>
+<section><h2>代码：从实验记录生成摘要事实</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>finding = {
+  "setting": "Raw/Turbo at fixed resolutions and seeds",
+  "variables": "steps, CFG, mu",
+  "metrics": ["alignment", "quality", "latency", "memory"],
+  "scope": "tested prompt set and H100 environment",
+}
+</code></pre><p>代码为论文正文提供可追溯依据，结构化记录用于保留 scope。论文句子必须从真实记录生成，凭印象写作会扩大主张。</p></section>
+<section><h2>实验：三轮英文改写</h2><ol><li>中文写出问题、方法、发现、意义。</li><li>英文直译，不追求华丽。</li><li>删除没有证据的形容词，补充 condition、metric 和 scope。</li><li>让同学只读摘要，要求他写出实验变量；若无法写出，摘要仍太空泛。</li></ol><div class="answer"><p class="label">Example</p><p><strong>Weak：</strong>Krea 2 achieves better quality with fewer steps.</p><p><strong>Stronger：</strong>On our fixed prompt set and H100 evaluation, the distilled Turbo checkpoint reduces denoising steps and latency while exhibiting a measurable quality-alignment trade-off relative to Raw under the tested resolutions.</p></div></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="../reference/paper-writing-checklist.html">paper checklist</a>；毕业实验记录是摘要 claim 的直接来源。</p><p><strong>Teaching use：</strong>把英文写作作为 claim compression：压缩主张时保留条件和证据。</p><p><strong>Scope：</strong>示例句不预先断言真实实验结果；正式数字必须由毕业实验填入。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>摘要中的“why important”如何避免变成营销语？</li><li>为什么结果句必须带测试条件？</li><li>Contribution list 中可以写“我们证明了模型普遍更好”吗？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>意义应连接可迁移的研究/工程决策，不是夸张排名。条件决定结论范围。不能写普遍更好，除非实验覆盖和统计证据足以支持；本课程默认使用“under the tested settings”这类 scope language。</p><p><strong>常见误解：</strong>论文说服力来自证据与措辞的匹配；强势英文无法弥补证据缺口。</p></details></section>
+<section class="next"><strong>Next action：</strong>把摘要中的变量和公式移入 <a href="0021-method-and-equations.html">Method</a>，不要让方法章节重新发明问题。</section></main><footer class="foot"><a href="../reference/evidence-and-sources.html#acm-mm-and-ccf-context">来源：投稿语境</a></footer>
+</body></html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：RoPE 与三轴位置"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>RoPE 与三轴位置</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Mechanism</span></div><a href="0006-attention-and-gqa.html">上一课</a><a href="0008-vae-latent-space.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 07 / Mechanism</p><h1>RoPE 与三轴位置</h1><p class="lede">图像 token 不是一排没有空间的词。Krea 2 用三轴位置把文本、latent 行和 latent 列放进同一条 sequence。</p><div class="meta"><span>前置：attention</span><span>产物：position map</span><span>实验：旋转矩阵</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>RoPE 不给 token 加一个独立的位置向量，而是按位置旋转 Q/K，使它们的相对位置关系进入点积。</p></section>
+<section><h2>直觉：同一句话与同一张图的坐标</h2><p>文本 token 可以都放在“文本轴原点”，图像 token 需要知道自己位于哪一行哪一列。Krea 2 的 <code>pos</code> 形状是 <code>(B,L,3)</code>：第 0 轴代表时间/文本共享轴，第 1 轴代表 latent 行，第 2 轴代表 latent 列。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">text text text text ...  -&gt; (0, 0, 0)
+image grid token (row=0,col=0) -&gt; (0, 0, 0)
+image grid token (row=0,col=1) -&gt; (0, 0, 1)
+image grid token (row=1,col=0) -&gt; (0, 1, 0)
+image grid token (row=1,col=1) -&gt; (0, 1, 1)</div></section>
+<section><h2>公式：二维旋转块</h2><p>对每一对通道，位置 <code>p</code> 的旋转为：</p><p><code>R(θp) = [[cos(θp), -sin(θp)], [sin(θp), cos(θp)]]</code></p><p>频率 <code>ω_i = θ^{-2i/d}</code>，旋转后的 query/key 使点积依赖相对位置。Krea 2 将 head dimension 128 分成 <code>[32,48,48]</code> 三个偶数轴段，并分别对三轴计算频率。</p></section>
+<section><h2>代码：position -&gt; freqs -&gt; q/k</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code># mmdit.py
+def rope(pos, dim, theta=1e4, ntk=1.0):
+    scale = torch.arange(0, dim, 2, dtype=torch.float64) / dim
+    omega = 1.0 / ((theta * ntk) ** scale)
+    out = torch.einsum("...n,d-&gt;...nd", pos, omega)
+    ...
+
+q, k = ropeapply(q, k, freqs)
+</code></pre><p><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L27-L36">sampling.prepare</a> 给文本 token 零位置，给图像 token 填行列坐标；<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/mmdit.py#L124-L132">PositionalEncoding</a> 对三轴生成旋转频率。</p></section>
+<section><h2>实验：旋转保留长度，改变方向</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>p = torch.tensor([[1., 0.]])
+q = torch.tensor([[1., 0.]])
+theta = 3.1415926 / 2
+R = torch.tensor([[torch.cos(theta), -torch.sin(theta)],
+                  [torch.sin(theta),  torch.cos(theta)]])
+rotated = q @ R.T
+print(rotated)  # 约等于 [0, 1]
+print(torch.linalg.vector_norm(q), torch.linalg.vector_norm(rotated))
+</code></pre><p>在 toy 实验中改变 token 的行坐标而不改变内容，观察 attention logits 如何变化。再交换两个图像 token 的列坐标，验证模型收到的是不同空间布局。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/mmdit.py#L12-L29">mmdit.py:rope/ropeapply</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L20-L37">sampling.py:prepare</a>。</p><p><strong>Teaching use：</strong>把位置编码从抽象公式连接到 image grid。</p><p><strong>Scope：</strong>这里的三轴是 Krea 2 MMDiT 的 position contract；Qwen3-VL 内部文本位置处理另有 tokenizer/mRoPE 约束，后续单独讨论。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么文本 token 可以共用零坐标，而图像 token 不能？</li><li>为什么 axes 的维度必须是偶数？</li><li>如果 patchify 顺序和 position grid 顺序不一致，会出现什么问题？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>文本在当前 MMDiT 中共享同一个文本位置设计，图像需要二维空间关系。旋转以二维通道对为单位，所以每个轴段需要能拆成偶数。若 token 排列与位置坐标错位，内容 A 会带着位置 B 进入模型，输出可能仍然有数值却失去空间语义。</p><p><strong>常见误解：</strong>RoPE 不会自动修复错误的 token 顺序；它只能编码你提供给它的坐标。</p></details></section>
+<section class="next"><strong>Next action：</strong>在 <a href="../reference/tensor-shape-atlas.html">shape atlas</a> 中画出文本区和图像区的联合 position。</section></main><footer class="foot"><a href="../reference/evidence-and-sources.html#transformer-and-dit-papers">来源：RoPE 与 Transformer 论文</a></footer>
+</body></html>

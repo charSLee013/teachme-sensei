@@ -1,0 +1,55 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：Experiment Record Template"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>Experiment Record Template</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Reference</span></div><a href="../lessons/0017-reproducibility-protocol.html">回到第 17 课</a></header>
+<main>
+<section class="hero"><p class="kicker">Reference / Reproducibility</p><h1>Experiment Record Template</h1><p class="lede">每次运行都留下足够的身份、配置、环境、原始结果和解释记录。没有记录的成功不能成为论文证据。</p></section>
+<section class="remember"><p class="label">先记住</p><p>实验记录不是运行结束后凭记忆补写的总结；它是运行前冻结变量、运行中采集测量、运行后保留原始输出的单一事实来源。</p></section>
+<section><h2>Run identity</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>run_id: 2026-07-13-k2-raw-s000-g035
+question: Does CFG improve text alignment at fixed seed and steps?
+checkpoint: krea/Krea-2-Raw
+checkpoint_file_sha256: &lt;fill before writing claims&gt;
+code_commit: &lt;git commit or working-tree diff id&gt;
+status: planned | completed | failed | excluded
+owner: &lt;name&gt;
+created_at_utc: &lt;YYYY-MM-DD HH:MM:SS&gt;
+</code></pre><p><code>run_id</code> 要能从文件名、表格行和图表 caption 反查到唯一记录。失败运行也分配 id，不要让失败样本从历史中消失。</p></section>
+<section><h2>Environment and hardware</h2><div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table><thead><tr><th>类别</th><th>记录字段</th><th>示例或要求</th></tr></thead><tbody>
+<tr><td>Software</td><td>Python、PyTorch、Transformers、Diffusers、CUDA、driver</td><td>完整版本号；不要只写“最新”。</td></tr>
+<tr><td>Hardware</td><td>GPU model/count/memory、CPU、RAM</td><td>例如 H100 80GB x2；注明实际使用的 device。</td></tr>
+<tr><td>Runtime</td><td>dtype、attention backend、compile 状态、worker 数</td><td>记录 eager/compiled、CUDNN SDPA 是否启用。</td></tr>
+<tr><td>Repository</td><td>commit、dirty files、checkpoint path/hash</td><td>权重和代码必须分开追踪。</td></tr>
+</tbody></table></div></section>
+<section><h2>Generation configuration</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>prompt_set: &lt;path to immutable JSON/CSV&gt;
+negative_prompt_set: &lt;path or empty-string rule&gt;
+seed_list: [0, 1, 2, 3, 4]
+width: 1024
+height: 1024
+requested_width: 1023
+requested_height: 1023
+steps: 52
+guidance: 3.5
+mu: null
+minres: 256
+maxres: 1280
+y1: 0.5
+y2: 1.15
+sigma: 1.0
+num_images: 5
+actual_timestep_list: &lt;saved JSON path&gt;
+</code></pre><p>如果 sampler 发生 padding，requested 和 actual 必须同时保留。若比较 Raw 与 Turbo，使用不同 protocol 是允许的，但必须在表格里把差异写出来。</p></section>
+<section><h2>Measurements</h2><div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table><thead><tr><th>image/run</th><th>quality</th><th>alignment</th><th>encode s</th><th>denoise s</th><th>decode s</th><th>peak memory</th><th>failure note</th></tr></thead><tbody>
+<tr><td>0</td><td>&lt;metric + value&gt;</td><td>&lt;metric + value&gt;</td><td>&lt;value&gt;</td><td>&lt;value&gt;</td><td>&lt;value&gt;</td><td>&lt;allocated/reserved&gt;</td><td>&lt;none or exact symptom&gt;</td></tr>
+<tr><td>1</td><td>&lt;metric + value&gt;</td><td>&lt;metric + value&gt;</td><td>&lt;value&gt;</td><td>&lt;value&gt;</td><td>&lt;value&gt;</td><td>&lt;allocated/reserved&gt;</td><td>&lt;none or exact symptom&gt;</td></tr>
+</tbody></table></div><p>同时保存 raw JSON/CSV、生成图像和可视化脚本。表格中的均值、标准差、置信区间或 bootstrap 方法，要能由原始记录重新计算。</p></section>
+<section><h2>Interpretation log</h2><ol><li><strong>Observation：</strong>只写测量到的事实，例如“CFG=3.5 的 alignment median 高于 CFG=0”。</li><li><strong>Candidate explanation：</strong>写可检验的机制，例如“条件外推增强了 prompt-specific velocity”。</li><li><strong>Alternative explanation：</strong>列出 prompt composition、seed variance、metric bias、kernel warm-up 等竞争解释。</li><li><strong>Control needed：</strong>写下一次只改变一个变量的运行。</li><li><strong>Claim boundary：</strong>说明当前证据支持到哪，不支持哪。</li></ol><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>observation: &lt;fact&gt;
+candidate_explanation: &lt;mechanism&gt;
+alternative_explanations: [&lt;...&gt;]
+control_run_ids: [&lt;...&gt;]
+claim_boundary: &lt;conditioned conclusion&gt;
+</code></pre></section>
+<section class="warning"><p class="label">失败处理</p><p>OOM、编译失败、坏图、NaN、超时和指标脚本报错都保留 stdout/stderr、配置和 run id。只有在预先定义的排除规则满足时才从聚合统计中排除，并在 appendix 或 limitation 中计数。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="../lessons/0015-experiment-design.html">第 15 课</a>、<a href="../lessons/0016-metrics-and-error-analysis.html">第 16 课</a>、<a href="../lessons/0017-reproducibility-protocol.html">第 17 课</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/inference.py">inference.py CLI</a>。</p><p><strong>Teaching use：</strong>把一次运行变成可追踪记录，再把多次运行汇总成论文表格。</p><p><strong>Scope：</strong>模板不替学习者选择正确指标；指标必须和研究问题、图像任务及可用资源匹配。</p></section>
+<section class="next"><strong>用法：</strong>先复制模板并填“运行前”字段，再运行 sampler；不要在看到结果之后才决定比较条件。</section>
+</main><footer class="foot"><a href="terminology.html">下一页：Terminology and scope</a></footer>
+</body></html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：毕业论文包"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>毕业论文包</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Synthesis</span></div><a href="0026-rebuttal-and-defense.html">上一课</a><a href="0028-final-synthesis.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 27 / Capstone</p><h1>毕业论文包</h1><p class="lede">现在要把一个研究问题、一次受控实验和一组有限结论组织成完整论证；前面页面只提供可追溯的素材。</p><div class="meta"><span>前置：全课程</span><span>产物：论文包</span><span>验收：rubric + 答辩</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>毕业标准是证据链完整；结果的视觉吸引力无法替代以下要求：问题清楚、协议可复现、比较公平、指标有范围、负结果被记录、claim 不超过 evidence。</p></section>
+<section><h2>直觉：把实验日志变成论文</h2><p>实验日志按时间排列，论文按读者问题排列。先从所有记录中提炼主线，再选择能支持主线的表、图和失败样本；不要反过来根据已有图片编故事。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">research question
+  -&gt; protocol + manifest
+  -&gt; baseline table
+  -&gt; ablation table
+  -&gt; qualitative/error figures
+  -&gt; findings + uncertainty
+  -&gt; claims + limitations
+  -&gt; paper + rebuttal + artifacts</div></section>
+<section><h2>公式：毕业论文的最低证据闭环</h2><p>对每条主要结论建立：</p><p><code>Claim -&gt; Measurement -&gt; Dataset/Prompt/Seed -&gt; Result -&gt; Scope</code></p><p>如果缺任一项，标记为“需要补证据”或降低为观察性描述。毕业论文不允许用“模型感觉更好”作为最终 claim。</p></section>
+<section><h2>代码/资料：交付物清单</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>capstone/
+  paper.pdf or paper.md
+  abstract_en.md + abstract_zh.md
+  method.md
+  experiment_manifest.json
+  prompts.jsonl
+  raw_results.jsonl
+  tables/
+  figures/
+  failures/
+  limitations.md
+  rebuttal.md
+</code></pre><p>这些是论文项目的建议结构，不会伪装成当前 Krea 2 仓库已有目录。每个 artifact 都应能回指 git commit、checkpoint revision 和环境。</p></section>
+<section><h2>实验：最终验收 rubric</h2><div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table><thead><tr><th>维度</th><th>通过标准</th></tr></thead><tbody><tr><td>机制理解</td><td>能用直觉、公式、代码、实验四层解释完整 pipeline。</td></tr><tr><td>实验设计</td><td>有固定项、变化项、seed、prompt、指标和失败规则。</td></tr><tr><td>证据</td><td>每条主 claim 有表/图/原始记录和 scope。</td></tr><tr><td>复现</td><td>另一个人能按 manifest 重跑或明确知道不能重跑的原因。</td></tr><tr><td>写作</td><td>中英文摘要、方法、实验、限制和 caption 结构完整。</td></tr><tr><td>答辩</td><td>能在 90 秒内解释问题、方法、发现、限制。</td></tr></tbody></table></div></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="../course-map.html#course-contract">课程 mission</a>、第 15-26 课的实验/写作 contract。</p><p><strong>Teaching use：</strong>把分散练习汇总为一项可观察的研究能力验收。</p><p><strong>Scope：</strong>通过 rubric 不代表论文必然被会议录用；它只证明课程设定下的研究工作达到可审阅状态。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>怎样判断一条 claim 超过了 evidence？</li><li>为什么论文包必须同时包含 raw results 和 PDF？</li><li>如果最终没有发现显著差异，毕业项目还成立吗？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>检查 claim 的对象、条件、指标和范围是否都在记录中；缺少条件或把局部结果写成普遍规律就是超出。raw results 允许复算统计和检查选择偏差。没有显著差异仍可回答“在本协议下没有观察到差异”，并提供不确定性、设计分析和后续方向。</p><p><strong>常见误解：</strong>研究成果可以可靠地排除一个直觉；找到提升只是可能结果之一。</p></details></section>
+<section class="next"><strong>Next action：</strong>完成论文包后进入 <a href="0028-final-synthesis.html">最终综合</a>，把能力迁移到新系统。</section></main><footer class="foot"><a href="../reference/paper-writing-checklist.html">参考：Paper writing checklist</a></footer>
+</body></html>

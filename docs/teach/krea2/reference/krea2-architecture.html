@@ -1,0 +1,38 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：Krea 2 Architecture Atlas"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>Krea 2 Architecture Atlas</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Reference</span></div><a href="../lessons/0012-krea2-pipeline-trace.html">回到第 12 课</a></header>
+<main>
+<section class="hero"><p class="kicker">Reference / Architecture</p><h1>Krea 2 Architecture Atlas</h1><p class="lede">一页查清 Krea 2 推理时每个模块的输入、输出、shape、代码位置和不可随意改动的约束。</p></section>
+<section class="remember"><p class="label">先记住</p><p>一次生成由 encoder、latent autoencoder、MMDiT 和 sampler 通过明确接口协作完成。读代码时先检查模块接口，再进入模块实现。</p></section>
+<section><h2>完整数据流</h2><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">prompt / negative prompt
+        |
+        v
+Qwen3VLConditioner -&gt; txt: (B, 512, 12, 2560), mask: (B, 512)
+        |
+noise: (B, 16, H/8, W/8) -&gt; patchify(p=2) -&gt; img: (B, N, 64)
+        |                                      N=(H/16)*(W/16)
+        +---- pos: (B, 512+N, 3), mask: (B, 512+N) ----+
+                                                        v
+                 SingleStreamDiT / MMDiT -&gt; velocity: (B, N, 64)
+                                                        |
+                         Euler path, unpatchify, Qwen VAE decode
+                                                        v
+                                                RGB image: (B, 3, H, W)</div></section>
+<section><h2>模块 contract</h2><div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table><thead><tr><th>模块</th><th>输入</th><th>输出</th><th>代码与关键约束</th></tr></thead><tbody>
+<tr><td>Qwen3VLConditioner</td><td>Python strings</td><td><code>txt (B,512,12,2560)</code>、bool mask</td><td><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/encoder.py#L17-L72">encoder.py</a>；固定模板切片、最长 512 token、选 12 个 hidden layers。</td></tr>
+<tr><td>QwenImageVAE</td><td>RGB image 或 latent</td><td>16-channel latent，compression=8</td><td><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/autoencoder.py#L1-L22">autoencoder.py</a>；采样阶段只调用 decode。</td></tr>
+<tr><td>prepare / patchify</td><td><code>(B,16,H/8,W/8)</code></td><td><code>(B,N,64)</code>、3-axis position、mask</td><td><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L16-L35">sampling.py</a>；宽高必须对齐到 8*2=16。</td></tr>
+<tr><td>TextFusionTransformer</td><td>text hidden states + text mask</td><td>投影前的 text representation</td><td><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/mmdit.py#L244-L298">mmdit.py</a>；先在文本支路融合，再与 image token 合并。</td></tr>
+<tr><td>SingleStreamDiT</td><td>image tokens、text context、time、pos、mask</td><td>image-token velocity</td><td><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/mmdit.py#L319-L407">mmdit.py</a>；padding 后仍只切回原 image token 段。</td></tr>
+<tr><td>Euler sampler</td><td>初始 noise、velocity、时间网格</td><td>最终 latent 和 image</td><td><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L70-L140">sampling.py</a>；每个区间做 <code>x_next=x+dt*v</code>，CFG 可多跑一次主干。</td></tr>
+</tbody></table></div></section>
+<section><h2>Raw 与 Turbo 的实验含义</h2><div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table><thead><tr><th>checkpoint</th><th>官方定位</th><th>起始协议</th><th>不能直接混用的解释</th></tr></thead><tbody>
+<tr><td>Raw</td><td>未蒸馏基础模型，适合微调与后训练</td><td>52 steps、CFG 3.5 是 README 示例；课程把 steps/CFG/mu 作为变量测量。</td><td>不能把 Raw 的最佳 steps 当成 Turbo 的默认事实。</td></tr>
+<tr><td>Turbo</td><td>8-step distilled checkpoint，面向快速生成</td><td>8 steps、CFG 0、mu=1.15、较高分辨率是 README 示例。</td><td>CFG=0 和固定 mu 是蒸馏推理协议，不是所有 flow model 的普遍定律。</td></tr>
+</tbody></table></div><p>表格中的“官方定位”来自仓库 README；“课程把哪些变量放进实验”是教学设计，最终结论必须由实际 checkpoint 的记录支持。</p></section>
+<section><h2>读代码时的五个断点</h2><ol><li>encoder 输出的最后两个轴为何分别表示“layer 选择”和“hidden feature”？</li><li>为什么 <code>txtlen</code> 由实际 context 决定，image 输出却从 combined sequence 的 <code>txtlen</code> 处切回？</li><li>为什么 model 输出 velocity，图像又在哪个阶段形成？</li><li>为什么 sampler 的 <code>mu</code> 同时牵涉分辨率、checkpoint 和时间网格？</li><li>为什么改变宽高可能改变 token 数、编译 shape、attention 成本和最终画面比例？</li></ol></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/README.md">本仓库 README</a>、<a href="https://github.com/krea-ai/krea-2">Krea 官方仓库</a>、本地 <a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/encoder.py">encoder.py</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py">sampling.py</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/mmdit.py">mmdit.py</a>。</p><p><strong>Teaching use：</strong>这是推理代码的导航图，不替代逐行课程；遇到冲突时以当前 checkpoint、当前代码和实验日志为准。</p><p><strong>Scope：</strong>这里描述 open inference path，不声称公开训练数据、完整训练 recipe 或所有内部生产系统实现。</p></section>
+<section class="next"><strong>用法：</strong>做任何消融前，先从本页抄出“变量改变了哪条 contract”；再打开 <a href="sampler-and-scheduler.html">sampler reference</a> 记录时间网格。</section>
+</main><footer class="foot"><a href="tensor-shape-atlas.html">下一页：Tensor shape atlas</a></footer>
+</body></html>

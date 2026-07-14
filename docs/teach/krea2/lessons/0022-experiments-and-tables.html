@@ -1,0 +1,23 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：Experiments、表格与统计叙事"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>Experiments、表格与统计叙事</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Paper Writing</span></div><a href="0021-method-and-equations.html">上一课</a><a href="0023-figures-and-captions.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 22 / Paper Writing</p><h1>Experiments、表格与统计叙事</h1><p class="lede">表格是回答研究问题的压缩论证。标题、列名和正文要共同说明比较条件、测量对象与公平性。</p><div class="meta"><span>前置：实验矩阵</span><span>产物：一张主表 + 一张消融表</span><span>练习：claim/table pairing</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>每张表只能有一个主要任务。先写表格要回答的 question，再决定行、列、均值、方差、加粗规则和正文解释。</p></section>
+<section><h2>直觉：表格是实验的索引</h2><p>读者不应从一张大表里猜你的故事。主表回答总体质量-效率边界，消融表回答一个机制变量，失败表回答系统边界。表格标题要告诉读者对象、设置和指标范围。</p><div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table><thead><tr><th>设置</th><th>Steps</th><th>CFG</th><th>Alignment</th><th>Quality</th><th>Latency</th></tr></thead><tbody><tr><td>Raw baseline</td><td>52</td><td>3.5</td><td>mean ± std</td><td>mean ± std</td><td>ms</td></tr><tr><td>Turbo baseline</td><td>8</td><td>0</td><td>mean ± std</td><td>mean ± std</td><td>ms</td></tr><tr><td>Raw ablation</td><td>28</td><td>4.5</td><td>...</td><td>...</td><td>...</td></tr></tbody></table></div></section>
+<section><h2>公式：表格中的不确定性</h2><p>一列均值应有来源：</p><p><code>mean ± std over prompts × seeds</code></p><p>如果数据来自不同 prompt 类型，要采用分层统计，并同时报告整体与分组结果。正文使用“higher”时，要说明差值、方向和是否超过预定义重要性阈值。</p></section>
+<section><h2>代码：先生成 long-form records</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>records = []
+for setting in settings:
+    for prompt_id in prompt_ids:
+        for seed in seeds:
+            records.append(run_one(setting, prompt_id, seed))
+
+table = aggregate(records,
+                  group_by=["setting"],
+                  values=["alignment", "quality", "latency_ms"])
+</code></pre><p>先保存每个样本，再聚合。直接手填表格会丢失 seed、失败样本和统计 provenance。</p></section>
+<section><h2>实验：从表格倒推正文</h2><ol><li>给主表写一句 question。</li><li>写一条只描述观察的 sentence，不解释原因。</li><li>再写一条解释 sentence，并列出它依赖的假设。</li><li>写一条 scope sentence，限定 prompt、分辨率和硬件。</li></ol><div class="answer"><p class="label">写作骨架</p><p><strong>Observation：</strong>Under the tested settings, Turbo uses fewer denoising steps and lower latency.</p><p><strong>Interpretation：</strong>This is consistent with its distilled sampling configuration, but does not establish a universal quality advantage.</p><p><strong>Scope：</strong>The comparison covers the fixed prompt set, resolutions, seeds and H100 environment described in Section X.</p></div></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="../reference/experiment-record-template.html">实验记录模板</a>、第 15-17 课的实验契约。</p><p><strong>Teaching use：</strong>把原始记录聚合成一张可审计的论文表格。</p><p><strong>Scope：</strong>正式数字必须在真实 checkpoint 实验完成后填写；页面中的省略号是结构示例，不是结果。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么主表不应该同时展示十种无关指标？</li><li>为什么不能只保存最终均值？</li><li>正文中的“better”至少要补哪三个限定？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>过大的表会让主问题消失。原始记录支持复算均值、检查异常和分析方差。应补对象/指标、测试条件/范围、统计方式或重要性证据。</p><p><strong>常见误解：</strong>加粗最大值不自动表示统计显著或实际重要。</p></details></section>
+<section class="next"><strong>Next action：</strong>将主表和消融表各画成一张“读者视线图”，进入 <a href="0023-figures-and-captions.html">图和 caption</a>。</section></main><footer class="foot"><a href="../reference/evidence-and-sources.html#reproducibility-and-evaluation">来源：评测与复现</a></footer>
+</body></html>

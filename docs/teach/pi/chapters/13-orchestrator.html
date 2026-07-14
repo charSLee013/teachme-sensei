@@ -97,7 +97,7 @@
         <!-- ================================================================ -->
         <p>编排器由四个核心文件组成：</p>
 
-        <table>
+        <table tabindex="0" aria-label="可横向滚动的数据表">
             <thead>
                 <tr>
                     <th>文件</th>
@@ -125,7 +125,7 @@
         </table>
 
         <h3>serve.ts</h3>
-        <pre><code class="language-typescript">// 编排服务器——监听连接、管理 agent 池
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// 编排服务器——监听连接、管理 agent 池
 export class OrchestratorServer {
     private agents: Map&lt;string, AgentHandle&gt; = new Map();
     private storage: StorageBackend;
@@ -136,7 +136,7 @@ export class OrchestratorServer {
 }</code></pre>
 
         <h3>supervisor.ts</h3>
-        <pre><code class="language-typescript">// 中央协调者——维护任务状态机
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// 中央协调者——维护任务状态机
 export class Supervisor {
     private state: 'planning' | 'executing' | 'reviewing' | 'done';
 
@@ -150,7 +150,7 @@ export class Supervisor {
 }</code></pre>
 
         <h3>handler.ts</h3>
-        <pre><code class="language-typescript">// 消息路由器——根据 action 分发
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// 消息路由器——根据 action 分发
 export class MessageHandler {
     async handle(msg: Envelope): Promise&lt;void&gt; {
         switch (msg.action) {
@@ -164,7 +164,7 @@ export class MessageHandler {
 }</code></pre>
 
         <h3>storage.ts</h3>
-        <pre><code class="language-typescript">// 任务与消息持久化
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// 任务与消息持久化
 export interface StorageBackend {
     saveTask(task: Task): Promise&lt;void&gt;;
     loadTask(id: string): Promise&lt;Task | null&gt;;
@@ -177,7 +177,7 @@ export interface StorageBackend {
         <!-- ================================================================ -->
         <p>编排器使用三层 IPC 协议实现客户端-服务端通信：</p>
 
-        <table>
+        <table tabindex="0" aria-label="可横向滚动的数据表">
             <thead>
                 <tr>
                     <th>层</th>
@@ -205,7 +205,7 @@ export interface StorageBackend {
         </table>
 
         <p>协议消息格式：</p>
-        <pre><code class="language-typescript">// protocol.ts — 消息信封
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// protocol.ts — 消息信封
 interface Envelope {
     id: string;          // 消息唯一 ID
     action: Action;      // 'task.assign' | 'task.result' | ...
@@ -226,7 +226,7 @@ interface Envelope {
         <!-- ================================================================ -->
         <p><code>radius.ts</code> 实现了编排器的<strong>网络注册与心跳机制</strong>。它让编排器实例能够向远程服务 <code>https://radius.pi.dev/</code> 注册自己的 presence（在线状态），并周期性发送心跳以维持注册有效性。</p>
 
-        <table>
+        <table tabindex="0" aria-label="可横向滚动的数据表">
             <thead>
                 <tr>
                     <th>导出/概念</th>
@@ -261,7 +261,7 @@ interface Envelope {
         <!-- ================================================================ -->
         <h2 id="diagram">13.5 Architecture Diagram</h2>
         <!-- ================================================================ -->
-        <div class="diagram-container">
+        <div tabindex="0" aria-label="可横向滚动的课程图示" class="diagram-container">
             <svg viewBox="0 0 700 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Multi-agent orchestrator architecture diagram">
                 <!-- Background -->
                 <rect x="0" y="0" width="700" height="420" rx="8" fill="#16213e"/>

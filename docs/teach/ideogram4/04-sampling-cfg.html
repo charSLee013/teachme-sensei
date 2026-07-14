@@ -33,7 +33,7 @@
 
   <section>
     <h2>变量先行</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <thead><tr><th>符号</th><th>含义</th><th>实现对象</th></tr></thead>
       <tbody>
         <tr><td>`z_i`</td><td>第 i 步的当前图像 latent token。</td><td>`z`</td></tr>
@@ -51,7 +51,7 @@
     <h2>单步公式</h2>
     <div class="claim"><div class="claim-title">机制</div>
       <p>实现里把引导写成 `gw * v_pos + (1 - gw) * v_neg`。为了让作用方式更直观，下面改写成等价但更好读的形式：</p>
-      <pre><code>v_guided = v_neg + gw_i * (v_pos - v_neg)
+      <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>v_guided = v_neg + gw_i * (v_pos - v_neg)
 z_{i-1}  = z_i + v_guided * (s_i - t_i)</code></pre>
       <p>`v_pos - v_neg` 表示文本条件带来的修正方向；`gw_i` 决定这股修正要多强地偏转图像基线。</p>
     </div>
@@ -73,7 +73,7 @@ z_{i-1}  = z_i + v_guided * (s_i - t_i)</code></pre>
 
   <section>
     <h2>伪代码</h2>
-    <pre><code>for i in reversed(range(num_steps)):
+    <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>for i in reversed(range(num_steps)):
     t_i = schedule(step_intervals[i + 1])
     s_i = schedule(step_intervals[i])
     v_pos = conditional_transformer(text_features, z_i, t_i)

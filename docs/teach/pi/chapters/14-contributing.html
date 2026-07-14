@@ -114,7 +114,7 @@
         <h3>Contribution Gate（新贡献者门控）</h3>
         <p><strong>所有来自新 contributor 的 issue 和 PR 默认 auto-close。</strong> 这是贡献门禁的一部分：维护者会按质量标准复核，并决定哪些内容值得重开和继续处理。</p>
 
-        <table>
+        <table tabindex="0" aria-label="可横向滚动的数据表">
             <thead>
                 <tr>
                     <th>维护者回复</th>
@@ -147,7 +147,7 @@
         </ul>
 
         <h3>Before Submitting a PR</h3>
-        <pre><code class="language-bash">npm run check
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-bash">npm run check
 ./test.sh</code></pre>
         <p>两者必须都通过。<strong>不要编辑 <code>CHANGELOG.md</code></strong>——changelog 条目由维护者添加。</p>
 
@@ -168,7 +168,7 @@
         <p><strong>在哪了解路线图？</strong>Earendil 用 RFC 讨论大变更。部分公开：<a href="https://rfc.earendil.com/keyword/pi/">rfc.earendil.com</a>。</p>
 
         <h3>常用命令</h3>
-        <pre><code class="language-bash"># 安装依赖
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-bash"># 安装依赖
 npm install --ignore-scripts
 
 # 构建所有包（需要时）
@@ -197,7 +197,7 @@ PI_ALLOW_LOCKFILE_CHANGE=1 npm_config_min_release_age=0 npm run release:minor</c
 
         <h3>test.sh</h3>
         <p>项目使用统一的测试脚本 <code>test.sh</code>。它不是测试框架本身，而是一层保护壳：先把 <code>auth.json</code> 临时移走，清除 provider 相关环境变量，设置 <code>PI_NO_LOCAL_LLM=1</code>，最后再调用 <code>npm test</code>。这样 <strong>无需真实 API key</strong> 即可跑本地默认测试路径。</p>
-        <pre><code class="language-bash">#!/usr/bin/env bash
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-bash">#!/usr/bin/env bash
 set -e
 
 # 备份 auth.json
@@ -218,7 +218,7 @@ npm test</code></pre>
 
         <h3>回归测试</h3>
         <p>每个 bug fix 必须附带回归测试——一个在修复前会失败、修复后通过的测试用例。回归测试放在 <code>packages/coding-agent/test/suite/regressions/</code> 目录下：</p>
-        <pre><code class="language-typescript">// packages/coding-agent/test/suite/regressions/3302-find-path-glob.test.ts
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// packages/coding-agent/test/suite/regressions/3302-find-path-glob.test.ts
 import { describe, it, expect } from 'vitest';
 // 真实的测试请参考已有的 regression 文件作为模板
 
@@ -239,7 +239,7 @@ describe('regression: empty-system-prompt', () => {
 
         <h3>Lockstep Versioning</h3>
         <p>monorepo 中所有包使用<strong>统一版本号</strong>。发布时，所有包的版本同步递增：</p>
-        <pre><code class="language-json">// 所有包的 package.json 共享相同版本
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-json">// 所有包的 package.json 共享相同版本
 {
     "name": "pi-agent-core",
     "version": "1.2.3"
@@ -251,7 +251,7 @@ describe('regression: empty-system-prompt', () => {
 
         <h3>Smoke Test（本地预检）</h3>
         <p>发布前的本地预检以仓库规则为准：先构建一个未发布的本地 release，再在仓库外验证 Node 和 Bun 产物是否可启动、可列模型、可进入交互模式。</p>
-        <pre><code class="language-bash">npm run release:local -- --out /tmp/pi-local-release --force
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-bash">npm run release:local -- --out /tmp/pi-local-release --force
 cd /tmp
 
 /tmp/pi-local-release/node/pi --help
@@ -265,7 +265,7 @@ cd /tmp
 /tmp/pi-local-release/bun/pi -p "Say exactly: ok"</code></pre>
 
         <h3>release:patch / release:minor</h3>
-        <pre><code class="language-bash"># patch: fixes + additions
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-bash"># patch: fixes + additions
 PI_ALLOW_LOCKFILE_CHANGE=1 npm_config_min_release_age=0 npm run release:patch
 
 # minor: breaking changes
@@ -289,7 +289,7 @@ PI_ALLOW_LOCKFILE_CHANGE=1 npm_config_min_release_age=0 npm run release:minor</c
 
         <h3>Containerization</h3>
         <p>Pi <strong>不提供官方 Docker 镜像</strong>——用户需自行容器化以隔离 agent 的文件系统访问。一个典型的生产容器化示例：</p>
-        <pre><code class="language-dockerfile"># 用户自建 Dockerfile（非官方）
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-dockerfile"># 用户自建 Dockerfile（非官方）
 FROM node:20-alpine
 WORKDIR /workspace
 COPY package.json package-lock.json ./
@@ -315,7 +315,7 @@ ENTRYPOINT ["node", "dist/cli.js"]</code></pre>
         <h2 id="changelog">14.8 Changelog Conventions</h2>
         <!-- ================================================================ -->
         <p>Changelog 遵循 <a href="https://keepachangelog.com/">Keep a Changelog</a> 格式：</p>
-        <pre><code class="language-markdown">## [Unreleased]
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-markdown">## [Unreleased]
 
 ### Added
 - New SDK event `session:end` for graceful shutdown hooks.

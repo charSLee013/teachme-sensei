@@ -76,7 +76,7 @@
 
         <section>
             <h2>5.2 核心概念：Component 接口</h2>
-            <pre class="language-ts"><code>export interface Component {
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>export interface Component {
   /** 渲染组件为字符串数组（每行一个字符串） */
   render(width: number): string[];
 
@@ -89,7 +89,7 @@
             <p>这是一个极其简洁的设计。所有 UI 元素都实现这个接口：文本、编辑器、选择列表、Markdown 渲染器，甚至图像。</p>
 
             <h3>组件组合</h3>
-            <pre class="language-ts"><code>export class Container implements Component {
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>export class Container implements Component {
   children: Component[] = [];
   layout: "vertical" | "horizontal" = "vertical";
 
@@ -107,7 +107,7 @@
             <h2>5.3 差分渲染原理</h2>
             <p>Pi 的 TUI 使用<span class="term" data-term="Differential Rendering: 差分渲染，只重绘变化的行">差分渲染</span>来高效更新终端：</p>
 
-            <div class="diagram-container">
+            <div tabindex="0" aria-label="可横向滚动的课程图示" class="diagram-container">
                 <svg viewBox="0 0 600 250" class="diagram">
                     <!-- Full redraw -->
                     <rect x="20" y="20" width="250" height="200" rx="8" fill="#333" stroke="#e74c3c"/>
@@ -162,7 +162,7 @@
 
         <section>
             <h2>5.4 组件系统</h2>
-            <table class="comparison-table">
+            <table tabindex="0" aria-label="可横向滚动的数据表" class="comparison-table">
                 <thead>
                     <tr>
                         <th>组件</th>
@@ -223,7 +223,7 @@
         <section>
             <h2>5.5 键系统</h2>
             <p>Pi 的键系统支持<span class="term" data-term="Kitty Keyboard Protocol: Kitty 终端的增强键盘协议">Kitty 键盘协议</span>，提供比普通终端更丰富的键信息：</p>
-            <pre class="language-ts"><code>// keys.ts
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// keys.ts
 export function parseKey(data: string): Key | undefined {
   // 解析 ANSI escape sequences
   // 支持 Kitty 协议：key release、repeat 检测
@@ -240,7 +240,7 @@ export function isKeyRelease(data: string): boolean {
 }</code></pre>
 
             <h3>键绑定系统</h3>
-            <pre class="language-ts"><code>// keybindings.ts
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// keybindings.ts
 export interface Keybinding {
   key: string;        // 如 "ctrl+s", "escape"
   action: string;     // 动作标识
@@ -261,7 +261,7 @@ export class KeybindingsManager {
                 <li><strong>Kitty 图形协议</strong>：最强大的终端图像协议，支持动画、z-index、删除</li>
                 <li><strong>iTerm2 内联图像</strong>：base64 编码，兼容性更广</li>
             </ul>
-            <pre class="language-ts"><code>// terminal-image.ts
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// terminal-image.ts
 export function detectCapabilities(): TerminalCapabilities {
   // 检测终端支持的图像协议
 }
@@ -277,7 +277,7 @@ export function encodeITerm2(imageData: Buffer, width: number): string {
 
         <section>
             <h2>5.7 自动补全</h2>
-            <pre class="language-ts"><code>// autocomplete.ts
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// autocomplete.ts
 export interface AutocompleteProvider {
   getSuggestions(input: string, position: number): AutocompleteSuggestions;
 }

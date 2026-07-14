@@ -67,22 +67,22 @@
             <h2>1.1 开场：一个真实的 terminal 会话</h2>
             <p>让我们先看一段真实的 Pi 使用场景。你在终端中输入一行命令，Pi 就开始帮你工作了：</p>
 
-            <pre class="terminal"><code>$ pi -p "Create a fibonacci function in fib.ts"
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="terminal"><code>$ pi -p "Create a fibonacci function in fib.ts"
 
 [Pi] Thinking...
 [Pi] I'll create a fibonacci function for you.
 
 [Tool Call] bash
-  $ cat > fib.ts << 'EOF'
+  $ cat > fib.ts &lt;&lt; 'EOF'
   /**
    * Calculate the nth Fibonacci number
    * using iterative approach.
    */
   export function fibonacci(n: number): number {
-      if (n <= 0) return 0;
+      if (n &lt;= 0) return 0;
       if (n === 1) return 1;
       let a = 0, b = 1;
-      for (let i = 2; i <= n; i++) {
+      for (let i = 2; i &lt;= n; i++) {
           [a, b] = [b, a + b];
       }
       return b;
@@ -115,7 +115,7 @@ It handles edge cases (n=0, n=1) and uses O(1) space.</code></pre>
                 <strong>Pi 的核心定位</strong>：一个开源的、自扩展的、多 LLM 提供商的交互式编码代理。它不是一个 IDE 插件，而是一个命令行工具，可以与任何编辑器配合使用。
             </div>
 
-            <table class="comparison-table">
+            <table tabindex="0" aria-label="可横向滚动的数据表" class="comparison-table">
                 <thead>
                     <tr>
                         <th>特性</th>
@@ -198,7 +198,7 @@ It handles edge cases (n=0, n=1) and uses O(1) space.</code></pre>
             <h2>1.4 Pi vs 传统 Chatbot：Agent Loop</h2>
             <p>Pi 的核心是一个 <span class="term" data-term="Agent Loop: 代理循环，agent 不断执行 调LLM→处理工具→循环 的循环">Agent Loop</span>。这与传统 chatbot 有本质区别：</p>
 
-            <div class="diagram-container">
+            <div tabindex="0" aria-label="可横向滚动的课程图示" class="diagram-container">
                 <svg viewBox="0 0 600 400" class="diagram">
                     <!-- User -->
                     <rect x="220" y="20" width="160" height="50" rx="8" fill="#4a9eff" opacity="0.9"/>
@@ -249,7 +249,7 @@ It handles edge cases (n=0, n=1) and uses O(1) space.</code></pre>
 
         <section>
             <h2>1.5 快速上手</h2>
-            <pre class="language-bash"><code># 安装
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-bash"><code># 安装
 npm install -g @earendil-works/pi-coding-agent
 
 # 单次打印模式（最简单）

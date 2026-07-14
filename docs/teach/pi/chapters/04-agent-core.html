@@ -70,7 +70,7 @@
 
   <p>Agent 的本质是一个<strong>循环</strong>：接收用户消息，调用 LLM 获取响应，如果响应中包含工具调用则执行工具，将结果反馈给 LLM，然后重复——直到 LLM 给出最终回答。</p>
 
-  <div class="diagram-container">
+  <div tabindex="0" aria-label="可横向滚动的课程图示" class="diagram-container">
     <svg viewBox="0 0 720 520" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13">
       <!-- Background -->
       <rect width="720" height="520" rx="8" fill="#161b22"/>
@@ -159,7 +159,7 @@
   <h3>2.1 agentLoop() — 入口点</h3>
 
   <span class="code-label">agent-loop.ts</span>
-  <pre><code><span class="code-highlight">export function agentLoop(
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code><span class="code-highlight">export function agentLoop(
   prompts: AgentMessage[],
   context: AgentContext,
   config: AgentLoopConfig,
@@ -187,7 +187,7 @@
   <h3>2.2 runAgentLoop() — 核心循环</h3>
 
   <span class="code-label">agent-loop.ts</span>
-  <pre><code>export async function runAgentLoop(
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>export async function runAgentLoop(
   prompts: AgentMessage[],
   context: AgentContext,
   config: AgentLoopConfig,
@@ -212,7 +212,7 @@
   <h3>2.3 agentLoopContinue() — 重试/继续</h3>
 
   <span class="code-label">agent-loop.ts</span>
-  <pre><code>export function agentLoopContinue(
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>export function agentLoopContinue(
   context: AgentContext,
   config: AgentLoopConfig,
   signal?: AbortSignal,
@@ -245,7 +245,7 @@
   </ul>
 
   <span class="code-label">agent-loop.ts — runLoop (简化)</span>
-  <pre><code>async function runLoop(...) {
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>async function runLoop(...) {
   let currentContext = initialContext;
   let config = initialConfig;
   let firstTurn = true;
@@ -325,7 +325,7 @@
   <h3>3.1 AgentOptions — 配置</h3>
 
   <span class="code-label">agent.ts — AgentOptions</span>
-  <pre><code>export interface AgentOptions {
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>export interface AgentOptions {
   initialState?: Partial&lt;Omit&lt;AgentState,
     "pendingToolCalls" | "isStreaming" | "streamingMessage" | "errorMessage"&gt;&gt;;
   convertToLlm?: (messages: AgentMessage[]) =&gt; Message[] | Promise&lt;Message[]&gt;;
@@ -351,7 +351,7 @@
   <h3>3.2 AgentState — 可观察状态</h3>
 
   <span class="code-label">types.ts — AgentState</span>
-  <pre><code>export interface AgentState {
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>export interface AgentState {
   systemPrompt: string;
   model: Model&lt;any&gt;;
   thinkingLevel: ThinkingLevel;
@@ -372,7 +372,7 @@
   <h3>3.3 createMutableAgentState() — 内部可变状态</h3>
 
   <span class="code-label">agent.ts — createMutableAgentState</span>
-  <pre><code>function createMutableAgentState(initialState?: Partial&lt;...&gt;): MutableAgentState {
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>function createMutableAgentState(initialState?: Partial&lt;...&gt;): MutableAgentState {
   let tools = initialState?.tools?.slice() ?? [];
   let messages = initialState?.messages?.slice() ?? [];
 
@@ -396,7 +396,7 @@
 
   <h3>3.4 Agent 的公共 API</h3>
 
-  <table>
+  <table tabindex="0" aria-label="可横向滚动的数据表">
     <tr><th>方法</th><th>说明</th></tr>
     <tr><td><code>prompt(input)</code></td><td>发送新消息启动循环。接受 string、AgentMessage 或 AgentMessage[]</td></tr>
     <tr><td><code>continue()</code></td><td>从当前 transcript 继续。最后一条消息必须是 user 或 toolResult</td></tr>
@@ -425,7 +425,7 @@
   <h3>4.1 AgentMessage 的定义</h3>
 
   <span class="code-label">types.ts</span>
-  <pre><code>export interface CustomAgentMessages {
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>export interface CustomAgentMessages {
   <span class="code-annotation">// Empty by default - apps extend via declaration merging</span>
 }
 
@@ -433,7 +433,7 @@
 
   <p>通过 TypeScript 的 <strong>declaration merging</strong>，应用可以扩展自定义消息类型：</p>
 
-  <pre><code>declare module "@earendil-works/pi-agent-core" {
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>declare module "@earendil-works/pi-agent-core" {
   interface CustomAgentMessages {
     <span class="code-highlight">artifact: ArtifactMessage;</span>
     <span class="code-highlight">notification: NotificationMessage;</span>
@@ -447,7 +447,7 @@
   <p>Agent 内部全程使用 <code>AgentMessage[]</code>。只有在<strong>调用 LLM 的边界</strong>才需要转换为 <code>Message[]</code>。这是 <code>convertToLlm</code> 的职责：</p>
 
   <span class="code-label">agent-loop.ts — streamAssistantResponse</span>
-  <pre><code>async function streamAssistantResponse(...): Promise&lt;AssistantMessage&gt; {
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>async function streamAssistantResponse(...): Promise&lt;AssistantMessage&gt; {
   <span class="code-annotation">// 1. transformContext 操作的是 AgentMessage[]
   let messages = context.messages;
   if (config.transformContext) {
@@ -471,7 +471,7 @@
   <h3>4.3 默认转换行为</h3>
 
   <span class="code-label">agent.ts — defaultConvertToLlm</span>
-  <pre><code>function defaultConvertToLlm(messages: AgentMessage[]): Message[] {
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>function defaultConvertToLlm(messages: AgentMessage[]): Message[] {
   return messages.filter(
     (message) => message.role === "user"
       || message.role === "assistant"
@@ -504,9 +504,9 @@
   <h3>5.1 sequential vs parallel</h3>
 
   <span class="code-label">types.ts — ToolExecutionMode</span>
-  <pre><code>export type ToolExecutionMode = "sequential" | "parallel";</code></pre>
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>export type ToolExecutionMode = "sequential" | "parallel";</code></pre>
 
-  <div class="diagram-container">
+  <div tabindex="0" aria-label="可横向滚动的课程图示" class="diagram-container">
     <svg viewBox="0 0 700 380" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12">
       <rect width="700" height="380" rx="8" fill="#161b22"/>
 
@@ -569,7 +569,7 @@
   <h3>5.2 执行决策逻辑</h3>
 
   <span class="code-label">agent-loop.ts — executeToolCalls</span>
-  <pre><code>async function executeToolCalls(...): Promise&lt;ExecutedToolCallBatch&gt; {
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>async function executeToolCalls(...): Promise&lt;ExecutedToolCallBatch&gt; {
   const toolCalls = assistantMessage.content.filter(c =&gt; c.type === "toolCall");
 
   <span class="code-highlight">const hasSequentialToolCall = toolCalls.some(
@@ -594,7 +594,7 @@
 
   <p>每个工具调用都有两个生命周期钩子：</p>
 
-  <table>
+  <table tabindex="0" aria-label="可横向滚动的数据表">
     <tr><th>钩子</th><th>时机</th><th>能力</th></tr>
     <tr>
       <td><code>beforeToolCall</code></td>
@@ -609,7 +609,7 @@
   </table>
 
   <span class="code-label">types.ts — AfterToolCallResult</span>
-  <pre><code>export interface AfterToolCallResult {
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>export interface AfterToolCallResult {
   content?: (TextContent | ImageContent)[];  <span class="code-annotation">// 替换全部 content</span>
   details?: unknown;                         <span class="code-annotation">// 替换全部 details</span>
   isError?: boolean;                         <span class="code-annotation">// 覆盖错误标志</span>
@@ -624,7 +624,7 @@
   <h3>6.1 shouldStopAfterTurn — 优雅停止</h3>
 
   <span class="code-label">types.ts — ShouldStopAfterTurnContext</span>
-  <pre><code>export interface ShouldStopAfterTurnContext {
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>export interface ShouldStopAfterTurnContext {
   message: AssistantMessage;
   toolResults: ToolResultMessage[];
   context: AgentContext;
@@ -645,7 +645,7 @@ shouldStopAfterTurn?: (context: ShouldStopAfterTurnContext)
   <h3>6.2 prepareNextTurn — 动态切换模型和上下文</h3>
 
   <span class="code-label">types.ts — AgentLoopTurnUpdate</span>
-  <pre><code>export interface AgentLoopTurnUpdate {
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>export interface AgentLoopTurnUpdate {
   context?: AgentContext;       <span class="code-annotation">// 替换整个上下文</span>
   model?: Model&lt;any&gt;;            <span class="code-annotation">// 切换模型</span>
   thinkingLevel?: ThinkingLevel; <span class="code-annotation">// 切换推理级别</span>
@@ -668,7 +668,7 @@ prepareNextTurn?: (context: PrepareNextTurnContext)
   <h3>6.5 QueueMode — 队列模式</h3>
 
   <span class="code-label">types.ts — QueueMode</span>
-  <pre><code>export type QueueMode = "all" | "one-at-a-time";</code></pre>
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>export type QueueMode = "all" | "one-at-a-time";</code></pre>
 
   <p>控制消息队列的排水方式：</p>
   <ul>
@@ -677,7 +677,7 @@ prepareNextTurn?: (context: PrepareNextTurnContext)
   </ul>
 
   <span class="code-label">agent.ts — PendingMessageQueue</span>
-  <pre><code>class PendingMessageQueue {
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>class PendingMessageQueue {
   private messages: AgentMessage[] = [];
   public mode: QueueMode;
 
@@ -702,7 +702,7 @@ prepareNextTurn?: (context: PrepareNextTurnContext)
   <h3>7.1 AgentEvent 联合类型</h3>
 
   <span class="code-label">types.ts — AgentEvent</span>
-  <pre><code>export type AgentEvent =
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>export type AgentEvent =
   <span class="code-annotation">// Agent lifecycle</span>
   | { type: "agent_start" }
   | { type: "agent_end"; messages: AgentMessage[] }
@@ -727,7 +727,7 @@ prepareNextTurn?: (context: PrepareNextTurnContext)
 
   <h3>7.2 一个 Turn 的事件时间线</h3>
 
-  <div class="diagram-container">
+  <div tabindex="0" aria-label="可横向滚动的课程图示" class="diagram-container">
     <svg viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">
       <rect width="720" height="360" rx="8" fill="#161b22"/>
 
@@ -805,10 +805,10 @@ prepareNextTurn?: (context: PrepareNextTurnContext)
   <p>Agent 支持六个级别的推理深度，对应不同 LLM 的 "thinking" / "reasoning" 能力。</p>
 
   <span class="code-label">types.ts — ThinkingLevel</span>
-  <pre><code>export type ThinkingLevel =
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>export type ThinkingLevel =
   | "off" | "minimal" | "low" | "medium" | "high" | "xhigh";</code></pre>
 
-  <table>
+  <table tabindex="0" aria-label="可横向滚动的数据表">
     <tr><th>Level</th><th>说明</th><th>典型用途</th></tr>
     <tr><td><code>off</code></td><td>不使用推理</td><td>简单任务，速度优先</td></tr>
     <tr><td><code>minimal</code></td><td>最小推理</td><td>几乎不需要思考</td></tr>
@@ -825,7 +825,7 @@ prepareNextTurn?: (context: PrepareNextTurnContext)
 
   <p>在 Agent 中设置 thinking level：</p>
 
-  <pre><code>const agent = new Agent({
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>const agent = new Agent({
   initialState: {
     thinkingLevel: "high",  <span class="code-annotation">// 默认 "off"</span>
     thinkingBudgets: {
@@ -837,7 +837,7 @@ prepareNextTurn?: (context: PrepareNextTurnContext)
 
   <p>通过 <code>prepareNextTurn</code> 可以在运行时动态切换推理深度：</p>
 
-  <pre><code>const agent = new Agent({
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>const agent = new Agent({
   prepareNextTurn: async (context) =&gt; {
     <span class="code-annotation">// 如果工具调用失败，切换到更深的推理</span>
     const hasErrors = context.toolResults.some(r =&gt; r.isError);
@@ -856,7 +856,7 @@ prepareNextTurn?: (context: PrepareNextTurnContext)
   </div>
 
   <span class="code-label">minimal-agent.ts (完整可运行示例)</span>
-  <pre><code>import { Agent } from "@earendil-works/pi-agent-core";
+  <pre tabindex="0" aria-label="可横向滚动的代码示例"><code>import { Agent } from "@earendil-works/pi-agent-core";
 import type { AgentEvent, AgentMessage } from "@earendil-works/pi-agent-core";
 
 <span class="code-annotation">// 1. 定义一个简单的工具</span>

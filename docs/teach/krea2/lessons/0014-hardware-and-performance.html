@@ -1,0 +1,25 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：编译、attention kernel、显存与性能"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>编译、attention kernel、显存与性能</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Code Reconstruction</span></div><a href="0013-code-to-tensor-trace.html">上一课</a><a href="0015-experiment-design.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 14 / Engineering Evidence</p><h1>编译、attention kernel、显存与性能</h1><p class="lede">同一个公式可以在不同设备上表现为不同的运行结果。研究者必须把硬件前提写进实验，并将环境错误与模型错误分别诊断。</p><div class="meta"><span>前置：shape trace</span><span>产物：hardware matrix</span><span>实验：CPU/GPU 对照</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>数学公式给出可计算关系；当前实现还要求 CUDNN attention，并在若干方法上使用 TorchInductor/Triton compile。运行条件因此受硬件和软件环境约束。</p></section>
+<section><h2>直觉：同一条路有不同收费站</h2><p>模型 forward 是路线，dtype、memory、kernel backend 和 compiler 是收费站。CPU 可以理解公式，却没有 CUDNN attention；没有 C compiler，第一次 torch.compile 就会在模型计算前失败；2k resolution 又会显著增加 token 和 mask 成本。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">source code -&gt; PyTorch graph -&gt; torch.compile -&gt; Triton/C++ kernels -&gt; CUDA device
+     |               |                 |                    |
+  syntax OK      shape OK       compiler required       backend required
+                                                            |
+                                                   memory + timing</div></section>
+<section><h2>公式：显存如何随序列增长</h2><p>联合序列长度近似为 <code>L = text_len + image_tokens</code>。如果显式构造 <code>(B,1,L,L)</code> mask，mask 元素数按 <code>O(L²)</code> 增长。1024 图像大约有 4096 image tokens，2k 图像约有 16384 image tokens，注意力计算和 mask 都会明显变重。</p><p>参数存储只是显存的一部分：<code>memory = weights + activations + attention workspace + temporary tensors</code>。</p></section>
+<section><h2>代码：两个硬件耦合点</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code># mmdit.py
+with sdpa_kernel(SDPBackend.CUDNN_ATTENTION):
+    x = F.scaled_dot_product_attention(...)
+
+@torch.compile(fullgraph=True)
+def forward(...):
+    ...
+</code></pre><p>H100、CUDNN SDPA、4:2 GQA 和可用 C compiler 构成待验证的硬件计划。实际成功或失败必须附环境版本、命令、日志和测量结果后才能写入实验记录。</p></section>
+<section><h2>实验：建立 hardware matrix</h2><div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table><thead><tr><th>维度</th><th>记录内容</th><th>失败时的解释</th></tr></thead><tbody><tr><td>软件</td><td>Python、Torch、Transformers、Diffusers</td><td>API/版本契约不满足</td></tr><tr><td>编译</td><td>gcc/clang、Triton、compile cache</td><td>图尚未进入 kernel 执行</td></tr><tr><td>设备</td><td>GPU 型号、driver、显存、CUDA</td><td>backend 或容量不支持</td></tr><tr><td>规模</td><td>resolution、L、batch、CFG</td><td>计算或显存随规模增长</td></tr><tr><td>结果</td><td>耗时、峰值显存、输出 finite</td><td>区分慢、OOM、NaN、坏图</td></tr></tbody></table></div><p>不要只测一次。至少 warm-up 后测多次，报告均值和离散程度；第一次 compile 时间应单独记录。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/mmdit.py#L32-L44">attention backend</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/mmdit.py#L117-L160">compile decorators</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/pyproject.toml">pyproject.toml</a>。</p><p><strong>Teaching use：</strong>将工程前提转为可测量的实验变量。</p><p><strong>Scope：</strong>当前结论以本地 H100 和项目代码为范围；不同 GPU、driver、Torch 版本必须重新验证。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么 CPU 上 attention 公式能算但项目仍可能失败？</li><li>为什么第一次推理不适合直接作为 latency benchmark？</li><li>2k 图像为什么不是 1k 图像的“宽高各加倍”这么简单？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>项目强制指定 CUDNN backend，并依赖 CUDA/compile 环境。第一次包含图编译和 kernel cache。2k 的空间边长加倍后，latent 面积约变四倍，image token 和部分 attention 成本按面积/序列平方增长，不能用线性直觉估计。</p><p><strong>常见误解：</strong>“OOM”不是模型质量结论；它首先是资源配置和规模条件的观察。</p></details></section>
+<section class="next"><strong>Next action：</strong>用实验矩阵模板进入 <a href="0015-experiment-design.html">第 15 课</a>，先定义变量再运行 benchmark。</section></main><footer class="foot"><a href="../reference/evidence-and-sources.html#reproducibility-and-evaluation">来源：复现与评测</a></footer>
+</body></html>

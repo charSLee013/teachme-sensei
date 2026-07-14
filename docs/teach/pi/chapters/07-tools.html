@@ -71,7 +71,7 @@
                 <li><span class="term" data-term="AgentTool: Agent 工具，包含定义 + 执行函数">AgentTool</span>：包含 ToolDefinition + 实际执行函数</li>
             </ul>
 
-            <div class="diagram-container">
+            <div tabindex="0" aria-label="可横向滚动的课程图示" class="diagram-container">
                 <svg viewBox="0 0 600 200" class="diagram">
                     <!-- LLM -->
                     <rect x="30" y="60" width="100" height="60" rx="8" fill="#ff6b6b" opacity="0.8"/>
@@ -120,7 +120,7 @@
 
         <section>
             <h2>7.2 工具工厂模式</h2>
-            <pre class="language-ts"><code>// core/tools/index.ts
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// core/tools/index.ts
 export type ToolName = "read" | "bash" | "edit" | "write" | "grep" | "find" | "ls";
 
 export function createTool(toolName: ToolName, cwd: string, options?: ToolsOptions): Tool {
@@ -151,7 +151,7 @@ export function createReadOnlyTools(cwd: string, options?: ToolsOptions): Tool[]
 
         <section>
             <h2>7.3 逐一介绍 7 个工具</h2>
-            <table class="comparison-table">
+            <table tabindex="0" aria-label="可横向滚动的数据表" class="comparison-table">
                 <thead>
                     <tr>
                         <th>工具</th>
@@ -212,7 +212,7 @@ export function createReadOnlyTools(cwd: string, options?: ToolsOptions): Tool[]
             <p>Edit 工具是最复杂的内置工具，它使用<span class="term" data-term="Unified Diff: 统一 diff 格式，经典的文件差异表示法">统一 diff 格式</span>进行精确编辑：</p>
 
             <h3>TypeBox Schema</h3>
-            <pre class="language-ts"><code>export const EditToolInput = Type.Object({
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>export const EditToolInput = Type.Object({
   file_path: Type.String({ description: "Absolute path to the file to modify" }),
   old_string: Type.String({ description: "The exact text to replace" }),
   new_string: Type.String({ description: "The replacement text" }),
@@ -220,7 +220,7 @@ export function createReadOnlyTools(cwd: string, options?: ToolsOptions): Tool[]
 });</code></pre>
 
             <h3>发送给 LLM 的 JSON Schema</h3>
-            <pre class="language-json"><code>{
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-json"><code>{
   "name": "edit",
   "description": "Edit a file by replacing exact text...",
   "parameters": {
@@ -236,7 +236,7 @@ export function createReadOnlyTools(cwd: string, options?: ToolsOptions): Tool[]
 }</code></pre>
 
             <h3>执行逻辑</h3>
-            <pre class="language-ts"><code>export function createEditTool(cwd: string, options?: EditToolOptions): Tool {
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>export function createEditTool(cwd: string, options?: EditToolOptions): Tool {
   return {
     name: "edit",
     description: "Edit a file by replacing exact text...",
@@ -272,7 +272,7 @@ export function createReadOnlyTools(cwd: string, options?: ToolsOptions): Tool[]
         <section>
             <h2>7.5 文件变异队列</h2>
             <p>当多个工具并发执行时，需要保证文件操作的顺序：</p>
-            <pre class="language-ts"><code>// file-mutation-queue.ts
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// file-mutation-queue.ts
 export function withFileMutationQueue&lt;T&gt;(
   queueKey: string,
   fn: () =&gt; Promise&lt;T&gt;
@@ -290,7 +290,7 @@ export function withFileMutationQueue&lt;T&gt;(
         <section>
             <h2>7.6 输出截断</h2>
             <p>工具输出可能非常大（如 <code>grep</code> 返回数千行），需要截断以保护上下文窗口：</p>
-            <pre class="language-ts"><code>// truncate.ts
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// truncate.ts
 export const DEFAULT_MAX_BYTES = 2000 * 1024;  // 2MB
 export const DEFAULT_MAX_LINES = 2000;          // 2000 行
 
@@ -303,7 +303,7 @@ export function truncateLine(text: string, maxBytes: number): TruncationResult;
 
         <section>
             <h2>7.7 路径安全</h2>
-            <pre class="language-ts"><code>// path-utils.ts
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// path-utils.ts
 export function resolvePath(cwd: string, inputPath: string): string {
   // 1. 转换为绝对路径
   const resolved = path.resolve(cwd, inputPath);
@@ -373,7 +373,7 @@ export function normalizePath(filePath: string): string {
         <section class="callout exercise">
             <h2>7.9 练习</h2>
             <p>编写一个自定义 <code>note</code> 工具：保存带时间戳的笔记到文件。</p>
-            <pre class="language-ts"><code>// 参考实现框架
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// 参考实现框架
 export function createNoteTool(cwd: string): Tool {
   return {
     name: "note",

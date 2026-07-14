@@ -40,24 +40,24 @@
     <p>标准视频生成从纯噪声 $t=1$（即 $x_1=\varepsilon$）一路去噪到 $t=0$（干净 latent $x_0$）。refiner 的任务不同：它已经有一段 base 输出 $x_{\text{up}}$（低分辨率、被上采样、细节退化的 latent），要做的是<b>局部细节恢复</b>，不是从零生成内容。所以它没必要走完整噪声区间。</p>
 
     <p>在 Rectified Flow 的直线插值框架下（见 <a href="05-diffusion-pipeline-loop.html">Lesson 05</a>），任意时刻 $t$ 的带噪 latent 是干净信号与噪声的线性组合：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ x_t = (1-t)\,x_0 + t\,\varepsilon,\qquad \varepsilon\sim\mathcal{N}(0,I) $$
     </div>
     <p>refiner 把 degraded base latent $x_{\text{up}}$ 当作"近似干净信号"，注入到 $t=t_{\text{thresh}}$ 这个低噪声点上，这正是 <code>prepare_refiner_latent</code> 做的：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ x_{t_{\text{thresh}}} = (1-t_{\text{thresh}})\,x_{\text{up}} + t_{\text{thresh}}\,\varepsilon $$
     </div>
     <p>直观理解：$t_{\text{thresh}}$ 越小，起点越接近 $x_{\text{up}}$（保留更多 base 结构，改动更保守）；$t_{\text{thresh}}$ 越大，注入的噪声越多，refiner 有更大自由度重写细节（但可能偏离 base）。这是一个"忠实度 vs 修复力度"的旋钮。</p>
 
     <h3>sigma 调度：flow-shift 变换</h3>
     <p><code>compute_refiner_sigmas</code> 先在 $[\sigma_{\max},\sigma_{\min}]$ 上均匀取 $N{+}1$ 个点并丢掉末点，再对每个 $\sigma$ 施加 flow-shift：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ \sigma_{\text{base}} = \text{linspace}(\sigma_{\max},\sigma_{\min},N{+}1)[:-1],\qquad
          \sigma' = \frac{s\cdot\sigma_{\text{base}}}{1+(s-1)\cdot\sigma_{\text{base}}} $$
     </div>
     <p>其中 $s$ 是 shift 参数。当 $s=1$ 时 $\sigma'=\sigma$（恒等）；当 $s>1$ 时，函数把中间值往上抬，等价于<b>把更多采样步数分配到高噪声区间</b>——这对视频这种高维信号有利，因为高噪声段的结构决策更需要密集步数。</p>
 
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ \text{保留 } \sigma' \le t_{\text{thresh}}+\epsilon,\qquad
          \text{强制 } \sigma'_0 = t_{\text{thresh}},\qquad
          \text{(可选) tail\_steps: 线性延伸至 } \sigma_{\min} $$
@@ -82,7 +82,7 @@
     </div>
 
     <h3>与同类调度 / 细化方案的对比</h3>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <thead>
         <tr><th>方案</th><th>起点</th><th>步数分配</th><th>谱系</th></tr>
       </thead>

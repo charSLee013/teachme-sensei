@@ -709,3 +709,30 @@ body:not([data-course-page]) td:first-child {
     min-height: 900px;
   }
 }
+
+
+main,
+.page,
+section {
+  min-width: 0;
+}
+
+pre,
+table,
+.math-block {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.math-block {
+  width: 100%;
+}
+
+.page p,
+.page li,
+.page td,
+.page a,
+.page :not(pre) > code {
+  overflow-wrap: anywhere;
+}

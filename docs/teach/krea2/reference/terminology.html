@@ -1,0 +1,30 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：Terminology and Scope"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>Terminology and Scope</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Reference</span></div><a href="../lessons/0001-repository-as-research-object.html">回到第 1 课</a></header>
+<main>
+<section class="hero"><p class="kicker">Reference / Shared Vocabulary</p><h1>Terminology and Scope</h1><p class="lede">统一术语，才能把中文直觉、英文论文、代码变量和实验表格指向同一个对象。</p></section>
+<section class="remember"><p class="label">先记住</p><p>当一个词在课程中有特殊定义时，以“当前代码中的 operational meaning”为准，并在论文里给出符号或实现位置。漂亮但模糊的术语不能替代定义。</p></section>
+<section><h2>核心词表</h2><div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table><thead><tr><th>术语</th><th>本课程的工作定义</th><th>代码/证据锚点</th><th>常见混淆</th></tr></thead><tbody>
+<tr><td>checkpoint</td><td>某一组固定模型权重和配置的可加载状态。</td><td><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/inference.py#L20-L54">inference.py:load</a>、官方 HF model card</td><td>不是“模型架构”本身，也不是一次运行的配置。</td></tr>
+<tr><td>latent</td><td>VAE 编解码器内部的连续表示；Krea 2 采样在 latent space 中进行。</td><td><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/autoencoder.py">autoencoder.py</a></td><td>与 image token 含义不同；image token 描述 patchify 后的布局。</td></tr>
+<tr><td>image token</td><td>latent 的局部 patch 被排列成的 sequence element。</td><td><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L16-L35">sampling.py:prepare</a></td><td>与 tokenizer 产生的文本 token 含义不同。</td></tr>
+<tr><td>condition/context</td><td>由文本编码器提供、供 MMDiT 使用的 hidden states。</td><td><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/encoder.py#L60-L72">encoder.py:forward</a></td><td>不是 prompt 原字符串，也不是 attention mask。</td></tr>
+<tr><td>velocity</td><td>flow-matching 路径上模型预测的方向/速度，Euler 用它更新 latent。</td><td><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L99-L115">sampling.py:model output</a></td><td>不是最终图像，也不是训练 loss 的名字。</td></tr>
+<tr><td>guidance / CFG</td><td>用 conditional 与 unconditional 预测的差值进行条件外推。</td><td><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L105-L111">sampling.py:CFG</a></td><td>不同库的 scale 参数可能采用不同公式。</td></tr>
+<tr><td>timestep schedule</td><td>采样过程实际访问的时间点列表；它由 steps、mu、sigma 和分辨率关系共同决定。</td><td><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L37-L59">sampling.py:timesteps</a></td><td>不只是 steps 数。</td></tr>
+<tr><td>Raw / Turbo</td><td>官方公开的两个 Krea 2 checkpoint 定位：Raw 为基础模型，Turbo 为少步蒸馏模型。</td><td><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/README.md#L16-L36">README</a></td><td>不是同一个 checkpoint 的两个 UI 模式。</td></tr>
+<tr><td>evidence</td><td>能支持一个明确 claim 的代码、公式、原始输出、统计或官方文档。</td><td><a href="../lessons/0017-reproducibility-protocol.html">第 17 课</a></td><td>“我觉得图更好看”只能是观察，不自动是 evidence。</td></tr>
+<tr><td>scope</td><td>claim 成立的条件边界：checkpoint、分辨率、prompt、seed、硬件、指标和实验区间。</td><td><a href="../lessons/0024-limitations-and-negative-results.html">第 24 课</a></td><td>不是论文最后随便加的一句免责声明。</td></tr>
+</tbody></table></div></section>
+<section><h2>中文与英文写作对照</h2><div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table><thead><tr><th>中文思考</th><th>英文落笔时的精确对象</th><th>需要补充</th></tr></thead><tbody>
+<tr><td>效果更好</td><td><code>improves [named metric] under [protocol]</code></td><td>指标、基线、样本和统计量。</td></tr>
+<tr><td>更快</td><td><code>reduces end-to-end latency / denoising latency</code></td><td>计时范围、warm-up、batch size、硬件。</td></tr>
+<tr><td>更符合 prompt</td><td><code>improves text-image alignment measured by [metric/protocol]</code></td><td>对齐指标和失败案例。</td></tr>
+<tr><td>模型学到了</td><td><code>the observed behavior is consistent with [mechanism]</code></td><td>说明这是机制解释还是训练事实。</td></tr>
+</tbody></table></div></section>
+<section><h2>CCF、ACM MM 与本课程边界</h2><p>本课程把“CCF 顶级编著者”解释为：能读原始论文、提出可检验问题、实现可复查实验、写出有证据和边界的英文研究论文，并能回应审稿意见。它不把某一次会议录用、某个排名或某个指标当成学习结果。</p><p>ACM MM 的具体模板、匿名规则、页数和截止时间会按当期官方 CFP 变化；论文写作时应核对当期官方页面。CCF 推荐目录也可能更新，不能把课程生成的静态页面当作当前目录的权威副本。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://www.acm.org/publications/proceedings-template">ACM proceedings template</a>、<a href="https://www.acmmm.org/">ACM Multimedia conference site</a>、<a href="https://www.ccf.org.cn/Academic_Evaluation/By_category">CCF 学术评价分类目录页面</a>、本地 <a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/README.md">README</a>。</p><p><strong>Teaching use：</strong>减少“同词不同义”，让代码变量、图表和英文句子互相可追踪。</p><p><strong>Scope：</strong>网页可能更新；写作与投稿前记录访问日期、页面标题和适用年份。</p></section>
+<section class="next"><strong>用法：</strong>开始写论文时，把本页词表中的词全部替换成定义过的对象，不用“质量、效果、理解、优化”这类无指标名词单独承担结论。</section>
+</main><footer class="foot"><a href="../course-map.html">回到课程地图</a></footer>
+</body></html>

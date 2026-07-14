@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：指标、统计与错误分析"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>指标、统计与错误分析</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Research Method</span></div><a href="0015-experiment-design.html">上一课</a><a href="0017-reproducibility-protocol.html">下一课</a></header>
+<main><section class="hero"><p class="kicker">Lesson 16 / Research Method</p><h1>指标、统计与错误分析</h1><p class="lede">生成图像研究既不能只看一张图，也不能把一个自动指标当成真理。指标必须与问题、样本、失败类型和人工检查一起解释。</p><div class="meta"><span>前置：实验矩阵</span><span>产物：metric card</span><span>实验：指标一致性</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>每个指标只回答有限问题：文本对齐、审美质量、速度和人工偏好分别测量不同对象；可泛化结论还需要采样协议与统计证据。</p></section>
+<section><h2>直觉：不同尺子量不同东西</h2><p>用尺子量温度不会得到长度。CLIP 类对齐指标、aesthetic score、人工偏好、生成耗时和峰值显存分别量不同对象。论文可信度来自多种指标之间的关系和冲突；挑选最高数字会引入选择偏差。</p><div class="table-wrap" tabindex="0" aria-label="可横向滚动的数据表"><table><thead><tr><th>问题</th><th>候选证据</th><th>必须承认的盲点</th></tr></thead><tbody><tr><td>是否遵循 prompt</td><td>文本图像对齐、人工逐项检查</td><td>语言/文化偏差，细节遗漏</td></tr><tr><td>视觉质量</td><td>审美模型、人评、失败率</td><td>审美不是事实正确</td></tr><tr><td>是否更快</td><td>warm latency、throughput</td><td>首次 compile、batch、硬件影响</td></tr><tr><td>是否更省资源</td><td>峰值显存、权重占用</td><td>测量工具和后台负载影响</td></tr></tbody></table></div></section>
+<section><h2>公式：均值不是全部</h2><p>对同一设置的 seed 指标 <code>m_1,...,m_n</code>，报告：</p><p><code>mean = (1/n)Σm_i</code>，<code>sample_std = sqrt(Σ(m_i-mean)²/(n-1))</code></p><p>若比较两个设置，至少报告差值、样本数和不确定性。不要把五个 seed 的差异写成普遍规律；应说明 prompt 类型、分辨率和 checkpoint 范围。</p></section>
+<section><h2>代码：结果表不应丢掉 provenance</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>record = {
+    "checkpoint": checkpoint,
+    "steps": steps,
+    "cfg": cfg,
+    "mu": mu,
+    "prompt_id": prompt_id,
+    "seed": seed,
+    "metric_alignment": float(alignment),
+    "metric_quality": float(quality),
+    "latency_ms": latency_ms,
+    "peak_memory_mb": peak_memory_mb,
+    "failure": None,
+}
+</code></pre><p>每一行结果都应该能回指到生成文件和运行配置。没有 provenance 的漂亮表格不能用于复现。</p></section>
+<section><h2>实验：错误分类而非只删除</h2><ol><li>定义结构错误：手、文字、物体数量、空间关系。</li><li>定义条件错误：prompt 遗漏、风格漂移、颜色错位。</li><li>定义系统错误：OOM、NaN、编译失败、文件写入失败。</li><li>每类统计频率，并保存代表性失败样本。</li></ol><p>错误分析用于识别结论边界并决定下一步实验；分类和频率比情绪化描述更有用。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong>本课的统计公式和 metric card 是研究方法解释；实际指标实现必须在 source note 中记录版本和适用范围。</p><p><strong>Teaching use：</strong>将质量、对齐和系统性能拆成不同测量问题。</p><p><strong>Scope：</strong>本课程不把任一自动指标宣传为人类视觉质量的完整代理。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么平均分高但失败率高的设置仍然可能不可用？</li><li>如果 latency 降低但文本对齐降低，你会如何写结论？</li><li>负结果应该存在哪里？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>平均分隐藏尾部风险；部署可能更关心失败率。结论应写成 trade-off，例如“在本 prompt/seed/resolution 范围内，Turbo 减少 latency，但对齐指标下降/不确定性增加”。负结果应进入原始记录、错误分析表、论文 limitation 和补充材料，并保留其出现条件。</p><p><strong>常见误解：</strong>没有显著差异也是结果，不是“实验失败”。</p></details></section>
+<section class="next"><strong>Next action：</strong>把每个指标写成一张 metric card，然后进入 <a href="0017-reproducibility-protocol.html">可复现 protocol</a>。</section></main><footer class="foot"><a href="../reference/evidence-and-sources.html#reproducibility-and-evaluation">来源：复现与评测</a></footer>
+</body></html>

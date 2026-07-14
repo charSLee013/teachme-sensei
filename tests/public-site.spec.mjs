@@ -27,18 +27,33 @@ for (const route of manifest.htmlRoutes) {
     const runtimeFailures = [];
     const optionalFailures = [];
     const consoleErrors = [];
+    const localResourceFailures = [];
     page.on("requestfailed", (request) => {
       const url = new URL(request.url());
+      if (url.origin === "http://127.0.0.1:4173") {
+        localResourceFailures.push(`${request.url()} ${request.failure()?.errorText ?? "request failed"}`);
+        return;
+      }
       if (!runtimeHosts.has(url.hostname)) return;
       (optionalRuntimeHosts.has(url.hostname) ? optionalFailures : runtimeFailures).push(`${request.url()} ${request.failure()?.errorText ?? "request failed"}`);
     });
     page.on("response", (response) => {
       const url = new URL(response.url());
-      if (!runtimeHosts.has(url.hostname) || response.status() >= 200 && response.status() < 300) return;
+      if (response.status() >= 200 && response.status() < 300) return;
+      if (url.origin === "http://127.0.0.1:4173") {
+        localResourceFailures.push(`${response.url()} HTTP ${response.status()}`);
+        return;
+      }
+      if (!runtimeHosts.has(url.hostname)) return;
       (optionalRuntimeHosts.has(url.hostname) ? optionalFailures : runtimeFailures).push(`${response.url()} HTTP ${response.status()}`);
     });
     page.on("pageerror", (error) => consoleErrors.push(error.message));
-    page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
+    page.on("console", (message) => {
+      if (message.type() !== "error") return;
+      const text = message.text();
+      if (/Failed to load resource/i.test(text)) return;
+      consoleErrors.push(text);
+    });
 
     const response = await page.goto(pathFor(route), { waitUntil: "domcontentloaded" });
     expect(response?.status(), route).toBeGreaterThanOrEqual(200);
@@ -47,6 +62,27 @@ for (const route of manifest.htmlRoutes) {
     await expect(page.locator("main")).toHaveCount(1);
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(page.locator("link[rel~='icon']")).toHaveCount(1);
+    const stylesheets = await page.locator("link[rel~='stylesheet']").evaluateAll((links) => links.map((link) => {
+      const sheet = [...document.styleSheets].find((candidate) => candidate.href === link.href);
+      let rules = -1;
+      try { rules = sheet?.cssRules.length ?? 0; } catch { rules = -1; }
+      return { href: link.href, rules };
+    }));
+    for (const stylesheet of stylesheets) {
+      const url = new URL(stylesheet.href);
+      if (url.origin === "http://127.0.0.1:4173") {
+        expect(stylesheet.rules, `${route} local stylesheet is loaded and non-empty: ${stylesheet.href}`).toBeGreaterThan(0);
+      } else {
+        expect(runtimeHosts.has(url.hostname), `${route} external stylesheet host is allowlisted: ${stylesheet.href}`).toBe(true);
+      }
+    }
+    const overflow = await page.evaluate(() => ({
+      document: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      body: document.body.scrollWidth - document.body.clientWidth,
+    }));
+    expect(overflow.document, `${route} document horizontal overflow`).toBeLessThanOrEqual(1);
+    expect(overflow.body, `${route} body horizontal overflow`).toBeLessThanOrEqual(1);
+    expect(localResourceFailures, `${route} local resource failures`).toEqual([]);
     expect(runtimeFailures, `${route} required runtime failures`).toEqual([]);
     expect(consoleErrors, `${route} console errors`).toEqual([]);
     if (optionalFailures.length) test.info().annotations.push({ type: "warning", description: optionalFailures.join("; ") });
@@ -82,8 +118,24 @@ test("LingBot controls change and replay the Canvas state", async ({ page }) => 
   expect(await canvas.evaluate(canvasHash)).not.toBe(advanced);
 });
 
+test("Krea2 layered answer opens without JavaScript", async ({ page }) => {
+  await page.goto("/teach/krea2/lessons/0001-repository-as-research-object.html", { waitUntil: "domcontentloaded" });
+  const details = page.locator("details").first();
+  await expect(details).not.toHaveAttribute("open", "");
+  await details.locator("summary").click();
+  await expect(details).toHaveAttribute("open", "");
+  await expect(details.locator("p").first()).toBeVisible();
+});
+
 test("representative pages have no serious axe violations", async ({ page }) => {
-  for (const route of ["index.html", "teach/pi/index.html", "teach/lingbot-video/index.html"]) {
+  for (const route of [
+    "index.html",
+    "teach/pi/index.html",
+    "teach/krea2/index.html",
+    "teach/krea2/lessons/0014-hardware-and-performance.html",
+    "teach/krea2/reference/evidence-and-sources.html",
+    "teach/lingbot-video/index.html",
+  ]) {
     await page.goto(pathFor(route), { waitUntil: "domcontentloaded" });
     if (route === "teach/lingbot-video/index.html") {
       await expect(page.locator("canvas").first()).toHaveAttribute("data-runtime-ready", "true");

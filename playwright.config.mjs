@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
+  testMatch: "public-site.spec.mjs",
   timeout: 45_000,
   expect: { timeout: 10_000 },
   workers: 1,

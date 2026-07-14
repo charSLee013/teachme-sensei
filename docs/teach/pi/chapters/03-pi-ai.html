@@ -82,7 +82,7 @@
 
         <section>
             <h2>3.2 三层架构</h2>
-            <div class="diagram-container">
+            <div tabindex="0" aria-label="可横向滚动的课程图示" class="diagram-container">
                 <svg viewBox="0 0 600 300" class="diagram">
                     <!-- Layer 3: Types -->
                     <rect x="100" y="20" width="400" height="60" rx="8" fill="#e67e22" opacity="0.8"/>
@@ -119,7 +119,7 @@
             <p><code>packages/ai/src/types.ts</code> 是整个包的基石。它定义了所有 LLM 交互的统一类型：</p>
 
             <h3>KnownApi — 9 种 API 协议</h3>
-            <pre class="language-ts"><code>export type KnownApi =
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>export type KnownApi =
   | "openai-completions"
   | "mistral-conversations"
   | "openai-responses"
@@ -131,7 +131,7 @@
   | "google-vertex";</code></pre>
 
             <h3>Model — 泛型模型定义</h3>
-            <pre class="language-ts"><code>export interface Model&lt;TApi extends Api&gt; {
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>export interface Model&lt;TApi extends Api&gt; {
   id: string;
   name: string;
   api: TApi;           // 关联的 API 协议
@@ -147,7 +147,7 @@
 }</code></pre>
 
             <h3>AssistantMessageEvent — 流式事件协议</h3>
-            <pre class="language-ts"><code>export type AssistantMessageEvent =
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>export type AssistantMessageEvent =
   | { type: "start"; partial: AssistantMessage }
   | { type: "text_start"; contentIndex: number; partial: AssistantMessage }
   | { type: "text_delta"; contentIndex: number; delta: string; partial: AssistantMessage }
@@ -167,7 +167,7 @@
             <p><code>packages/ai/src/models.ts</code> 定义了 Provider 的构建和管理：</p>
 
             <h3>Provider 接口</h3>
-            <pre class="language-ts"><code>export interface Provider&lt;TApi extends Api = Api&gt; {
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>export interface Provider&lt;TApi extends Api = Api&gt; {
   readonly id: string;
   readonly name: string;
   readonly auth: ProviderAuth;
@@ -182,7 +182,7 @@
 }</code></pre>
 
             <h3>createProvider() 构建器</h3>
-            <pre class="language-ts"><code>export function createProvider&lt;TApi extends Api = Api&gt;(
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>export function createProvider&lt;TApi extends Api = Api&gt;(
   input: CreateProviderOptions&lt;TApi&gt;
 ): Provider&lt;TApi&gt; {
   // 支持两种模式：
@@ -207,7 +207,7 @@
 }</code></pre>
 
             <h3>Models 运行时集合</h3>
-            <pre class="language-ts"><code>export interface Models {
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>export interface Models {
   getProviders(): readonly Provider[];
   getModels(provider?: string): readonly Model&lt;Api&gt;[];
   getModel(provider: string, id: string): Model&lt;Api&gt; | undefined;
@@ -222,7 +222,7 @@
         <section>
             <h2>3.5 认证系统</h2>
             <p>Pi 的认证系统支持多种方式：</p>
-            <pre class="language-ts"><code>// ProviderAuth 类型
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// ProviderAuth 类型
 type ProviderAuth = ApiKeyAuth | OAuthAuth;
 
 // API Key 认证
@@ -240,7 +240,7 @@ interface OAuthAuth {
 }</code></pre>
 
             <h3>认证解析流程</h3>
-            <div class="diagram-container">
+            <div tabindex="0" aria-label="可横向滚动的课程图示" class="diagram-container">
                 <svg viewBox="0 0 500 200" class="diagram">
                     <rect x="50" y="20" width="120" height="40" rx="6" fill="#4a9eff" opacity="0.8"/>
                     <text x="110" y="45" text-anchor="middle" fill="white" font-size="11">Request</text>
@@ -294,7 +294,7 @@ interface OAuthAuth {
             <p>每个模块导出 <code>stream()</code> 和 <code>streamSimple()</code> 两个函数，满足 <code>ProviderStreams</code> 接口。</p>
 
             <h3>延迟加载 — lazy.ts</h3>
-            <pre class="language-ts"><code>// lazy.ts — 延迟创建 stream 实现
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// lazy.ts — 延迟创建 stream 实现
 export function lazyStream(
   model: Model&lt;Api&gt;,
   create: () =&gt; Promise&lt;AssistantMessageEventStream&gt;
@@ -306,7 +306,7 @@ export function lazyStream(
 
         <section>
             <h2>3.7 Faux Provider — 测试的假提供商</h2>
-            <pre class="language-ts"><code>// packages/ai/src/providers/faux.ts
+            <pre tabindex="0" aria-label="可横向滚动的代码示例" class="language-ts"><code>// packages/ai/src/providers/faux.ts
 export function fauxProvider(): Provider&lt;"openai-responses"&gt; {
   return createProvider({
     id: "faux",

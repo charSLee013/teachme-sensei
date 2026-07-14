@@ -41,25 +41,25 @@
 
     <h3>通路一：VLM 语义条件</h3>
     <p>首帧先经 <code>smart_resize</code> 对齐到 patch 网格，再作为图像输入喂给多模态文本编码器，与文本 prompt 联合编码：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ c_{\text{text}} = \text{Encode}\big(\text{prompt},\; \text{img}=\text{smartResize}(I)\big) $$
     </div>
     <p>其中 <code>smart_resize</code> 把边长对齐到 $\text{patch\_factor}=\text{vision\_patch\_size}\times\text{SPATIAL\_MERGE\_SIZE}$，且 $\text{SPATIAL\_MERGE\_SIZE}=2$。这条通路改变的是<b>条件表征 $c_{\text{text}}$</b>——让文本编码"看见"首帧里的主体、外观、布局，使后续 cross/self-attention 的语义锚点与首帧一致。</p>
 
     <h3>通路二：VAE latent 条件</h3>
     <p>同一张首帧走几何预处理与 VAE 编码，得到 latent 前缀。预处理 <code>preprocess_image</code> 先按 $\max(h,w)$ 缩放，再中心裁剪到目标 $H\times W$，归一化到 $[0,1]$ 并加时间维：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ \text{pixel} \in [0,1]^{3\times 1\times H\times W},\qquad \text{norm\_pixel} = \frac{\text{pixel}-0.5}{0.5}\in[-1,1] $$
     </div>
     <p>VAE 编码采样后，还要用训练统计量做 latent 归一化，使条件 latent 与扩散模型训练时的 latent 分布一致：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ z_0 = \big(\text{VAE.encode}(\text{norm\_pixel}).\text{sample}() - \mu\big)\odot \sigma^{-1},\qquad \mu,\sigma \in \mathbb{R}^{[1,C,1,1,1]} $$
     </div>
     <p>这里 $\odot\sigma^{-1}$ 是逐通道乘以 <code>std_inv</code>（等价除以标准差），$\mu/\sigma$ 从 <code>vae.config.latents_mean/latents_std</code> reshape 成 $[1,C,1,1,1]$ 后按通道广播。忘记这步归一化，条件 latent 的数值尺度会偏离模型预期，导致首帧"过曝"或"发灰"。</p>
 
     <h3>核心操作：first-frame inpainting</h3>
     <p><code>_apply_inpainting</code> 是一个 staticmethod，做的是<b>硬替换</b>而非软融合：</p>
-    <div class="math-block">
+    <div tabindex="0" aria-label="可横向滚动的公式" class="math-block">
       $$ c_t = \texttt{cond\_latent.shape[2]},\qquad x[:,\,:,\,:c_t] \;\leftarrow\; z_0\ (\text{cast to float}) $$
     </div>
     <p>它把当前 latent 张量 $x\in\mathbb{R}^{[1,C,T',H',W']}$ 的前 $c_t$ 个 latent 帧直接覆盖为干净首帧 latent。TI2V 里 $c_t=1$：只钉住 frame-0。注意这是 $\leftarrow$（赋值），不是 $\alpha z_0+(1-\alpha)x$（插值）——所以叫 inpainting，等价于"这块区域已知，别去噪它"。</p>
@@ -87,7 +87,7 @@
     </div>
 
     <h3>与同类 I2V/首帧条件方案的对比</h3>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <thead>
         <tr><th>方案</th><th>首帧注入方式</th><th>语义条件</th><th>谱系</th></tr>
       </thead>

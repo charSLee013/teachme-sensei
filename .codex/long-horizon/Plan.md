@@ -3,7 +3,7 @@
 ## 计划摘要
 
 - 目标：按 Prompt 中的七个实现面修复公开教学站，并建立可阻断错误发布的静态/浏览器/同步验证回路。
-- 当前阶段：M3，实施、全量验证和发布前证明已完成，正在记录最后一次 CI/浏览器复核。
+- 当前阶段：M6，公开产物与双视口浏览器证明已完成，进入最终 artifact proof 与提交。
 - 发布真相：提交到 `docs/` 的产物。
 
 ## 架构意图
@@ -83,6 +83,54 @@ committed docs -> public manifest/static verify -> Chromium smoke -> Pages deplo
 ## 未决问题
 
 - 无产品决策未决；若实现发现源包布局与冻结布局不同，暂停并更新 Prompt/Plan 后再继续。
+
+## Krea2 扩展里程碑
+
+### M4 - 适配器与确定性内容转换
+
+- 目标：新增深模块 `scripts/course-adapters/krea2.mjs`，接入 source lock、staging 和 sync-owned transaction；生成课程入口、聚合证据页及 35 个转换页面。
+- 验收标准：45 个白名单输入可重建 37 个 HTML 和 1 个 CSS；源结构、source schema、固定 revision 链接、精确文案替换和零脚本约束任一漂移都会失败。
+- 验证：适配器单测、`node --check`、fixture 缺文件/坏 schema/lock mismatch/double hash、`git diff --check`。
+- 风险反例：源包多一个无关文件不得进入输出；source 标题缺一节不得生成半成品；旧行号超出固定 revision 必须在 staging 被拦截。
+
+### M5 - 公开契约与回归门禁
+
+- 目标：将 public manifest 扩展到 112 路由，完善静态验证、外部依赖、Playwright、workflow verifier 和 CI static gate。
+- 验收标准：实际 route/asset 集合与 manifest 完全一致；Krea2 无治理路径、Markdown 泄漏、越界链接、禁用文案或脚本；可选字体断网保持 warning，站内资源和 required runtime 失败保持 hard failure。
+- 验证：`npm run verify:public`、`npm run verify:workflow`、`npm run test:sync-fixture`、全部 JS `node --check`。
+- 风险反例：浏览器将 Google Fonts 的 console load error 二次记为页面失败；manifest route 数写成魔法常量；窄屏的长 URL 或 code 块触发水平滚动。
+
+### M6 - 公开产物、浏览器证明与提交
+
+- 目标：通过显式 source root 更新 lock 与 committed docs，完成 112 route 双视口、Krea2 interaction/axe、全量测试、只读 review、artifact survival 和提交。
+- 验收标准：`--check` 可从锁定输入逐字节重现 committed docs；224 次 route 访问及专项交互通过；最终证据与实际 worktree 一致。
+- 验证：`npm test`、`npm run smoke:public`、finalizer、artifact survival、`git diff --check`、`git status --short`。
+- 风险反例：生成中断不得破坏旧 docs；重复生成不得产生时间戳或顺序漂移；最终 proof 必须在提交前重新运行。
+
+### Krea2 文件边界
+
+```text
+scripts/course-adapters/krea2.mjs
+scripts/course-adapters/krea2-copy-edits.json
+scripts/sync-teaching-packages.mjs
+scripts/test-sync-fixture.mjs
+scripts/teaching-source-lock.json
+scripts/public-site-manifest.json
+scripts/external-dependencies.json
+scripts/verify-public-site.mjs
+scripts/verify-workflow.mjs
+tests/public-site.spec.mjs
+package.json
+.github/workflows/static.yml
+docs/index.html
+docs/teach/index.html
+docs/teach/krea2/**
+.codex/long-horizon/*.md
+artifacts/final-manifest.json
+.codex/governance/final-check.json
+```
+
+其余课程保持正文语义；全站门禁发现的响应式布局、滚动区可访问性与坏 HTML 由既有同步 sanitizer 统一修复。
 
 ## 可执行契约索引
 

@@ -1,0 +1,34 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：概率、噪声与可复现随机性"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>概率、噪声与可复现随机性</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body>
+<header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Foundation</span></div><a href="0002-tensors-and-shapes.html">上一课</a><a href="0004-neural-network-inference.html">下一课</a></header>
+<main>
+<section class="hero"><p class="kicker">Lesson 03 / Foundation</p><h1>概率、噪声与可复现随机性</h1><p class="lede">生成模型从随机 latent 出发，再由条件和模型逐步更新状态并形成图像。</p><div class="meta"><span>前置：shape</span><span>产物：seed protocol</span><span>实验：CPU 可完成</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>seed 不是图片本身，也不是质量参数。它只固定随机过程的起点；相同 seed 只有在模型、版本、设备、dtype、参数和算法都相同的条件下才有可比意义。</p></section>
+<section><h2>直觉：从同一堆沙子开始</h2><p>把 latent noise 想成一堆随机沙子。prompt 不会直接“画出”对象，它改变的是每个时间点应该朝哪个方向移动。换一个 seed，就像换一堆沙子；换 CFG 或 steps，则像换了雕刻规则。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">seed=7  -&gt; noise A -&gt; trajectory A -&gt; image A
+seed=8  -&gt; noise B -&gt; trajectory B -&gt; image B
+
+same seed + different CFG/steps/model version
+       -&gt; different trajectory -&gt; not a controlled seed comparison</div></section>
+<section><h2>公式：随机变量与条件分布</h2><p>初始 latent 可写成 <code>X_1 ~ N(0, I)</code>。模型要近似的是给定文本条件 <code>c</code> 后的生成过程，最终得到 <code>X_0 ~ p(x | c)</code>。实验中我们常用一个有限 seed 集合 <code>S={s_1,...,s_k}</code> 估计平均表现和方差，而不能只看一张最好的图。</p><p>若评价指标为 <code>m(s)</code>，平均值是 <code>mean(m(s))</code>，稳定性至少要同时报告 <code>std(m(s))</code> 或置信区间。</p></section>
+<section><h2>代码：每张图独立生成器</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code># sampling.py
+torch.randn(
+    1, ae.channels, height // ae.compression,
+    width // ae.compression,
+    device=device, dtype=dtype,
+    generator=torch.Generator(device=device).manual_seed(seed + i),
+)
+</code></pre><p>这里每个 image index 使用 <code>seed+i</code>，所以 batch 顺序不会把一张图的随机数消耗掉后影响下一张。这是一个明确的 reproducibility 选择，但跨 Torch/CUDA 版本仍不保证 bitwise identical。</p></section>
+<section><h2>实验：seed、参数与方差</h2><ol><li>用 toy denoiser 对 seeds 0-4 生成向量。</li><li>固定 seeds，只改一个变量，例如 steps 8 -&gt; 16。</li><li>记录均值、标准差和失败样本，不只保存视觉最好的输出。</li></ol><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>results = []
+for seed in range(5):
+    image = toy_sample(seed=seed, steps=8, guidance=0.0)
+    results.append(metric(image))
+print(sum(results) / len(results))
+</code></pre></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L90-L105">sampling.py 的 seeded noise</a>；概率分布与均值/方差是课程基础解释。</p><p><strong>Teaching use：</strong>把“随机生成”转成可设计的统计实验。</p><p><strong>Scope：</strong>本课不声称一个 seed 能代表模型整体质量；真实质量评估需要固定 prompt 集合、多个 seed 和指标。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么改变 seed 后不应把两张图的差异归因于 CFG？</li><li>如果只报告一张 seed=0 的图，读者无法知道什么？</li><li>如何设计一个只测 steps 影响的公平实验？</li></ol><details><summary>分层答案</summary><p><strong>标准答案：</strong>seed 同时改变初始随机 latent 和整条轨迹，因此它是混杂变量。单张图无法估计平均质量、方差或失败率。公平设计应固定 checkpoint、prompt、resolution、CFG、mu、dtype、device 和 seed 集合，只改变 steps，并报告均值、离散程度和代表性图像。</p><p><strong>常见误解：</strong>固定 seed 只解决随机起点，不解决版本、kernel、浮点数和模型 revision 的差异。</p></details></section>
+<section class="next"><strong>Next action：</strong>把“固定项/变化项/记录项”写成一张实验表，为第 15 课预留。</section>
+</main><footer class="foot"><a href="../lessons/0017-reproducibility-protocol.html">后续：可复现 protocol</a></footer>
+
+</body></html>

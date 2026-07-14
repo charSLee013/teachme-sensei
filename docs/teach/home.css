@@ -16,6 +16,8 @@
   --anima-soft: rgba(107, 91, 149, 0.11);
   --flux2: #7a4b2f;
   --flux2-soft: rgba(122, 75, 47, 0.12);
+  --krea2: #0c6670;
+  --krea2-soft: rgba(12, 102, 112, 0.11);
   --lingbot: #2f7d6b;
   --lingbot-soft: rgba(47, 125, 107, 0.11);
   --ok: #136e52;
@@ -264,6 +266,10 @@ body[data-lang="en"] .lang-zh {
   border-top: 4px solid var(--flux2);
 }
 
+.course-panel.krea2 {
+  border-top: 4px solid var(--krea2);
+}
+
 .course-panel.lingbot {
   border-top: 4px solid var(--lingbot);
 }
@@ -317,6 +323,12 @@ body[data-lang="en"] .lang-zh {
   background: var(--flux2-soft);
   color: var(--flux2);
   border-color: rgba(122, 75, 47, 0.2);
+}
+
+.badge.krea2 {
+  background: var(--krea2-soft);
+  color: var(--krea2);
+  border-color: rgba(12, 102, 112, 0.18);
 }
 
 .badge.lingbot {
@@ -437,6 +449,12 @@ body[data-lang="en"] .lang-zh {
   color: #fff;
 }
 
+.button.primary.krea2 {
+  background: var(--krea2);
+  border-color: var(--krea2);
+  color: #fff;
+}
+
 .button.primary.lingbot {
   background: var(--lingbot);
   border-color: var(--lingbot);
@@ -485,6 +503,10 @@ body[data-lang="en"] .lang-zh {
   grid-template-columns: 180px repeat(5, minmax(0, 1fr));
 }
 
+.compare.six {
+  grid-template-columns: 180px repeat(6, minmax(0, 1fr));
+}
+
 .compare div {
   padding: 14px 16px;
   border-right: 1px solid var(--line);
@@ -525,6 +547,17 @@ body[data-lang="en"] .lang-zh {
   border-right: 0;
 }
 
+.compare.six div:nth-child(3n),
+.compare.six div:nth-child(4n),
+.compare.six div:nth-child(5n),
+.compare.six div:nth-child(6n) {
+  border-right: 1px solid var(--line);
+}
+
+.compare.six div:nth-child(7n) {
+  border-right: 0;
+}
+
 .compare div:last-child,
 .compare div:nth-last-child(2),
 .compare div:nth-last-child(3) {
@@ -543,6 +576,13 @@ body[data-lang="en"] .lang-zh {
 .compare.five div:nth-last-child(4),
 .compare.five div:nth-last-child(5),
 .compare.five div:nth-last-child(6) {
+  border-bottom: 0;
+}
+
+.compare.six div:nth-last-child(4),
+.compare.six div:nth-last-child(5),
+.compare.six div:nth-last-child(6),
+.compare.six div:nth-last-child(7) {
   border-bottom: 0;
 }
 
@@ -604,7 +644,8 @@ code {
   .compare,
   .compare.three,
   .compare.four,
-  .compare.five {
+  .compare.five,
+  .compare.six {
     grid-template-columns: 1fr;
   }
 
@@ -614,7 +655,8 @@ code {
 
   .compare.three div:nth-child(n),
   .compare.four div:nth-child(n),
-  .compare.five div:nth-child(n) {
+  .compare.five div:nth-child(n),
+  .compare.six div:nth-child(n) {
     border-right: 0;
   }
 
@@ -623,7 +665,11 @@ code {
   .compare.three div:nth-last-child(4),
   .compare.five div:nth-last-child(4),
   .compare.five div:nth-last-child(5),
-  .compare.five div:nth-last-child(6) {
+  .compare.five div:nth-last-child(6),
+  .compare.six div:nth-last-child(4),
+  .compare.six div:nth-last-child(5),
+  .compare.six div:nth-last-child(6),
+  .compare.six div:nth-last-child(7) {
     border-bottom: 1px solid var(--line);
   }
 }

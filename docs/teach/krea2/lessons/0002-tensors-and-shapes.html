@@ -1,0 +1,40 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+    <meta name="description" content="Teachme Sensei 课程页：PyTorch 张量与 shape 思维"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg"><title>PyTorch 张量与 shape 思维</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body>
+<header class="topbar"><div class="crumbs"><a href="../course-map.html">课程地图</a><span>/</span><span>Foundation</span></div><a href="0001-repository-as-research-object.html">上一课</a><a href="0003-probability-and-noise.html">下一课</a></header>
+<main>
+<section class="hero"><p class="kicker">Lesson 02 / Foundation</p><h1>PyTorch 张量与 shape 思维</h1><p class="lede">读深度学习代码时，shape 属于接口契约。任何维度解释错误都会让后续公式和图像失去可信度。</p><div class="meta"><span>前置：第 1 课</span><span>产物：shape contract</span><span>实验：CPU 可完成</span></div></section>
+<section class="remember"><p class="label">Remember now</p><p>每个张量都至少有四个问题：它的 shape 是什么？它在哪个 device？它是什么 dtype？每个 axis 的语义是什么？</p></section>
+<section><h2>直觉：维度是名词，不是数字</h2><p><code>(B, C, H, W)</code> 这四个维度依次描述图片数量、通道数量、行数和列数。同一个数字处在不同轴时具有不同含义。Krea 2 会在 <code>(B,C,H,W)</code> 的 latent 和 <code>(B,N,D)</code> 的 packed token 之间转换。</p><div class="diagram" tabindex="0" aria-label="可横向滚动的课程图示">pixel image:   (B, 3, 1024, 1024)
+VAE latent:    (B, 16, 128, 128)       compression = 8
+patch tokens:  (B, 4096, 64)           patch = 2
+text states:   (B, 512, 12, 2560)       12 selected layers
+combined:      (B, 4608, 6144)          text + image</div></section>
+<section><h2>公式：reshape 不改变元素总数</h2><p>若张量 <code>x</code> 的元素总数为 <code>∏ s_i</code>，合法 reshape 必须保持这个乘积不变。对 latent 做 patchify 时：</p><p><code>(B, C, H, W) -&gt; (B, H/p * W/p, C*p*p)</code></p><p>例如 <code>(1,16,128,128)</code> 在 <code>p=2</code> 时成为 <code>(1,4096,64)</code>，因为 <code>4096*64 = 16*128*128</code>。这不是压缩；它只是把空间邻域重新排列成 token。</p></section>
+<section><h2>代码：追踪 `prepare`</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code># sampling.py
+b, _, h, w = img.shape
+h_, w_ = h // patch, w // patch
+img = rearrange(
+    img,
+    "b c (h ph) (w pw) -&gt; b (h w) (c ph pw)",
+    ph=patch, pw=patch,
+)
+</code></pre><p>这里的 <code>h_</code> 与 <code>w_</code> 是 token 网格尺寸；<code>img</code> 的最后一维保存一个 patch 内的所有通道和像素。后续 <a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/mmdit.py#L338-L340">mmdit.py 的 first Linear</a> 正好接收 <code>channels * patch**2</code>。</p></section>
+<section><h2>实验：用 round-trip 抓 shape 错误</h2><pre tabindex="0" aria-label="可横向滚动的代码示例"><code>import torch
+from einops import rearrange
+
+x = torch.randn(2, 16, 8, 10)
+p = 2
+tokens = rearrange(x, "b c (h ph) (w pw) -&gt; b (h w) (c ph pw)", ph=p, pw=p)
+y = rearrange(tokens, "b (h w) (c ph pw) -&gt; b c (h ph) (w pw)",
+              h=4, w=5, c=16, ph=p, pw=p)
+assert x.shape == y.shape
+assert torch.equal(x, y)
+</code></pre><p>实验重点是确认转换可逆。把 <code>h=4</code> 改成 <code>h=5</code>，错误应该在当前转换处暴露，避免十层之后才表现成坏图。</p></section>
+<section class="evidence"><p class="label">Evidence and scope</p><p><strong>Source：</strong><a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L20-L37">sampling.py:prepare</a>、<a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/mmdit.py#L338-L340">mmdit.py:first</a>。</p><p><strong>Teaching use：</strong>把 einops 模式读法与真实 Krea 2 token contract 连接。</p><p><strong>Scope：</strong>本课讲布局变化，不把 patchify 误称为 VAE 压缩，也不涉及训练反向传播。</p></section>
+<section><h2>Retrieval practice</h2><ol><li>为什么 1024x1024 图像经 VAE 后不是 1024x1024 latent？</li><li>为什么 patchify 后 token 数是空间面积除以 <code>patch**2</code>？</li><li>如果输入宽度不是 16 的倍数，当前 sampler 做了什么？</li></ol><details><summary>分层答案</summary><p><strong>提示：</strong>区分 VAE 的 compression=8 和 patch=2。</p><p><strong>标准答案：</strong>VAE 将空间降到 128x128；patchify 再把 2x2 latent 邻域打包，所以 token 网格是 64x64，共 4096 个 token，每个 token 有 16x2x2=64 个数。当前 <a href="https://github.com/krea-ai/krea-2/blob/cf3c9102c924168699b90d97a2cb15059d761488/sampling.py#L80-L83">roundup</a> 将宽高向上补齐到 compression*patch=16 的倍数。</p><p><strong>常见误解：</strong>patchify 不减少元素总数；真正的空间压缩发生在 VAE。</p></details></section>
+<section class="next"><strong>Next action：</strong>写一份自己的 shape contract，至少列出 <code>noise</code>、<code>txt</code>、<code>pos</code>、<code>mask</code> 和 MMDiT 输出。</section>
+</main><footer class="foot"><a href="../reference/tensor-shape-atlas.html">参考：Tensor shape atlas</a></footer>
+
+</body></html>

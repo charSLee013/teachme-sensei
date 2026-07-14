@@ -96,7 +96,7 @@
         <!-- ================================================================ -->
         <p>SDK 的入口在 <code>src/index.ts</code>，它重新导出了所有公共 API：</p>
 
-        <pre><code class="language-typescript">// src/index.ts — SDK 公共入口
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// src/index.ts — SDK 公共入口
 export { createAgentSession } from './session';
 export { createAgentSessionRuntime } from './runtime';
 export { createAgentSessionServices } from './services';
@@ -105,7 +105,7 @@ export { InteractiveMode, runPrintMode, runRpcMode } from './modes';
 export type { AgentSessionEvent, AgentSessionEventListener } from './agent-session';</code></pre>
 
         <p>在消费端，你只需：</p>
-        <pre><code class="language-typescript">import {
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">import {
     createAgentSession,
     createCodingTools,
     InteractiveMode,
@@ -117,7 +117,7 @@ export type { AgentSessionEvent, AgentSessionEventListener } from './agent-sessi
 
         <h3>createAgentSession()</h3>
         <p>创建并配置一个 agent 会话。这是最常用的入口：</p>
-        <pre><code class="language-typescript">const session = await createAgentSession({
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">const session = await createAgentSession({
     model: 'claude-sonnet-4-20250514',
     tools: createCodingTools(),
     systemPrompt: 'You are a helpful coding assistant.',
@@ -126,7 +126,7 @@ export type { AgentSessionEvent, AgentSessionEventListener } from './agent-sessi
 
         <h3>createAgentSessionRuntime()</h3>
         <p>创建低层运行时，暴露消息循环和 token 流：</p>
-        <pre><code class="language-typescript">const runtime = await createAgentSessionRuntime({
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">const runtime = await createAgentSessionRuntime({
     model: 'claude-sonnet-4-20250514',
     stream: true,
     maxTurns: 10,
@@ -137,7 +137,7 @@ runtime.on('token', (tok) => process.stdout.write(tok));</code></pre>
 
         <h3>createAgentSessionServices()</h3>
         <p>创建独立的服务实例（memory、tool registry、formatter），便于细粒度控制：</p>
-        <pre><code class="language-typescript">const services = await createAgentSessionServices({
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">const services = await createAgentSessionServices({
     memory: { type: 'sliding-window', maxTokens: 4096 },
     tools: { registry: customRegistry },
     formatter: { provider: 'anthropic' },
@@ -154,7 +154,7 @@ runtime.on('token', (tok) => process.stdout.write(tok));</code></pre>
 
         <h3>createCodingTools()</h3>
         <p>返回完整的编码工具集——文件读写、shell 执行、搜索等：</p>
-        <pre><code class="language-typescript">import { createCodingTools } from 'pi-agent';
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">import { createCodingTools } from 'pi-agent';
 
 const tools = createCodingTools({
     // 可选：限制可访问的目录
@@ -168,7 +168,7 @@ console.log(tools.list().map(t => t.name));
 
         <h3>createReadOnlyTools()</h3>
         <p>只读工具集——适合代码审查、问答等不需要修改文件的操作：</p>
-        <pre><code class="language-typescript">import { createReadOnlyTools } from 'pi-agent';
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">import { createReadOnlyTools } from 'pi-agent';
 
 const tools = createReadOnlyTools(process.cwd());
 
@@ -186,7 +186,7 @@ console.log(tools.map(t => t.name));  // ['read', 'grep', 'find', 'ls']</code></
 
         <h3>InteractiveMode</h3>
         <p>交互式 REPL 模式——与 CLI 行为一致，但可编程控制：</p>
-        <pre><code class="language-typescript">import { InteractiveMode } from 'pi-agent';
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">import { InteractiveMode } from 'pi-agent';
 
 const mode = new InteractiveMode({
     session,
@@ -202,7 +202,7 @@ await mode.start();
 
         <h3>runPrintMode()</h3>
         <p>一次性运行，输出结果后退出——适合脚本和管道：</p>
-        <pre><code class="language-typescript">import { runPrintMode } from 'pi-agent';
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">import { runPrintMode } from 'pi-agent';
 
 await runPrintMode({
     session,
@@ -212,7 +212,7 @@ await runPrintMode({
 
         <h3>runRpcMode()</h3>
         <p>JSON-RPC over stdio——让外部程序通过结构化协议与 Pi 通信：</p>
-        <pre><code class="language-typescript">import { runRpcMode } from 'pi-agent';
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">import { runRpcMode } from 'pi-agent';
 
 await runRpcMode({
     session,
@@ -225,7 +225,7 @@ await runRpcMode({
         <!-- ================================================================ -->
         <p>SDK 通过 typed event system 暴露运行时事件。事件类型 <code>AgentSessionEvent</code> 是一个 discriminated union（类型 | AgentEvent | 会话特有事件）：</p>
 
-        <pre><code class="language-typescript">import type { AgentSessionEvent, AgentSessionEventListener } from 'pi-agent';
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">import type { AgentSessionEvent, AgentSessionEventListener } from 'pi-agent';
 
 // 订阅事件
 const listener: AgentSessionEventListener = (event) => {
@@ -263,7 +263,7 @@ session.on('tool_execution_start', (evt) => {
         <!-- ================================================================ -->
         <p>下面是一个约 40 行的完整工作示例——用 SDK 创建一个 agent 并让它回答问题：</p>
 
-        <pre><code class="language-typescript">// minimal-agent.ts
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-typescript">// minimal-agent.ts
 import {
     createAgentSession,
     createReadOnlyTools,
@@ -301,7 +301,7 @@ main().catch((err) => {
 });</code></pre>
 
         <p>运行方式：</p>
-        <pre><code class="language-bash">$ npx tsx minimal-agent.ts "Explain the plugin system"
+        <pre tabindex="0" aria-label="可横向滚动的代码示例"><code class="language-bash">$ npx tsx minimal-agent.ts "Explain the plugin system"
 You are a concise coding assistant.
 [tool] read_file({"path": "README.md"})
 [tool] list_dir({"path": "src/plugins"})

@@ -71,6 +71,24 @@
 - 不在收尾阶段删除并重建工作文档、manifest、lock 或主交付物。
 - 不把 source sync 作为 CI 发布前提。
 
+## Krea2 扩展执行顺序
+
+1. 先冻结 45 个输入与 38 个输出文件契约，并让 adapter/fixture 的失败用例先红后绿。
+2. 用 parse5 修改 text node 与 href，避开 script/style/code/pre 的语义误伤；每条 route-specific 文案修订核对预期次数。
+3. 聚合 source Markdown 时严格解析四节 schema，生成稳定 fragment id，公开页只呈现读者所需的证据、用途、范围、许可和安全信息。
+4. 在 stage 内运行 Krea2 专项检查，再运行全站 validator；验证成功后才进入现有 transaction。
+5. 由 public manifest 推导 sync-owned HTML 预期集合，移除 73 页魔法常量并覆盖 112 路由。
+6. 更新 committed docs 前先确认 `/private/tmp` 下六个源包和 lock 变化；使用 `--write --update-lock --source-root /private/tmp` 执行一次事务，再用 `--check` 证明重现。
+7. 完成静态、fixture、workflow、JS 语法、desktop/mobile Playwright、axe、artifact survival 和只读 review 后提交。
+
+## Krea2 实际收口
+
+- M4：45 个锁定输入经独立适配器生成 37 个 HTML 和 1 个 CSS；11 个 adapter 测试覆盖结构、脚本/事件/直接与 Markdown 生成的脚本协议、source schema、固定代码行号、空输出和符号链接。
+- M5：112-route manifest、reference/runtime dependency policy、同步事务 fixture 和 CI `static -> smoke -> report -> deploy` 门禁已验证。
+- M6：232 项 Playwright 通过；首轮发现的 Krea2 滚动区焦点、Pi 双布局与坏代码块、Ideogram 宽表格、LingBot 公式/长 token 溢出均在 canonical generator/sanitizer 中关闭。
+
+Krea2 的内容检查要覆盖首页、course map、全部 lesson、全部 reference 和生成证据页。必要的限制语句保留事实含义，句式直接陈述范围或条件。
+
 ## CI 固定 job 图
 
 ```text

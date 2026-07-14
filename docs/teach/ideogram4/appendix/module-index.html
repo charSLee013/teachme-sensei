@@ -23,7 +23,7 @@
 
   <section>
     <h2>系统层地图</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <thead><tr><th>系统层</th><th>主要模块</th><th>职责契约</th><th>课程跳转</th></tr></thead>
       <tbody>
         <tr><td>用户入口 / API</td><td>`run_inference.py`, `__init__.py`</td><td>暴露 CLI 入口和公开导入接口。</td><td><a href="../02-cli-api-contract.html">CLI 接口契约</a></td></tr>
@@ -40,7 +40,7 @@
 
   <section>
     <h2>不变量与失败模式</h2>
-    <table>
+    <table tabindex="0" aria-label="可横向滚动的数据表">
       <thead><tr><th>系统层</th><th>不变量</th><th>失败模式</th></tr></thead>
       <tbody>
         <tr><td>表示层</td><td>height 和 width 必须能被 `patch_size * ae_scale_factor = 16` 整除。</td><td>pipeline 会在进入采样前直接报错。</td></tr>

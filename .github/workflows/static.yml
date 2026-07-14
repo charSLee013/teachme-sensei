@@ -37,6 +37,12 @@ jobs:
       - name: Verify public site
         run: npm run verify:public
 
+      - name: Verify workflow contract
+        run: npm run verify:workflow
+
+      - name: Verify Krea2 adapter
+        run: npm run test:krea2-adapter
+
       - name: Verify sync fixture
         run: npm run test:sync-fixture
 
